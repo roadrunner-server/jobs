@@ -458,6 +458,10 @@ func (p *Plugin) Declare(pipeline *pipeline.Pipeline) error {
 		return errors.E(op, errors.Errorf("no associated driver with the pipeline, pipeline name: %s", pipeline.Name()))
 	}
 
+	if _, ok := p.pipelines.Load(pipeline.Name()); ok {
+		return errors.Errorf("pipeline already exists, name: %s, driver: %s", pipeline.Name(), pipeline.Driver())
+	}
+
 	// jobConstructors contains constructors for the drivers
 	// we need here to initialize these drivers for the pipelines
 	if _, ok := p.jobConstructors[dr]; ok {
