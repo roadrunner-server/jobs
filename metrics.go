@@ -1,6 +1,7 @@
 package jobs
 
 import (
+	"strconv"
 	"sync/atomic"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -25,7 +26,11 @@ type statsExporter struct {
 	jobsErr       *uint64
 	pushErr       *uint64
 
-	worker      *prometheus.Desc
+	totalMemoryDesc  *prometheus.Desc
+	stateDesc        *prometheus.Desc
+	workerMemoryDesc *prometheus.Desc
+	totalWorkersDesc *prometheus.Desc
+
 	pushOkDesc  *prometheus.Desc
 	pushErrDesc *prometheus.Desc
 	jobsErrDesc *prometheus.Desc
@@ -41,21 +46,29 @@ func newStatsExporter(stats informer.Informer, jobsOk, pushOk, jobsErr, pushErr 
 		jobsErr:       jobsErr,
 		pushErr:       pushErr,
 
-		worker:      prometheus.NewDesc("workers_memory_bytes", "Memory usage by JOBS workers.", nil, nil),
-		pushOkDesc:  prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "push_ok"), "Number of job push.", nil, nil),
-		pushErrDesc: prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "push_err"), "Number of jobs push which was failed.", nil, nil),
-		jobsErrDesc: prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "jobs_err"), "Number of jobs error while processing in the worker.", nil, nil),
-		jobsOkDesc:  prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "jobs_ok"), "Number of successfully processed jobs.", nil, nil),
+		totalMemoryDesc:  prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "workers_memory_bytes"), "Memory usage by JOBS workers", nil, nil),
+		workerMemoryDesc: prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "worker_memory_bytes"), "Worker current memory usage", []string{"pid"}, nil),
+		stateDesc:        prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "worker_state"), "Worker current state", []string{"state", "pid"}, nil),
+		totalWorkersDesc: prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "total_workers"), "Total number of workers used by the JOBS plugin", nil, nil),
+
+		pushOkDesc:  prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "push_ok"), "Number of job push", nil, nil),
+		pushErrDesc: prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "push_err"), "Number of jobs push which was failed", nil, nil),
+		jobsErrDesc: prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "jobs_err"), "Number of jobs error while processing in the worker", nil, nil),
+		jobsOkDesc:  prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "jobs_ok"), "Number of successfully processed jobs", nil, nil),
 	}
 }
 
 func (se *statsExporter) Describe(d chan<- *prometheus.Desc) {
 	// send description
-	d <- se.worker
+	d <- se.totalMemoryDesc
 	d <- se.pushErrDesc
 	d <- se.pushOkDesc
 	d <- se.jobsErrDesc
 	d <- se.jobsOkDesc
+
+	d <- se.stateDesc
+	d <- se.workerMemoryDesc
+	d <- se.totalWorkersDesc
 }
 
 func (se *statsExporter) Collect(ch chan<- prometheus.Metric) {
@@ -68,11 +81,14 @@ func (se *statsExporter) Collect(ch chan<- prometheus.Metric) {
 	// collect the memory
 	for i := 0; i < len(workers); i++ {
 		cum += workers[i].MemoryUsage
+
+		ch <- prometheus.MustNewConstMetric(se.stateDesc, prometheus.GaugeValue, 0, workers[i].Status, strconv.Itoa(workers[i].Pid))
+		ch <- prometheus.MustNewConstMetric(se.workerMemoryDesc, prometheus.GaugeValue, float64(workers[i].MemoryUsage), strconv.Itoa(workers[i].Pid))
 	}
 
 	// send the values to the prometheus
-	ch <- prometheus.MustNewConstMetric(se.worker, prometheus.GaugeValue, float64(cum))
-	// send the values to the prometheus
+	ch <- prometheus.MustNewConstMetric(se.totalWorkersDesc, prometheus.GaugeValue, float64(len(workers)))
+	ch <- prometheus.MustNewConstMetric(se.totalMemoryDesc, prometheus.GaugeValue, float64(cum))
 	ch <- prometheus.MustNewConstMetric(se.jobsOkDesc, prometheus.GaugeValue, float64(atomic.LoadUint64(se.jobsOk)))
 	ch <- prometheus.MustNewConstMetric(se.jobsErrDesc, prometheus.GaugeValue, float64(atomic.LoadUint64(se.jobsErr)))
 	ch <- prometheus.MustNewConstMetric(se.pushOkDesc, prometheus.GaugeValue, float64(atomic.LoadUint64(se.pushOk)))
