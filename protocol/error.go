@@ -24,6 +24,7 @@ func (rh *RespHandler) handleErrResp(data []byte, jb jobs.Acknowledger) error {
 		if err != nil {
 			return err
 		}
+		rh.log.Info("job was re-queued", zap.Error(errors.E(er.Msg)), zap.Int64("delay", er.Delay), zap.Bool("requeue", er.Requeue))
 		return nil
 	}
 
