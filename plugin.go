@@ -7,18 +7,20 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/roadrunner-server/api/v2/payload"
 	"github.com/roadrunner-server/api/v2/plugins/config"
 	"github.com/roadrunner-server/api/v2/plugins/jobs"
 	"github.com/roadrunner-server/api/v2/plugins/jobs/pipeline"
 	"github.com/roadrunner-server/api/v2/plugins/server"
+	"github.com/roadrunner-server/api/v2/pool"
+	"github.com/roadrunner-server/api/v2/pq"
+	"github.com/roadrunner-server/api/v2/state/process"
 	endure "github.com/roadrunner-server/endure/pkg/container"
 	"github.com/roadrunner-server/errors"
 	"github.com/roadrunner-server/goridge/v3/pkg/frame"
 	rh "github.com/roadrunner-server/jobs/v2/protocol"
-	"github.com/roadrunner-server/sdk/v2/payload"
-	"github.com/roadrunner-server/sdk/v2/pool"
-	pq "github.com/roadrunner-server/sdk/v2/priority_queue"
-	"github.com/roadrunner-server/sdk/v2/state/process"
+	pqImpl "github.com/roadrunner-server/sdk/v2/priority_queue"
+	processImpl "github.com/roadrunner-server/sdk/v2/state/process"
 	"github.com/roadrunner-server/sdk/v2/utils"
 	"go.uber.org/zap"
 )
@@ -107,7 +109,7 @@ func (p *Plugin) Init(cfg config.Configurer, log *zap.Logger, server server.Serv
 	}
 
 	// initialize priority queue
-	p.queue = pq.NewBinHeap(p.cfg.PipelineSize)
+	p.queue = pqImpl.NewBinHeap(p.cfg.PipelineSize)
 	p.log = new(zap.Logger)
 	*p.log = *log
 	p.metrics = &metrics{
@@ -199,7 +201,7 @@ func (p *Plugin) Serve() chan error {
 	go func() {
 		p.Lock()
 		var err error
-		p.workersPool, err = p.server.NewWorkerPool(context.Background(), p.cfg.Pool, map[string]string{RrMode: RrModeJobs})
+		p.workersPool, err = p.server.NewWorkerPool(context.Background(), p.cfg.Pool, map[string]string{RrMode: RrModeJobs}, nil)
 		if err != nil {
 			p.Unlock()
 			errCh <- err
@@ -265,7 +267,7 @@ func (p *Plugin) Workers() []*process.State {
 	ps := make([]*process.State, len(wrk))
 
 	for i := 0; i < len(wrk); i++ {
-		st, err := process.WorkerProcessState(wrk[i])
+		st, err := processImpl.WorkerProcessState(wrk[i])
 		if err != nil {
 			p.log.Error("jobs workers state", zap.Error(err))
 			return nil
