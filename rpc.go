@@ -5,7 +5,7 @@ import (
 
 	"github.com/roadrunner-server/api/v2/plugins/jobs"
 	"github.com/roadrunner-server/api/v2/plugins/jobs/pipeline"
-	jobsv1beta "github.com/roadrunner-server/api/v2/proto/jobs/v1beta"
+	jobsv1beta "github.com/roadrunner-server/api/v2/proto/jobs/v1"
 	"github.com/roadrunner-server/errors"
 )
 
