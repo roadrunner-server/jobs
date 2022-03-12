@@ -5,7 +5,7 @@ import (
 
 	"github.com/roadrunner-server/api/v2/plugins/jobs"
 	"github.com/roadrunner-server/api/v2/plugins/jobs/pipeline"
-	jobsv1beta "github.com/roadrunner-server/api/v2/proto/jobs/v1"
+	jobsv1 "github.com/roadrunner-server/api/v2/proto/jobs/v1"
 	"github.com/roadrunner-server/errors"
 )
 
@@ -13,7 +13,7 @@ type rpc struct {
 	p *Plugin
 }
 
-func (r *rpc) Push(j *jobsv1beta.PushRequest, _ *jobsv1beta.Empty) error {
+func (r *rpc) Push(j *jobsv1.PushRequest, _ *jobsv1.Empty) error {
 	const op = errors.Op("rpc_push")
 
 	// convert transport entity into domain
@@ -31,7 +31,7 @@ func (r *rpc) Push(j *jobsv1beta.PushRequest, _ *jobsv1beta.Empty) error {
 	return nil
 }
 
-func (r *rpc) PushBatch(j *jobsv1beta.PushBatchRequest, _ *jobsv1beta.Empty) error {
+func (r *rpc) PushBatch(j *jobsv1.PushBatchRequest, _ *jobsv1.Empty) error {
 	const op = errors.Op("rpc_push_batch")
 
 	l := len(j.GetJobs())
@@ -52,7 +52,7 @@ func (r *rpc) PushBatch(j *jobsv1beta.PushBatchRequest, _ *jobsv1beta.Empty) err
 	return nil
 }
 
-func (r *rpc) Pause(req *jobsv1beta.Pipelines, _ *jobsv1beta.Empty) error {
+func (r *rpc) Pause(req *jobsv1.Pipelines, _ *jobsv1.Empty) error {
 	for i := 0; i < len(req.GetPipelines()); i++ {
 		r.p.Pause(req.GetPipelines()[i])
 	}
@@ -60,7 +60,7 @@ func (r *rpc) Pause(req *jobsv1beta.Pipelines, _ *jobsv1beta.Empty) error {
 	return nil
 }
 
-func (r *rpc) Resume(req *jobsv1beta.Pipelines, _ *jobsv1beta.Empty) error {
+func (r *rpc) Resume(req *jobsv1.Pipelines, _ *jobsv1.Empty) error {
 	for i := 0; i < len(req.GetPipelines()); i++ {
 		r.p.Resume(req.GetPipelines()[i])
 	}
@@ -68,7 +68,7 @@ func (r *rpc) Resume(req *jobsv1beta.Pipelines, _ *jobsv1beta.Empty) error {
 	return nil
 }
 
-func (r *rpc) List(_ *jobsv1beta.Empty, resp *jobsv1beta.Pipelines) error {
+func (r *rpc) List(_ *jobsv1.Empty, resp *jobsv1.Pipelines) error {
 	resp.Pipelines = r.p.List()
 	return nil
 }
@@ -78,7 +78,7 @@ func (r *rpc) List(_ *jobsv1beta.Empty, resp *jobsv1beta.Pipelines) error {
 // 1. Driver
 // 2. Pipeline name
 // 3. Options related to the particular pipeline
-func (r *rpc) Declare(req *jobsv1beta.DeclareRequest, _ *jobsv1beta.Empty) error {
+func (r *rpc) Declare(req *jobsv1.DeclareRequest, _ *jobsv1.Empty) error {
 	const op = errors.Op("rpc_declare_pipeline")
 	pipe := &pipeline.Pipeline{}
 
@@ -94,7 +94,7 @@ func (r *rpc) Declare(req *jobsv1beta.DeclareRequest, _ *jobsv1beta.Empty) error
 	return nil
 }
 
-func (r *rpc) Destroy(req *jobsv1beta.Pipelines, resp *jobsv1beta.Pipelines) error {
+func (r *rpc) Destroy(req *jobsv1.Pipelines, resp *jobsv1.Pipelines) error {
 	const op = errors.Op("rpc_declare_pipeline")
 
 	var destroyed []string //nolint:prealloc
@@ -112,7 +112,7 @@ func (r *rpc) Destroy(req *jobsv1beta.Pipelines, resp *jobsv1beta.Pipelines) err
 	return nil
 }
 
-func (r *rpc) Stat(_ *jobsv1beta.Empty, resp *jobsv1beta.Stats) error {
+func (r *rpc) Stat(_ *jobsv1.Empty, resp *jobsv1.Stats) error {
 	const op = errors.Op("rpc_stats")
 	state, err := r.p.JobsState(context.Background())
 	if err != nil {
@@ -120,7 +120,7 @@ func (r *rpc) Stat(_ *jobsv1beta.Empty, resp *jobsv1beta.Stats) error {
 	}
 
 	for i := 0; i < len(state); i++ {
-		resp.Stats = append(resp.Stats, &jobsv1beta.Stat{
+		resp.Stats = append(resp.Stats, &jobsv1.Stat{
 			Pipeline: state[i].Pipeline,
 			Driver:   state[i].Driver,
 			Queue:    state[i].Queue,
@@ -135,7 +135,7 @@ func (r *rpc) Stat(_ *jobsv1beta.Empty, resp *jobsv1beta.Stats) error {
 }
 
 // from converts from transport entity to domain
-func from(j *jobsv1beta.Job) *jobs.Job {
+func from(j *jobsv1.Job) *jobs.Job {
 	headers := make(map[string][]string, len(j.GetHeaders()))
 
 	for k, v := range j.GetHeaders() {
