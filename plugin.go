@@ -556,7 +556,7 @@ func (p *Plugin) getPayload(body, context []byte) *payload.Payload {
 	pld := p.pldPool.Get().(*payload.Payload)
 	pld.Body = body
 	pld.Context = context
-	pld.Codec = frame.CODEC_JSON
+	pld.Codec = frame.CodecJSON
 	return pld
 }
 
