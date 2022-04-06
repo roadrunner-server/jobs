@@ -90,7 +90,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 						}
 
 						p.log.Debug("job was processed successfully", zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
-						// metrics
+						// exporter
 						atomic.AddUint64(p.metrics.jobsOk, 1)
 
 						jb = nil
@@ -118,7 +118,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 						continue
 					}
 
-					// metrics
+					// exporter
 					atomic.AddUint64(p.metrics.jobsOk, 1)
 
 					p.log.Debug("job was processed successfully", zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))

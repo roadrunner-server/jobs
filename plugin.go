@@ -37,7 +37,7 @@ const (
 	cfgKey string = "config"
 )
 
-type metrics struct {
+type exporter struct {
 	jobsOk, pushOk, jobsErr, pushErr *uint64
 }
 
@@ -53,7 +53,7 @@ type Plugin struct {
 	jobConstructors map[string]jobs.Constructor
 	consumers       sync.Map // map[string]jobs.Consumer
 
-	metrics *metrics
+	metrics *exporter
 
 	// priority queue implementation
 	queue pq.Queue
@@ -112,14 +112,14 @@ func (p *Plugin) Init(cfg config.Configurer, log *zap.Logger, server server.Serv
 	p.queue = pqImpl.NewBinHeap(p.cfg.PipelineSize)
 	p.log = new(zap.Logger)
 	*p.log = *log
-	p.metrics = &metrics{
+	p.metrics = &exporter{
 		jobsOk:  utils.Uint64(0),
 		pushOk:  utils.Uint64(0),
 		jobsErr: utils.Uint64(0),
 		pushErr: utils.Uint64(0),
 	}
 
-	// metrics
+	// exporter
 	p.statsExporter = newStatsExporter(p, p.metrics.jobsOk, p.metrics.pushOk, p.metrics.jobsErr, p.metrics.pushErr)
 	p.respHandler = rh.NewResponseHandler(log)
 
