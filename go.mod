@@ -32,6 +32,6 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20220405052023-b1e9470b6e64 // indirect
+	golang.org/x/sys v0.0.0-20220405210540-1e041c57c461 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 )
