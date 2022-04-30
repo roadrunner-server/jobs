@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"context"
+	"time"
 
 	"github.com/roadrunner-server/api/v2/plugins/jobs"
 	"github.com/roadrunner-server/api/v2/plugins/jobs/pipeline"
@@ -114,7 +115,9 @@ func (r *rpc) Destroy(req *jobsProto.Pipelines, resp *jobsProto.Pipelines) error
 
 func (r *rpc) Stat(_ *jobsProto.Empty, resp *jobsProto.Stats) error {
 	const op = errors.Op("rpc_stats")
-	state, err := r.p.JobsState(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	state, err := r.p.JobsState(ctx)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -148,6 +151,7 @@ func from(j *jobsProto.Job) *jobs.Job {
 		Ident:   j.GetId(),
 		Payload: j.GetPayload(),
 		Options: &jobs.Options{
+			AutoAck:  j.GetOptions().GetAutoAck(),
 			Priority: j.GetOptions().GetPriority(),
 			Pipeline: j.GetOptions().GetPipeline(),
 			Delay:    j.GetOptions().GetDelay(),
