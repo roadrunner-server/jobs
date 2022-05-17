@@ -51,19 +51,3 @@ example:
 
 
 ---
-
-#### `RESPONSE`: response message type. Message type - 2, with:
-
-- `queue` (eg. tube, subject) name.
-- `payload` which should be sent via response `Context`.   
-
-example:
-```json
-{
-  "type": 2,
-  "data": {
-    "queue": "foo",
-    "payload": "binary_payload"
-  }
-}
-```
