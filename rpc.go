@@ -125,6 +125,7 @@ func (r *rpc) Stat(_ *jobsProto.Empty, resp *jobsProto.Stats) error {
 	for i := 0; i < len(state); i++ {
 		resp.Stats = append(resp.Stats, &jobsProto.Stat{
 			Pipeline: state[i].Pipeline,
+			Priority: state[i].Priority,
 			Driver:   state[i].Driver,
 			Queue:    state[i].Queue,
 			Active:   state[i].Active,
