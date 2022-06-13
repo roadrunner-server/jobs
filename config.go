@@ -10,6 +10,7 @@ import (
 const (
 	// name used to set pipeline name
 	pipelineName string = "name"
+	priorityKey  string = "priority"
 )
 
 // Config defines settings for job broker, workers and job-pipeline mapping.
@@ -52,6 +53,7 @@ func (c *Config) InitDefaults() {
 	for k := range c.Pipelines {
 		// set the pipeline name
 		c.Pipelines[k].With(pipelineName, k)
+		c.Pipelines[k].With(priorityKey, int64(c.Pipelines[k].Int(priorityKey, 10)))
 	}
 
 	if c.Timeout == 0 {

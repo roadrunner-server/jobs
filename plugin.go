@@ -3,6 +3,7 @@ package jobs
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -463,6 +464,16 @@ func (p *Plugin) Declare(pipeline *pipeline.Pipeline) error {
 	if _, ok := p.pipelines.Load(pipeline.Name()); ok {
 		return errors.Errorf("pipeline already exists, name: %s, driver: %s", pipeline.Name(), pipeline.Driver())
 	}
+
+	// save priority as int64
+	pr := pipeline.String(priorityKey, "10")
+	prInt, err := strconv.Atoi(pr)
+	if err != nil {
+		// we can continue with a default priority
+		p.log.Error(priorityKey, zap.Error(err))
+	}
+
+	pipeline.With(priorityKey, int64(prInt))
 
 	// jobConstructors contains constructors for the drivers
 	// we need here to initialize these drivers for the pipelines
