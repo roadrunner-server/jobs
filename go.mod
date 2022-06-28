@@ -8,7 +8,7 @@ require (
 	github.com/roadrunner-server/api/v2 v2.18.0
 	github.com/roadrunner-server/endure v1.3.0
 	github.com/roadrunner-server/errors v1.1.2
-	github.com/roadrunner-server/goridge/v3 v3.4.2
+	github.com/roadrunner-server/goridge/v3 v3.4.4
 	github.com/roadrunner-server/sdk/v2 v2.16.0
 	go.buf.build/protocolbuffers/go/roadrunner-server/api v1.2.5
 	go.uber.org/zap v1.21.0
@@ -32,6 +32,6 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f // indirect
-	golang.org/x/sys v0.0.0-20220624220833-87e55d714810 // indirect
+	golang.org/x/sys v0.0.0-20220627191245-f75cf1eec38b // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 )
