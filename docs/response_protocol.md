@@ -9,7 +9,6 @@ Types are:
 ```
 0 - NO_ERROR
 1 - ERROR
-2 - RESPONSE
 ```
 
 #### `NO_ERROR`: contains only `type` - 0, and empty `data`.  
@@ -23,10 +22,10 @@ example:
 ---
 
 #### `ERROR` : contains `type` - 1, and `data` field with: 
-- `message` describing the error.  
-- `requeue` flag to requeue the job.  
-- `delay_seconds`: to delay a queue for a provided amount of seconds.   
-- `headers` - job's headers represented as hashmap with string key and array of strings as a value.  
+- `message` describing the error (type: string).  
+- `requeue` flag to requeue the job (type: boolean).  
+- `delay_seconds`: to delay a queue for a provided amount of seconds (type: integer).   
+- `headers` - job's headers represented as hashmap with string key and array of strings as a value. (type map[string][]string)  
 
 example:
 ```json
