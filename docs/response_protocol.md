@@ -25,7 +25,7 @@ example:
 - `message` describing the error (type: string).  
 - `requeue` flag to requeue the job (type: boolean).  
 - `delay_seconds`: to delay a queue for a provided amount of seconds (type: integer).   
-- `headers` - job's headers represented as hashmap with string key and array of strings as a value. (type map[string][]string)  
+- `headers` - job's headers represented as hashmap with string key and array of strings as a value. (type `map[string][]string` (hash-table, key - string, value - array of strings))  
 
 example:
 ```json
