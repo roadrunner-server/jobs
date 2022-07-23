@@ -152,10 +152,14 @@ func from(j *jobsProto.Job) *jobs.Job {
 		Ident:   j.GetId(),
 		Payload: j.GetPayload(),
 		Options: &jobs.Options{
-			AutoAck:  j.GetOptions().GetAutoAck(),
-			Priority: j.GetOptions().GetPriority(),
-			Pipeline: j.GetOptions().GetPipeline(),
-			Delay:    j.GetOptions().GetDelay(),
+			Priority:  j.GetOptions().GetPriority(),
+			Pipeline:  j.GetOptions().GetPipeline(),
+			Delay:     j.GetOptions().GetDelay(),
+			AutoAck:   j.GetOptions().GetAutoAck(),
+			Topic:     j.GetOptions().GetTopic(),
+			Metadata:  j.GetOptions().GetMetadata(),
+			Partition: j.GetOptions().GetPartition(),
+			Offset:    j.GetOptions().GetOffset(),
 		},
 	}
 
