@@ -193,8 +193,6 @@ github.com/prometheus/procfs v0.8.0 h1:ODq8ZFEaYeCaZOJlZZdJA2AbQR98dSHSM1KW/You5
 github.com/prometheus/procfs v0.8.0/go.mod h1:z7EfXMXOkbkqb9IINtpCn86r/to3BnA0uaxHdg830/4=
 github.com/roadrunner-server/api/v2 v2.20.0 h1:VyWesy/EQGVcTk35KufUgUWSPwGprbC/N92Wb9t9NnM=
 github.com/roadrunner-server/api/v2 v2.20.0/go.mod h1:9AvCOEhbNyfPuCCsrpL84TFb0k56BPmYQ6tUBNLS58c=
-github.com/roadrunner-server/endure v1.3.1 h1:7YvXUOz+sHBv6i+Qx3V0rnGn/1poFLK11bOt8MHBfHc=
-github.com/roadrunner-server/endure v1.3.1/go.mod h1:uWaoO9yxGbryvbSG8ThSW1KKNnYwsoR53MQQEFUlK4s=
 github.com/roadrunner-server/endure v1.4.0 h1:piGxuZpGiiHUHm46ynerAdfF4sJ9frBAUThtNQhUyps=
 github.com/roadrunner-server/endure v1.4.0/go.mod h1:pVCsp/ngNzGegIJm2CCgFygnUvm7IRiWVzeBiDEr2Hc=
 github.com/roadrunner-server/errors v1.1.2 h1:+LPw9Akgg+8LAGM4wASMWLAoBIbyP+mhNfR+FBS2Slw=
@@ -231,6 +229,8 @@ github.com/yusufpapurcu/wmi v1.2.2 h1:KBNDSne4vP5mbSWnJbO+51IMOXJB67QiYCSBrubbPR
 github.com/yusufpapurcu/wmi v1.2.2/go.mod h1:SBZ9tNy3G9/m5Oi98Zks0QjeHVDvuK0qfxQmPyzfmi0=
 go.buf.build/protocolbuffers/go/roadrunner-server/api v1.3.10 h1:wQzKL5psX4xZRUyT9lQdxTHeg5GebTD4zPlHNKNdwY0=
 go.buf.build/protocolbuffers/go/roadrunner-server/api v1.3.10/go.mod h1:CfIAvR+W2N+Y0WXMzwT80Eh83CmBPWplgFQDA5HftC4=
+go.buf.build/protocolbuffers/go/roadrunner-server/api v1.3.11 h1:o3u17XK/ku9zZajqgRXOZHF66h92N2QAMFrAkzM0xnM=
+go.buf.build/protocolbuffers/go/roadrunner-server/api v1.3.11/go.mod h1:CfIAvR+W2N+Y0WXMzwT80Eh83CmBPWplgFQDA5HftC4=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.opencensus.io v0.22.0/go.mod h1:+kGneAE2xo2IficOXnaByMWTGM9T73dGwxeWcUqIpI8=
 go.opencensus.io v0.22.2/go.mod h1:yxeiOL68Rb0Xd1ddK5vPZ/oVn4vY4Ynel7k9FzqtOIw=
@@ -377,8 +377,6 @@ golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e/go.mod h1:oPkhp1MJrh7nUepCBc
 golang.org/x/sys v0.0.0-20220114195835-da31bd327af9/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20220128215802-99c3d69c2c27/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
-golang.org/x/sys v0.0.0-20220731174439-a90be440212d h1:Sv5ogFZatcgIMMtBSTTAgMYsicp25MXBubjXNDKwm80=
-golang.org/x/sys v0.0.0-20220731174439-a90be440212d/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20220803195053-6e608f9ce704 h1:Y7NOhdqIOU8kYI7BxsgL38d0ot0raxvcW+EMQU2QrT4=
 golang.org/x/sys v0.0.0-20220803195053-6e608f9ce704/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
