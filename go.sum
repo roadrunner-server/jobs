@@ -192,14 +192,10 @@ github.com/prometheus/procfs v0.8.0 h1:ODq8ZFEaYeCaZOJlZZdJA2AbQR98dSHSM1KW/You5
 github.com/prometheus/procfs v0.8.0/go.mod h1:z7EfXMXOkbkqb9IINtpCn86r/to3BnA0uaxHdg830/4=
 github.com/roadrunner-server/api/v2 v2.20.1 h1:j6tIrIgxOLxa3ONCqYe4LfS0yIcch4QEzLcLmzcCkBQ=
 github.com/roadrunner-server/api/v2 v2.20.1/go.mod h1:IlmguovM8ExuTctvmqitx8+cdfadzHi15fY5Njl55Kk=
-github.com/roadrunner-server/endure v1.4.1 h1:ZebTRc5+IYyQOjHVvKzn1OO6chYARZgPKbL4yIgjZNY=
-github.com/roadrunner-server/endure v1.4.1/go.mod h1:pVCsp/ngNzGegIJm2CCgFygnUvm7IRiWVzeBiDEr2Hc=
 github.com/roadrunner-server/endure v1.4.2 h1:98+hzDc78l9nKPrVtonClHG0khKzt+vNUyOx8erlxGE=
 github.com/roadrunner-server/endure v1.4.2/go.mod h1:+ZEKy5Waz4B+3oxHCsUeAVcPO6SZnn/6o4eXmNVm4qw=
 github.com/roadrunner-server/errors v1.2.0 h1:qBmNXt8Iex9QnYTjCkbJKsBZu2EtYkQCM06GUDcQBbI=
 github.com/roadrunner-server/errors v1.2.0/go.mod h1:z0ECxZp/dDa5RahtMcy4mBIavVxiZ9vwE5kByl7kFtY=
-github.com/roadrunner-server/goridge/v3 v3.5.0 h1:z+ruMhKXD5BgGGKkvb3Ob1y9EihDUU4yIB+sLFQ7V9s=
-github.com/roadrunner-server/goridge/v3 v3.5.0/go.mod h1:MJjF6RYNgPif7rDu1c9AsGNYVqnA7euKDVYRK5MNTw8=
 github.com/roadrunner-server/goridge/v3 v3.5.1 h1:qpsmaLSZLxS3kOQPhkYTbUGG4vX0mVcM1uW49s5cw4k=
 github.com/roadrunner-server/goridge/v3 v3.5.1/go.mod h1:qC5nRtwk4jtkTmAARv3iS/wmaXPP4Vk3FIAPsTcZ8jc=
 github.com/roadrunner-server/sdk/v2 v2.18.2 h1:t2Sz3ltV6sPSGfo7P0VdCk+p8pJYg2AnTOJArBHreAg=
