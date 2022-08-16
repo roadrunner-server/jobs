@@ -194,6 +194,8 @@ github.com/roadrunner-server/api/v2 v2.21.0 h1:OtzTLvZt9ENgfWtR9eAomMrF1ZwDkTj95
 github.com/roadrunner-server/api/v2 v2.21.0/go.mod h1:i6+EpU/ZSZIPZNvM/Tk8lobqVSNQ6+iOe4LSBO2iORo=
 github.com/roadrunner-server/endure v1.4.2 h1:98+hzDc78l9nKPrVtonClHG0khKzt+vNUyOx8erlxGE=
 github.com/roadrunner-server/endure v1.4.2/go.mod h1:+ZEKy5Waz4B+3oxHCsUeAVcPO6SZnn/6o4eXmNVm4qw=
+github.com/roadrunner-server/endure v1.4.3 h1:LkKt3270MFxppkiPtWw/50K8/eQYey5WSvT5slnBQXE=
+github.com/roadrunner-server/endure v1.4.3/go.mod h1:yJszg9MEabHYJfLnLB2pyWbEYBuhDnJhhXzbxJE/uQg=
 github.com/roadrunner-server/errors v1.2.0 h1:qBmNXt8Iex9QnYTjCkbJKsBZu2EtYkQCM06GUDcQBbI=
 github.com/roadrunner-server/errors v1.2.0/go.mod h1:z0ECxZp/dDa5RahtMcy4mBIavVxiZ9vwE5kByl7kFtY=
 github.com/roadrunner-server/goridge/v3 v3.5.1 h1:qpsmaLSZLxS3kOQPhkYTbUGG4vX0mVcM1uW49s5cw4k=
