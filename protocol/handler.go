@@ -39,19 +39,19 @@ func NewResponseHandler(log *zap.Logger) *RespHandler {
 		log: log,
 
 		pPool: sync.Pool{
-			New: func() interface{} {
+			New: func() any {
 				return new(protocol)
 			},
 		},
 
 		qPool: sync.Pool{
-			New: func() interface{} {
+			New: func() any {
 				return new(queueResp)
 			},
 		},
 
 		ePool: sync.Pool{
-			New: func() interface{} {
+			New: func() any {
 				return new(errorResp)
 			},
 		},

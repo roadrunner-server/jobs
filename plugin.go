@@ -93,7 +93,7 @@ func (p *Plugin) Init(cfg config.Configurer, log *zap.Logger, server server.Serv
 	p.consume = make(map[string]struct{})
 	p.stopCh = make(chan struct{}, 1)
 
-	p.pldPool = sync.Pool{New: func() interface{} {
+	p.pldPool = sync.Pool{New: func() any {
 		// with nil fields
 		return &payload.Payload{}
 	}}
@@ -136,7 +136,7 @@ func (p *Plugin) Serve() chan error {
 	const op = errors.Op("jobs_plugin_serve")
 
 	// register initial pipelines
-	p.pipelines.Range(func(key, value interface{}) bool {
+	p.pipelines.Range(func(key, value any) bool {
 		t := time.Now()
 		// pipeline name (ie test-local, sqs-aws, etc)
 		name := key.(string)
@@ -229,7 +229,7 @@ func (p *Plugin) Stop() error {
 	}()
 
 	// range over all consumers and call stop
-	p.consumers.Range(func(key, value interface{}) bool {
+	p.consumers.Range(func(key, value any) bool {
 		consumer := value.(jobs.Consumer)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
 		err := consumer.Stop(ctx)
@@ -242,7 +242,7 @@ func (p *Plugin) Stop() error {
 		return true
 	})
 
-	p.pipelines.Range(func(key, _ interface{}) bool {
+	p.pipelines.Range(func(key, _ any) bool {
 		p.pipelines.Delete(key)
 		return true
 	})
@@ -250,8 +250,8 @@ func (p *Plugin) Stop() error {
 	return nil
 }
 
-func (p *Plugin) Collects() []interface{} {
-	return []interface{}{
+func (p *Plugin) Collects() []any {
+	return []any{
 		p.CollectMQBrokers,
 	}
 }
@@ -284,7 +284,7 @@ func (p *Plugin) JobsState(ctx context.Context) ([]*jobs.State, error) {
 	const op = errors.Op("jobs_plugin_drivers_state")
 	jst := make([]*jobs.State, 0, 2)
 	var err error
-	p.consumers.Range(func(key, value interface{}) bool {
+	p.consumers.Range(func(key, value any) bool {
 		consumer := value.(jobs.Consumer)
 		newCtx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(p.cfg.Timeout))
 
@@ -548,7 +548,7 @@ func (p *Plugin) Destroy(pp string) error {
 func (p *Plugin) List() []string {
 	out := make([]string, 0, 10)
 
-	p.pipelines.Range(func(key, _ interface{}) bool {
+	p.pipelines.Range(func(key, _ any) bool {
 		// we can safely convert value here as we know that we store keys as strings
 		out = append(out, key.(string))
 		return true
@@ -557,7 +557,7 @@ func (p *Plugin) List() []string {
 	return out
 }
 
-func (p *Plugin) RPC() interface{} {
+func (p *Plugin) RPC() any {
 	return &rpc{
 		p: p,
 	}
