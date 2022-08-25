@@ -5,11 +5,11 @@ go 1.19
 require (
 	github.com/goccy/go-json v0.9.11
 	github.com/prometheus/client_golang v1.13.0
-	github.com/roadrunner-server/api/v2 v2.21.1
-	github.com/roadrunner-server/endure v1.4.4
+	github.com/roadrunner-server/api/v2 v2.21.2
+	github.com/roadrunner-server/endure v1.4.5
 	github.com/roadrunner-server/errors v1.2.0
 	github.com/roadrunner-server/goridge/v3 v3.5.2
-	github.com/roadrunner-server/sdk/v2 v2.18.4
+	github.com/roadrunner-server/sdk/v2 v2.18.5
 	go.buf.build/protocolbuffers/go/roadrunner-server/api v1.3.12
 	go.uber.org/zap v1.23.0
 )
