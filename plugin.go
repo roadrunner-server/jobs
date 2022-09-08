@@ -260,12 +260,12 @@ func (p *Plugin) CollectMQBrokers(name endure.Named, c jobs.Constructor) {
 	p.jobConstructors[name.Name()] = c
 }
 
-func (p *Plugin) Workers() []*process.State {
+func (p *Plugin) Workers() []process.State {
 	p.RLock()
 	wrk := p.workersPool.Workers()
 	p.RUnlock()
 
-	ps := make([]*process.State, len(wrk))
+	ps := make([]process.State, len(wrk))
 
 	for i := 0; i < len(wrk); i++ {
 		st, err := processImpl.WorkerProcessState(wrk[i])
@@ -403,53 +403,27 @@ func (p *Plugin) PushBatch(j []*jobs.Job) error {
 }
 
 func (p *Plugin) Pause(pp string) {
-	pipe, ok := p.pipelines.Load(pp)
-
-	if !ok {
-		p.log.Error("no such pipeline", zap.Any("requested", pp))
-	}
-
-	if pipe == nil {
-		p.log.Error("no pipe registered, value is nil")
+	d, ppl, err := p.check(pp)
+	if err != nil {
 		return
 	}
 
-	ppl := pipe.(*pipeline.Pipeline)
-
-	d, ok := p.consumers.Load(ppl.Name())
-	if !ok {
-		p.log.Warn("driver for the pipeline not found", zap.String("pipeline", pp))
-		return
-	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
 	defer cancel()
 	// redirect call to the underlying driver
-	d.(jobs.Consumer).Pause(ctx, ppl.Name())
+	d.Pause(ctx, ppl.Name())
 }
 
 func (p *Plugin) Resume(pp string) {
-	pipe, ok := p.pipelines.Load(pp)
-	if !ok {
-		p.log.Error("no such pipeline", zap.String("requested", pp))
-	}
-
-	if pipe == nil {
-		p.log.Error("no pipe registered, value is nil")
-		return
-	}
-
-	ppl := pipe.(*pipeline.Pipeline)
-
-	d, ok := p.consumers.Load(ppl.Name())
-	if !ok {
-		p.log.Warn("driver for the pipeline not found", zap.String("pipeline", pp))
+	d, ppl, err := p.check(pp)
+	if err != nil {
 		return
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
 	defer cancel()
 	// redirect call to the underlying driver
-	d.(jobs.Consumer).Resume(ctx, ppl.Name())
+	d.Resume(ctx, ppl.Name())
 }
 
 // Declare a pipeline.
@@ -561,6 +535,29 @@ func (p *Plugin) RPC() any {
 	return &rpc{
 		p: p,
 	}
+}
+
+func (p *Plugin) check(pp string) (jobs.Consumer, *pipeline.Pipeline, error) {
+	pipe, ok := p.pipelines.Load(pp)
+	if !ok {
+		p.log.Error("no such pipeline", zap.String("requested", pp))
+		return nil, nil, errors.E(errors.Errorf("no such pipeline, requested: %s", pp))
+	}
+
+	if pipe == nil {
+		p.log.Error("no pipe registered, value is nil")
+		return nil, nil, errors.E(errors.Str("no pipe registered, value is nil"))
+	}
+
+	ppl := pipe.(*pipeline.Pipeline)
+
+	d, ok := p.consumers.Load(ppl.Name())
+	if !ok {
+		p.log.Warn("driver for the pipeline not found", zap.String("pipeline", pp))
+		return nil, nil, errors.E(errors.Errorf("driver for the pipeline not found, pipeline: %s", pp))
+	}
+
+	return d.(jobs.Consumer), ppl, nil
 }
 
 func (p *Plugin) getPayload(body, context []byte) *payload.Payload {
