@@ -260,12 +260,12 @@ func (p *Plugin) CollectMQBrokers(name endure.Named, c jobs.Constructor) {
 	p.jobConstructors[name.Name()] = c
 }
 
-func (p *Plugin) Workers() []process.State {
+func (p *Plugin) Workers() []*process.State {
 	p.RLock()
 	wrk := p.workersPool.Workers()
 	p.RUnlock()
 
-	ps := make([]process.State, len(wrk))
+	ps := make([]*process.State, len(wrk))
 
 	for i := 0; i < len(wrk); i++ {
 		st, err := processImpl.WorkerProcessState(wrk[i])
