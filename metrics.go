@@ -4,8 +4,7 @@ import (
 	"sync/atomic"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/roadrunner-server/api/v2/plugins/informer"
-	"github.com/roadrunner-server/sdk/v2/metrics"
+	"github.com/roadrunner-server/sdk/v3/metrics"
 )
 
 func (p *Plugin) MetricsCollector() []prometheus.Collector {
@@ -30,7 +29,7 @@ type statsExporter struct {
 	defaultExporter *metrics.StatsExporter
 }
 
-func newStatsExporter(stats informer.Informer, jobsOk, pushOk, jobsErr, pushErr *uint64) *statsExporter {
+func newStatsExporter(stats Informer, jobsOk, pushOk, jobsErr, pushErr *uint64) *statsExporter {
 	return &statsExporter{
 		defaultExporter: &metrics.StatsExporter{
 			TotalWorkersDesc: prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "total_workers"), "Total number of workers used by the plugin", nil, nil),
