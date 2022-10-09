@@ -1,13 +1,15 @@
 package jobs
 
 import (
+	"context"
 	"sync/atomic"
 	"time"
 
-	"github.com/roadrunner-server/api/v2/plugins/jobs"
+	"github.com/roadrunner-server/sdk/v3/plugins/jobs"
 	"go.uber.org/zap"
 )
 
+// non blocking listener
 func (p *Plugin) listener() { //nolint:gocognit
 	for i := uint8(0); i < p.cfg.NumPollers; i++ {
 		go func() {
@@ -50,7 +52,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 
 					// protect from the pool reset
 					p.RLock()
-					resp, err := p.workersPool.Exec(exec)
+					resp, err := p.workersPool.Exec(context.Background(), exec)
 					p.RUnlock()
 					if err != nil {
 						atomic.AddUint64(p.metrics.jobsErr, 1)

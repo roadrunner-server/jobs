@@ -8,21 +8,16 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/roadrunner-server/api/v2/payload"
-	"github.com/roadrunner-server/api/v2/plugins/config"
-	"github.com/roadrunner-server/api/v2/plugins/jobs"
-	"github.com/roadrunner-server/api/v2/plugins/jobs/pipeline"
-	"github.com/roadrunner-server/api/v2/plugins/server"
-	"github.com/roadrunner-server/api/v2/pool"
-	"github.com/roadrunner-server/api/v2/pq"
-	"github.com/roadrunner-server/api/v2/state/process"
 	endure "github.com/roadrunner-server/endure/pkg/container"
 	"github.com/roadrunner-server/errors"
 	"github.com/roadrunner-server/goridge/v3/pkg/frame"
 	rh "github.com/roadrunner-server/jobs/v2/protocol"
-	pqImpl "github.com/roadrunner-server/sdk/v2/priority_queue"
-	processImpl "github.com/roadrunner-server/sdk/v2/state/process"
-	"github.com/roadrunner-server/sdk/v2/utils"
+	"github.com/roadrunner-server/sdk/v3/payload"
+	"github.com/roadrunner-server/sdk/v3/plugins/jobs"
+	"github.com/roadrunner-server/sdk/v3/plugins/jobs/pipeline"
+	pq "github.com/roadrunner-server/sdk/v3/priority_queue"
+	"github.com/roadrunner-server/sdk/v3/state/process"
+	"github.com/roadrunner-server/sdk/v3/utils"
 	"go.uber.org/zap"
 )
 
@@ -48,8 +43,8 @@ type Plugin struct {
 	// Jobs plugin configuration
 	cfg         *Config `structure:"jobs"`
 	log         *zap.Logger
-	workersPool pool.Pool
-	server      server.Server
+	workersPool Pool
+	server      Server
 
 	jobConstructors map[string]jobs.Constructor
 	consumers       sync.Map // map[string]jobs.Consumer
@@ -74,7 +69,7 @@ type Plugin struct {
 	respHandler   *rh.RespHandler
 }
 
-func (p *Plugin) Init(cfg config.Configurer, log *zap.Logger, server server.Server) error {
+func (p *Plugin) Init(cfg Configurer, log *zap.Logger, server Server) error {
 	const op = errors.Op("jobs_plugin_init")
 	if !cfg.Has(PluginName) {
 		return errors.E(op, errors.Disabled)
@@ -110,7 +105,7 @@ func (p *Plugin) Init(cfg config.Configurer, log *zap.Logger, server server.Serv
 	}
 
 	// initialize priority queue
-	p.queue = pqImpl.NewBinHeap(p.cfg.PipelineSize)
+	p.queue = pq.NewBinHeap[pq.Item](p.cfg.PipelineSize)
 	p.log = new(zap.Logger)
 	*p.log = *log
 	p.metrics = &exporter{
@@ -175,6 +170,7 @@ func (p *Plugin) Serve() chan error {
 				return false
 			}
 
+			p.log.Debug("driver ready", zap.String("pipeline", pipe.Name()), zap.String("driver", pipe.Driver()), zap.Time("start", t), zap.Duration("elapsed", time.Since(t)))
 			// if pipeline initialized to be consumed, call Run on it
 			if _, ok := p.consume[name]; ok {
 				ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
@@ -190,7 +186,6 @@ func (p *Plugin) Serve() chan error {
 			return true
 		}
 
-		p.log.Debug("driver ready", zap.String("pipeline", pipe.Name()), zap.String("driver", pipe.Driver()), zap.Time("start", t), zap.Duration("elapsed", time.Since(t)))
 		return true
 	})
 
@@ -201,14 +196,15 @@ func (p *Plugin) Serve() chan error {
 
 	go func() {
 		p.Lock()
+		defer p.Unlock()
+
 		var err error
-		p.workersPool, err = p.server.NewWorkerPool(context.Background(), p.cfg.Pool, map[string]string{RrMode: RrModeJobs}, nil)
+		p.workersPool, err = p.server.NewPool(context.Background(), p.cfg.Pool, map[string]string{RrMode: RrModeJobs}, nil)
 		if err != nil {
 			p.Unlock()
 			errCh <- err
 			return
 		}
-		p.Unlock()
 
 		// start listening
 		p.listener()
@@ -256,6 +252,10 @@ func (p *Plugin) Collects() []any {
 	}
 }
 
+/*
+CollectMQBrokers tells endure to find all structures which implement endure.Named and jobs.Constructor interfaces
+Constructor here should return a Constructor for the driver.
+*/
 func (p *Plugin) CollectMQBrokers(name endure.Named, c jobs.Constructor) {
 	p.jobConstructors[name.Name()] = c
 }
@@ -268,7 +268,7 @@ func (p *Plugin) Workers() []*process.State {
 	ps := make([]*process.State, len(wrk))
 
 	for i := 0; i < len(wrk); i++ {
-		st, err := processImpl.WorkerProcessState(wrk[i])
+		st, err := process.WorkerProcessState(wrk[i])
 		if err != nil {
 			p.log.Error("jobs workers state", zap.Error(err))
 			return nil

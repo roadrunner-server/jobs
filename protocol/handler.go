@@ -1,12 +1,13 @@
 package protocol
 
 import (
+	rm "encoding/json"
 	"sync"
 
 	"github.com/goccy/go-json"
-	"github.com/roadrunner-server/api/v2/payload"
-	"github.com/roadrunner-server/api/v2/plugins/jobs"
 	"github.com/roadrunner-server/errors"
+	"github.com/roadrunner-server/sdk/v3/payload"
+	"github.com/roadrunner-server/sdk/v3/plugins/jobs"
 	"go.uber.org/zap"
 )
 
@@ -23,7 +24,7 @@ type protocol struct {
 	// message type, see Type
 	T Type `json:"type"`
 	// Payload
-	Data json.RawMessage `json:"data"`
+	Data rm.RawMessage `json:"data"`
 }
 
 type RespHandler struct {
