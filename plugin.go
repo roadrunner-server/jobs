@@ -11,7 +11,7 @@ import (
 	endure "github.com/roadrunner-server/endure/pkg/container"
 	"github.com/roadrunner-server/errors"
 	"github.com/roadrunner-server/goridge/v3/pkg/frame"
-	rh "github.com/roadrunner-server/jobs/v2/protocol"
+	rh "github.com/roadrunner-server/jobs/v3/protocol"
 	"github.com/roadrunner-server/sdk/v3/payload"
 	"github.com/roadrunner-server/sdk/v3/plugins/jobs"
 	"github.com/roadrunner-server/sdk/v3/plugins/jobs/pipeline"
