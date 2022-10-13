@@ -51,9 +51,9 @@ func (p *Plugin) listener() { //nolint:gocognit
 					exec := p.getPayload(jb.Body(), ctx)
 
 					// protect from the pool reset
-					p.RLock()
+					p.mu.RLock()
 					resp, err := p.workersPool.Exec(context.Background(), exec)
-					p.RUnlock()
+					p.mu.RUnlock()
 					if err != nil {
 						atomic.AddUint64(p.metrics.jobsErr, 1)
 						p.log.Error("job processed with errors", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))

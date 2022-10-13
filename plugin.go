@@ -38,7 +38,7 @@ type exporter struct {
 }
 
 type Plugin struct {
-	sync.RWMutex
+	mu sync.RWMutex
 
 	// Jobs plugin configuration
 	cfg         *Config `structure:"jobs"`
@@ -195,13 +195,12 @@ func (p *Plugin) Serve() chan error {
 	}
 
 	go func() {
-		p.Lock()
-		defer p.Unlock()
+		p.mu.Lock()
+		defer p.mu.Unlock()
 
 		var err error
 		p.workersPool, err = p.server.NewPool(context.Background(), p.cfg.Pool, map[string]string{RrMode: RrModeJobs}, nil)
 		if err != nil {
-			p.Unlock()
 			errCh <- err
 			return
 		}
@@ -261,9 +260,9 @@ func (p *Plugin) CollectMQBrokers(name endure.Named, c jobs.Constructor) {
 }
 
 func (p *Plugin) Workers() []*process.State {
-	p.RLock()
+	p.mu.RLock()
 	wrk := p.workersPool.Workers()
-	p.RUnlock()
+	p.mu.RUnlock()
 
 	ps := make([]*process.State, len(wrk))
 
@@ -311,8 +310,8 @@ func (p *Plugin) Name() string {
 }
 
 func (p *Plugin) Reset() error {
-	p.Lock()
-	defer p.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
 	const op = errors.Op("jobs_plugin_reset")
 	p.log.Info("reset signal was received")
