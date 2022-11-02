@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/goccy/go-json v0.9.11
-	github.com/prometheus/client_golang v1.13.0
+	github.com/prometheus/client_golang v1.13.1
 	github.com/roadrunner-server/endure v1.4.5
 	github.com/roadrunner-server/errors v1.2.0
 	github.com/roadrunner-server/goridge/v3 v3.6.1
