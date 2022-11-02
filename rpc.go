@@ -7,7 +7,7 @@ import (
 	"github.com/roadrunner-server/errors"
 	"github.com/roadrunner-server/sdk/v3/plugins/jobs"
 	"github.com/roadrunner-server/sdk/v3/plugins/jobs/pipeline"
-	jobsProto "go.buf.build/protocolbuffers/go/roadrunner-server/api/proto/jobs/v1"
+	jobsProto "go.buf.build/protocolbuffers/go/roadrunner-server/api/jobs/v1"
 )
 
 type rpc struct {
