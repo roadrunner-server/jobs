@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/goccy/go-json v0.10.0
 	github.com/prometheus/client_golang v1.14.0
-	github.com/roadrunner-server/endure v1.4.5
+	github.com/roadrunner-server/endure v1.4.6
 	github.com/roadrunner-server/errors v1.2.0
 	github.com/roadrunner-server/goridge/v3 v3.6.2
 	github.com/roadrunner-server/sdk/v3 v3.0.0
@@ -23,7 +23,7 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
-	github.com/roadrunner-server/tcplisten v1.2.0 // indirect
+	github.com/roadrunner-server/tcplisten v1.2.1 // indirect
 	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
 	github.com/tklauser/go-sysconf v0.3.11 // indirect
 	github.com/tklauser/numcpus v0.6.0 // indirect
