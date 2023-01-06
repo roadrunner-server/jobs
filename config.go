@@ -3,7 +3,6 @@ package jobs
 import (
 	"runtime"
 
-	"github.com/roadrunner-server/sdk/v3/plugins/jobs/pipeline"
 	poolImpl "github.com/roadrunner-server/sdk/v3/pool"
 )
 
@@ -31,7 +30,7 @@ type Config struct {
 	Pool *poolImpl.Config `mapstructure:"Pool"`
 
 	// Pipelines defines mapping between PHP job pipeline and associated job broker.
-	Pipelines map[string]*pipeline.Pipeline `mapstructure:"pipelines"`
+	Pipelines map[string]Pipeline `mapstructure:"pipelines"`
 
 	// Consuming specifies names of pipelines to be consumed on service start.
 	Consume []string `mapstructure:"consume"`

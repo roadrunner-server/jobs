@@ -11,6 +11,10 @@ import (
 	"go.uber.org/zap"
 )
 
+type Logger interface {
+	NamedLogger(name string) *zap.Logger
+}
+
 type Informer interface {
 	Workers() []*process.State
 }

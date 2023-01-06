@@ -4,9 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/roadrunner-server/api/v3/plugins/v1/jobs"
 	"github.com/roadrunner-server/errors"
-	"github.com/roadrunner-server/sdk/v3/plugins/jobs"
-	"github.com/roadrunner-server/sdk/v3/plugins/jobs/pipeline"
 	jobsProto "go.buf.build/protocolbuffers/go/roadrunner-server/api/jobs/v1"
 )
 
@@ -37,7 +36,7 @@ func (r *rpc) PushBatch(j *jobsProto.PushBatchRequest, _ *jobsProto.Empty) error
 
 	l := len(j.GetJobs())
 
-	batch := make([]*jobs.Job, l)
+	batch := make([]jobs.Job, l)
 
 	for i := 0; i < l; i++ {
 		// convert transport entity into domain
@@ -81,10 +80,10 @@ func (r *rpc) List(_ *jobsProto.Empty, resp *jobsProto.Pipelines) error {
 // 3. Options related to the particular pipeline
 func (r *rpc) Declare(req *jobsProto.DeclareRequest, _ *jobsProto.Empty) error {
 	const op = errors.Op("rpc_declare_pipeline")
-	pipe := &pipeline.Pipeline{}
+	pipe := Pipeline{}
 
 	for i := range req.GetPipeline() {
-		(*pipe)[i] = req.GetPipeline()[i]
+		pipe[i] = req.GetPipeline()[i]
 	}
 
 	err := r.p.Declare(pipe)
@@ -139,19 +138,19 @@ func (r *rpc) Stat(_ *jobsProto.Empty, resp *jobsProto.Stats) error {
 }
 
 // from converts from transport entity to domain
-func from(j *jobsProto.Job) *jobs.Job {
+func from(j *jobsProto.Job) *Job {
 	headers := make(map[string][]string, len(j.GetHeaders()))
 
 	for k, v := range j.GetHeaders() {
 		headers[k] = v.GetValue()
 	}
 
-	jb := &jobs.Job{
-		Job:     j.GetJob(),
-		Headers: headers,
-		Ident:   j.GetId(),
-		Payload: j.GetPayload(),
-		Options: &jobs.Options{
+	jb := &Job{
+		Job:   j.GetJob(),
+		Hdr:   headers,
+		Ident: j.GetId(),
+		Pld:   j.GetPayload(),
+		Options: &Options{
 			Priority:  j.GetOptions().GetPriority(),
 			Pipeline:  j.GetOptions().GetPipeline(),
 			Delay:     j.GetOptions().GetDelay(),

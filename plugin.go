@@ -8,14 +8,15 @@ import (
 	"sync/atomic"
 	"time"
 
-	endure "github.com/roadrunner-server/endure/pkg/container"
+	"github.com/roadrunner-server/api/v3/plugins/v1/jobs"
+	pq "github.com/roadrunner-server/api/v3/plugins/v1/priority_queue"
+
+	"github.com/roadrunner-server/endure/v2/dep"
 	"github.com/roadrunner-server/errors"
 	"github.com/roadrunner-server/goridge/v3/pkg/frame"
 	rh "github.com/roadrunner-server/jobs/v3/protocol"
 	"github.com/roadrunner-server/sdk/v3/payload"
-	"github.com/roadrunner-server/sdk/v3/plugins/jobs"
-	"github.com/roadrunner-server/sdk/v3/plugins/jobs/pipeline"
-	pq "github.com/roadrunner-server/sdk/v3/priority_queue"
+	pqImpl "github.com/roadrunner-server/sdk/v3/priority_queue"
 	"github.com/roadrunner-server/sdk/v3/state/process"
 	"github.com/roadrunner-server/sdk/v3/utils"
 	"go.uber.org/zap"
@@ -69,7 +70,7 @@ type Plugin struct {
 	respHandler   *rh.RespHandler
 }
 
-func (p *Plugin) Init(cfg Configurer, log *zap.Logger, server Server) error {
+func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 	const op = errors.Op("jobs_plugin_init")
 	if !cfg.Has(PluginName) {
 		return errors.E(op, errors.Disabled)
@@ -105,9 +106,9 @@ func (p *Plugin) Init(cfg Configurer, log *zap.Logger, server Server) error {
 	}
 
 	// initialize priority queue
-	p.queue = pq.NewBinHeap[pq.Item](p.cfg.PipelineSize)
+	p.queue = pqImpl.NewBinHeap[pq.Item](p.cfg.PipelineSize)
 	p.log = new(zap.Logger)
-	*p.log = *log
+	p.log = log.NamedLogger(PluginName)
 	p.metrics = &exporter{
 		jobsOk:  utils.Uint64(0),
 		pushOk:  utils.Uint64(0),
@@ -117,7 +118,7 @@ func (p *Plugin) Init(cfg Configurer, log *zap.Logger, server Server) error {
 
 	// exporter
 	p.statsExporter = newStatsExporter(p, p.metrics.jobsOk, p.metrics.pushOk, p.metrics.jobsErr, p.metrics.pushErr)
-	p.respHandler = rh.NewResponseHandler(log)
+	p.respHandler = rh.NewResponseHandler(p.log)
 
 	if err != nil {
 		return errors.E(op, err)
@@ -137,7 +138,7 @@ func (p *Plugin) Serve() chan error {
 		name := key.(string)
 
 		// pipeline associated with the name
-		pipe := value.(*pipeline.Pipeline)
+		pipe := value.(jobs.Pipeline)
 		// driver for the pipeline (ie amqp, ephemeral, etc)
 		dr := pipe.Driver()
 
@@ -212,7 +213,7 @@ func (p *Plugin) Serve() chan error {
 	return errCh
 }
 
-func (p *Plugin) Stop() error {
+func (p *Plugin) Stop(context.Context) error {
 	// this function can block forever, but we don't care, because we might have a chance to exit from the pollers,
 	// but if not, this is not a problem at all.
 	// The main target is to stop the drivers
@@ -245,18 +246,13 @@ func (p *Plugin) Stop() error {
 	return nil
 }
 
-func (p *Plugin) Collects() []any {
-	return []any{
-		p.CollectMQBrokers,
+func (p *Plugin) Collects() []*dep.In {
+	return []*dep.In{
+		dep.Fits(func(pp any) {
+			consumer := pp.(jobs.Constructor)
+			p.jobConstructors[consumer.Name()] = consumer
+		}, (*jobs.Constructor)(nil)),
 	}
-}
-
-/*
-CollectMQBrokers tells endure to find all structures which implement endure.Named and jobs.Constructor interfaces
-Constructor here should return a Constructor for the driver.
-*/
-func (p *Plugin) CollectMQBrokers(name endure.Named, c jobs.Constructor) {
-	p.jobConstructors[name.Name()] = c
 }
 
 func (p *Plugin) Workers() []*process.State {
@@ -324,18 +320,18 @@ func (p *Plugin) Reset() error {
 	return nil
 }
 
-func (p *Plugin) Push(j *jobs.Job) error {
+func (p *Plugin) Push(j jobs.Job) error {
 	const op = errors.Op("jobs_plugin_push")
 
 	start := time.Now()
 	// get the pipeline for the job
-	pipe, ok := p.pipelines.Load(j.Options.Pipeline)
+	pipe, ok := p.pipelines.Load(j.Pipeline())
 	if !ok {
-		return errors.E(op, errors.Errorf("no such pipeline, requested: %s", j.Options.Pipeline))
+		return errors.E(op, errors.Errorf("no such pipeline, requested: %s", j.Pipeline()))
 	}
 
 	// type conversion
-	ppl := pipe.(*pipeline.Pipeline)
+	ppl := pipe.(jobs.Pipeline)
 
 	d, ok := p.consumers.Load(ppl.Name())
 	if !ok {
@@ -343,8 +339,8 @@ func (p *Plugin) Push(j *jobs.Job) error {
 	}
 
 	// if job has no priority, inherit it from the pipeline
-	if j.Options.Priority == 0 {
-		j.Options.Priority = ppl.Priority()
+	if j.Priority() == 0 {
+		j.SetPriority(ppl.Priority())
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
@@ -353,28 +349,28 @@ func (p *Plugin) Push(j *jobs.Job) error {
 	err := d.(jobs.Consumer).Push(ctx, j)
 	if err != nil {
 		atomic.AddUint64(p.metrics.pushErr, 1)
-		p.log.Error("job push error", zap.String("ID", j.Ident), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)), zap.Error(err))
+		p.log.Error("job push error", zap.String("ID", j.ID()), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)), zap.Error(err))
 		return errors.E(op, err)
 	}
 
 	atomic.AddUint64(p.metrics.pushOk, 1)
-	p.log.Debug("job was pushed successfully", zap.String("ID", j.Ident), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
+	p.log.Debug("job was pushed successfully", zap.String("ID", j.ID()), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 
 	return nil
 }
 
-func (p *Plugin) PushBatch(j []*jobs.Job) error {
+func (p *Plugin) PushBatch(j []jobs.Job) error {
 	const op = errors.Op("jobs_plugin_push")
 	start := time.Now()
 
 	for i := 0; i < len(j); i++ {
 		// get the pipeline for the job
-		pipe, ok := p.pipelines.Load(j[i].Options.Pipeline)
+		pipe, ok := p.pipelines.Load(j[i].Pipeline())
 		if !ok {
-			return errors.E(op, errors.Errorf("no such pipeline, requested: %s", j[i].Options.Pipeline))
+			return errors.E(op, errors.Errorf("no such pipeline, requested: %s", j[i].Pipeline()))
 		}
 
-		ppl := pipe.(*pipeline.Pipeline)
+		ppl := pipe.(jobs.Pipeline)
 
 		d, ok := p.consumers.Load(ppl.Name())
 		if !ok {
@@ -382,8 +378,8 @@ func (p *Plugin) PushBatch(j []*jobs.Job) error {
 		}
 
 		// if job has no priority, inherit it from the pipeline
-		if j[i].Options.Priority == 0 {
-			j[i].Options.Priority = ppl.Priority()
+		if j[i].Priority() == 0 {
+			j[i].SetPriority(ppl.Priority())
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
@@ -391,7 +387,7 @@ func (p *Plugin) PushBatch(j []*jobs.Job) error {
 		if err != nil {
 			cancel()
 			atomic.AddUint64(p.metrics.pushErr, 1)
-			p.log.Error("job push batch error", zap.String("ID", j[i].Ident), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)), zap.Error(err))
+			p.log.Error("job push batch error", zap.String("ID", j[i].ID()), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)), zap.Error(err))
 			return errors.E(op, err)
 		}
 
@@ -426,7 +422,7 @@ func (p *Plugin) Resume(pp string) {
 }
 
 // Declare a pipeline.
-func (p *Plugin) Declare(pipeline *pipeline.Pipeline) error {
+func (p *Plugin) Declare(pipeline jobs.Pipeline) error {
 	const op = errors.Op("jobs_plugin_declare")
 	// driver for the pipeline (ie amqp, ephemeral, etc)
 	dr := pipeline.Driver()
@@ -492,7 +488,7 @@ func (p *Plugin) Destroy(pp string) error {
 	}
 
 	// type conversion
-	ppl := pipe.(*pipeline.Pipeline)
+	ppl := pipe.(jobs.Pipeline)
 	if pipe == nil {
 		p.log.Error("no pipe registered, value is nil")
 		return errors.Str("no pipe registered, value is nil")
@@ -536,7 +532,7 @@ func (p *Plugin) RPC() any {
 	}
 }
 
-func (p *Plugin) check(pp string) (jobs.Consumer, *pipeline.Pipeline, error) {
+func (p *Plugin) check(pp string) (jobs.Consumer, jobs.Pipeline, error) {
 	pipe, ok := p.pipelines.Load(pp)
 	if !ok {
 		p.log.Error("no such pipeline", zap.String("requested", pp))
@@ -548,7 +544,7 @@ func (p *Plugin) check(pp string) (jobs.Consumer, *pipeline.Pipeline, error) {
 		return nil, nil, errors.E(errors.Str("no pipe registered, value is nil"))
 	}
 
-	ppl := pipe.(*pipeline.Pipeline)
+	ppl := pipe.(jobs.Pipeline)
 
 	d, ok := p.consumers.Load(ppl.Name())
 	if !ok {
