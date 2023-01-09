@@ -14,11 +14,11 @@ import (
 	"github.com/roadrunner-server/endure/v2/dep"
 	"github.com/roadrunner-server/errors"
 	"github.com/roadrunner-server/goridge/v3/pkg/frame"
-	rh "github.com/roadrunner-server/jobs/v3/protocol"
-	"github.com/roadrunner-server/sdk/v3/payload"
-	pqImpl "github.com/roadrunner-server/sdk/v3/priority_queue"
-	"github.com/roadrunner-server/sdk/v3/state/process"
-	"github.com/roadrunner-server/sdk/v3/utils"
+	rh "github.com/roadrunner-server/jobs/v4/protocol"
+	"github.com/roadrunner-server/sdk/v4/payload"
+	pqImpl "github.com/roadrunner-server/sdk/v4/priority_queue"
+	"github.com/roadrunner-server/sdk/v4/state/process"
+	"github.com/roadrunner-server/sdk/v4/utils"
 	"go.uber.org/zap"
 )
 

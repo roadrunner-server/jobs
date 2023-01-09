@@ -3,7 +3,7 @@ package jobs
 import (
 	"runtime"
 
-	poolImpl "github.com/roadrunner-server/sdk/v3/pool"
+	poolImpl "github.com/roadrunner-server/sdk/v4/pool"
 )
 
 const (

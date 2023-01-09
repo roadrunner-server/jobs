@@ -1,4 +1,4 @@
-module github.com/roadrunner-server/jobs/v3
+module github.com/roadrunner-server/jobs/v4
 
 go 1.19
 
@@ -6,10 +6,10 @@ require (
 	github.com/goccy/go-json v0.10.0
 	github.com/prometheus/client_golang v1.14.0
 	github.com/roadrunner-server/api/v3 v3.1.2
-	github.com/roadrunner-server/endure/v2 v2.0.0-beta.1
+	github.com/roadrunner-server/endure/v2 v2.0.0-rc.2
 	github.com/roadrunner-server/errors v1.2.0
 	github.com/roadrunner-server/goridge/v3 v3.6.2
-	github.com/roadrunner-server/sdk/v3 v3.1.0
+	github.com/roadrunner-server/sdk/v4 v4.0.0
 	go.buf.build/protocolbuffers/go/roadrunner-server/api v1.3.27
 	go.uber.org/zap v1.24.0
 )
