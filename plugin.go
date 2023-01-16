@@ -340,7 +340,7 @@ func (p *Plugin) Push(j jobs.Job) error {
 
 	// if job has no priority, inherit it from the pipeline
 	if j.Priority() == 0 {
-		j.SetPriority(ppl.Priority())
+		j.UpdatePriority(ppl.Priority())
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
@@ -379,7 +379,7 @@ func (p *Plugin) PushBatch(j []jobs.Job) error {
 
 		// if job has no priority, inherit it from the pipeline
 		if j[i].Priority() == 0 {
-			j[i].SetPriority(ppl.Priority())
+			j[i].UpdatePriority(ppl.Priority())
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))

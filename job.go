@@ -52,11 +52,43 @@ func (o *Options) DelayDuration() time.Duration {
 	return time.Second * time.Duration(o.Delay)
 }
 
+func (j *Job) Offset() int64 {
+	if j.Options == nil {
+		return 0
+	}
+
+	return j.Options.Offset
+}
+
+func (j *Job) Partition() int32 {
+	if j.Options == nil {
+		return 0
+	}
+
+	return j.Options.Partition
+}
+
+func (j *Job) Topic() string {
+	if j.Options == nil {
+		return ""
+	}
+
+	return j.Options.Topic
+}
+
+func (j *Job) Metadata() string {
+	if j.Options == nil {
+		return ""
+	}
+
+	return j.Options.Metadata
+}
+
 func (j *Job) ID() string {
 	return j.Ident
 }
 
-func (j *Job) SetPriority(p int64) {
+func (j *Job) UpdatePriority(p int64) {
 	if j.Options == nil {
 		j.Options = &Options{}
 	}
