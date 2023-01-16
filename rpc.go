@@ -147,9 +147,9 @@ func from(j *jobsProto.Job) *Job {
 
 	jb := &Job{
 		Job:   j.GetJob(),
-		Hdr:   headers,
 		Ident: j.GetId(),
 		Pld:   j.GetPayload(),
+		Hdr:   headers,
 		Options: &Options{
 			Priority:  j.GetOptions().GetPriority(),
 			Pipeline:  j.GetOptions().GetPipeline(),
