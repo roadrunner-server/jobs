@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/roadrunner-server/api/v3/plugins/v1/jobs"
+	"github.com/roadrunner-server/api/v4/plugins/v1/jobs"
 	"go.uber.org/zap"
 )
 
