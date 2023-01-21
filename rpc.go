@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/roadrunner-server/api/v3/plugins/v1/jobs"
+	"github.com/roadrunner-server/api/v4/plugins/v1/jobs"
 	"github.com/roadrunner-server/errors"
 	jobsProto "go.buf.build/protocolbuffers/go/roadrunner-server/api/jobs/v1"
 )
@@ -54,7 +54,10 @@ func (r *rpc) PushBatch(j *jobsProto.PushBatchRequest, _ *jobsProto.Empty) error
 
 func (r *rpc) Pause(req *jobsProto.Pipelines, _ *jobsProto.Empty) error {
 	for i := 0; i < len(req.GetPipelines()); i++ {
-		r.p.Pause(req.GetPipelines()[i])
+		err := r.p.Pause(req.GetPipelines()[i])
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -62,7 +65,10 @@ func (r *rpc) Pause(req *jobsProto.Pipelines, _ *jobsProto.Empty) error {
 
 func (r *rpc) Resume(req *jobsProto.Pipelines, _ *jobsProto.Empty) error {
 	for i := 0; i < len(req.GetPipelines()); i++ {
-		r.p.Resume(req.GetPipelines()[i])
+		err := r.p.Resume(req.GetPipelines()[i])
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

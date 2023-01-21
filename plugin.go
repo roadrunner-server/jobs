@@ -8,8 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/roadrunner-server/api/v3/plugins/v1/jobs"
-	pq "github.com/roadrunner-server/api/v3/plugins/v1/priority_queue"
+	jobsApi "github.com/roadrunner-server/api/v4/plugins/v1/jobs"
+	pq "github.com/roadrunner-server/api/v4/plugins/v1/priority_queue"
 
 	"github.com/roadrunner-server/endure/v2/dep"
 	"github.com/roadrunner-server/errors"
@@ -47,7 +47,7 @@ type Plugin struct {
 	workersPool Pool
 	server      Server
 
-	jobConstructors map[string]jobs.Constructor
+	jobConstructors map[string]jobsApi.Constructor
 	consumers       sync.Map // map[string]jobs.Consumer
 
 	metrics *exporter
@@ -62,7 +62,8 @@ type Plugin struct {
 	consume map[string]struct{}
 
 	// signal channel to stop the pollers
-	stopCh chan struct{}
+	stopCh     chan struct{}
+	commandsCh chan jobsApi.Commander
 
 	// internal payloads pool
 	pldPool       sync.Pool
@@ -85,9 +86,10 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 
 	p.server = server
 
-	p.jobConstructors = make(map[string]jobs.Constructor)
+	p.jobConstructors = make(map[string]jobsApi.Constructor)
 	p.consume = make(map[string]struct{})
 	p.stopCh = make(chan struct{}, 1)
+	p.commandsCh = make(chan jobsApi.Commander, 1)
 
 	p.pldPool = sync.Pool{New: func() any {
 		// with nil fields
@@ -131,6 +133,8 @@ func (p *Plugin) Serve() chan error {
 	errCh := make(chan error, 1)
 	const op = errors.Op("jobs_plugin_serve")
 
+	go p.readCommands()
+
 	// register initial pipelines
 	p.pipelines.Range(func(key, value any) bool {
 		t := time.Now()
@@ -138,7 +142,7 @@ func (p *Plugin) Serve() chan error {
 		name := key.(string)
 
 		// pipeline associated with the name
-		pipe := value.(jobs.Pipeline)
+		pipe := value.(jobsApi.Pipeline)
 		// driver for the pipeline (ie amqp, ephemeral, etc)
 		dr := pipe.Driver()
 
@@ -155,7 +159,7 @@ func (p *Plugin) Serve() chan error {
 			configKey := fmt.Sprintf("%s.%s.%s.%s", PluginName, pipelines, name, cfgKey)
 
 			// init the driver
-			initializedDriver, err := p.jobConstructors[dr].ConsumerFromConfig(configKey, p.queue)
+			initializedDriver, err := p.jobConstructors[dr].DriverFromConfig(configKey, p.queue, pipe, p.commandsCh)
 			if err != nil {
 				errCh <- errors.E(op, err)
 				return false
@@ -163,13 +167,6 @@ func (p *Plugin) Serve() chan error {
 
 			// add driver to the set of the consumers (name - pipeline name, value - associated driver)
 			p.consumers.Store(name, initializedDriver)
-
-			// register pipeline for the initialized driver
-			err = initializedDriver.Register(context.Background(), pipe)
-			if err != nil {
-				errCh <- errors.E(op, errors.Errorf("pipe register failed for the driver: %s with pipe name: %s", pipe.Driver(), pipe.Name()))
-				return false
-			}
 
 			p.log.Debug("driver ready", zap.String("pipeline", pipe.Name()), zap.String("driver", pipe.Driver()), zap.Time("start", t), zap.Duration("elapsed", time.Since(t)))
 			// if pipeline initialized to be consumed, call Run on it
@@ -218,7 +215,7 @@ func (p *Plugin) Stop(context.Context) error {
 	// but if not, this is not a problem at all.
 	// The main target is to stop the drivers
 	go func() {
-		for i := uint8(0); i < p.cfg.NumPollers; i++ {
+		for i := uint8(0); i < p.cfg.NumPollers+1; i++ {
 			// stop jobs plugin pollers
 			p.stopCh <- struct{}{}
 		}
@@ -226,7 +223,7 @@ func (p *Plugin) Stop(context.Context) error {
 
 	// range over all consumers and call stop
 	p.consumers.Range(func(key, value any) bool {
-		consumer := value.(jobs.Consumer)
+		consumer := value.(jobsApi.Driver)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
 		err := consumer.Stop(ctx)
 		if err != nil {
@@ -243,15 +240,17 @@ func (p *Plugin) Stop(context.Context) error {
 		return true
 	})
 
+	close(p.commandsCh)
+
 	return nil
 }
 
 func (p *Plugin) Collects() []*dep.In {
 	return []*dep.In{
 		dep.Fits(func(pp any) {
-			consumer := pp.(jobs.Constructor)
+			consumer := pp.(jobsApi.Constructor)
 			p.jobConstructors[consumer.Name()] = consumer
-		}, (*jobs.Constructor)(nil)),
+		}, (*jobsApi.Constructor)(nil)),
 	}
 }
 
@@ -275,15 +274,15 @@ func (p *Plugin) Workers() []*process.State {
 	return ps
 }
 
-func (p *Plugin) JobsState(ctx context.Context) ([]*jobs.State, error) {
+func (p *Plugin) JobsState(ctx context.Context) ([]*jobsApi.State, error) {
 	const op = errors.Op("jobs_plugin_drivers_state")
-	jst := make([]*jobs.State, 0, 2)
+	jst := make([]*jobsApi.State, 0, 2)
 	var err error
 	p.consumers.Range(func(key, value any) bool {
-		consumer := value.(jobs.Consumer)
+		consumer := value.(jobsApi.Driver)
 		newCtx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(p.cfg.Timeout))
 
-		var state *jobs.State
+		var state *jobsApi.State
 		state, err = consumer.State(newCtx)
 		if err != nil {
 			cancel()
@@ -320,7 +319,7 @@ func (p *Plugin) Reset() error {
 	return nil
 }
 
-func (p *Plugin) Push(j jobs.Job) error {
+func (p *Plugin) Push(j jobsApi.Job) error {
 	const op = errors.Op("jobs_plugin_push")
 
 	start := time.Now()
@@ -331,7 +330,7 @@ func (p *Plugin) Push(j jobs.Job) error {
 	}
 
 	// type conversion
-	ppl := pipe.(jobs.Pipeline)
+	ppl := pipe.(jobsApi.Pipeline)
 
 	d, ok := p.consumers.Load(ppl.Name())
 	if !ok {
@@ -346,7 +345,7 @@ func (p *Plugin) Push(j jobs.Job) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
 	defer cancel()
 
-	err := d.(jobs.Consumer).Push(ctx, j)
+	err := d.(jobsApi.Driver).Push(ctx, j)
 	if err != nil {
 		atomic.AddUint64(p.metrics.pushErr, 1)
 		p.log.Error("job push error", zap.String("ID", j.ID()), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)), zap.Error(err))
@@ -359,7 +358,7 @@ func (p *Plugin) Push(j jobs.Job) error {
 	return nil
 }
 
-func (p *Plugin) PushBatch(j []jobs.Job) error {
+func (p *Plugin) PushBatch(j []jobsApi.Job) error {
 	const op = errors.Op("jobs_plugin_push")
 	start := time.Now()
 
@@ -370,7 +369,7 @@ func (p *Plugin) PushBatch(j []jobs.Job) error {
 			return errors.E(op, errors.Errorf("no such pipeline, requested: %s", j[i].Pipeline()))
 		}
 
-		ppl := pipe.(jobs.Pipeline)
+		ppl := pipe.(jobsApi.Pipeline)
 
 		d, ok := p.consumers.Load(ppl.Name())
 		if !ok {
@@ -383,7 +382,7 @@ func (p *Plugin) PushBatch(j []jobs.Job) error {
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
-		err := d.(jobs.Consumer).Push(ctx, j[i])
+		err := d.(jobsApi.Driver).Push(ctx, j[i])
 		if err != nil {
 			cancel()
 			atomic.AddUint64(p.metrics.pushErr, 1)
@@ -397,32 +396,32 @@ func (p *Plugin) PushBatch(j []jobs.Job) error {
 	return nil
 }
 
-func (p *Plugin) Pause(pp string) {
+func (p *Plugin) Pause(pp string) error {
 	d, ppl, err := p.check(pp)
 	if err != nil {
-		return
+		return err
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
 	defer cancel()
 	// redirect call to the underlying driver
-	d.Pause(ctx, ppl.Name())
+	return d.Pause(ctx, ppl.Name())
 }
 
-func (p *Plugin) Resume(pp string) {
+func (p *Plugin) Resume(pp string) error {
 	d, ppl, err := p.check(pp)
 	if err != nil {
-		return
+		return err
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
 	defer cancel()
 	// redirect call to the underlying driver
-	d.Resume(ctx, ppl.Name())
+	return d.Resume(ctx, ppl.Name())
 }
 
 // Declare a pipeline.
-func (p *Plugin) Declare(pipeline jobs.Pipeline) error {
+func (p *Plugin) Declare(pipeline jobsApi.Pipeline) error {
 	const op = errors.Op("jobs_plugin_declare")
 	// driver for the pipeline (ie amqp, ephemeral, etc)
 	dr := pipeline.Driver()
@@ -448,15 +447,9 @@ func (p *Plugin) Declare(pipeline jobs.Pipeline) error {
 	// we need here to initialize these drivers for the pipelines
 	if _, ok := p.jobConstructors[dr]; ok {
 		// init the driver from pipeline
-		initializedDriver, err := p.jobConstructors[dr].ConsumerFromPipeline(pipeline, p.queue)
+		initializedDriver, err := p.jobConstructors[dr].DriverFromPipeline(pipeline, p.queue, p.commandsCh)
 		if err != nil {
 			return errors.E(op, err)
-		}
-
-		// register pipeline for the initialized driver
-		err = initializedDriver.Register(context.Background(), pipeline)
-		if err != nil {
-			return errors.E(op, errors.Errorf("pipe register failed for the driver: %s with pipe name: %s", pipeline.Driver(), pipeline.Name()))
 		}
 
 		// if pipeline initialized to be consumed, call Run on it
@@ -488,9 +481,8 @@ func (p *Plugin) Destroy(pp string) error {
 	}
 
 	// type conversion
-	ppl := pipe.(jobs.Pipeline)
+	ppl := pipe.(jobsApi.Pipeline)
 	if pipe == nil {
-		p.log.Error("no pipe registered, value is nil")
 		return errors.Str("no pipe registered, value is nil")
 	}
 
@@ -501,10 +493,10 @@ func (p *Plugin) Destroy(pp string) error {
 	}
 
 	// delete old pipeline
-	p.pipelines.LoadAndDelete(pp)
+	p.pipelines.Delete(pp)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
-	err := d.(jobs.Consumer).Stop(ctx)
+	err := d.(jobsApi.Driver).Stop(ctx)
 	if err != nil {
 		cancel()
 		return errors.E(op, err)
@@ -532,7 +524,7 @@ func (p *Plugin) RPC() any {
 	}
 }
 
-func (p *Plugin) check(pp string) (jobs.Consumer, jobs.Pipeline, error) {
+func (p *Plugin) check(pp string) (jobsApi.Driver, jobsApi.Pipeline, error) {
 	pipe, ok := p.pipelines.Load(pp)
 	if !ok {
 		p.log.Error("no such pipeline", zap.String("requested", pp))
@@ -544,7 +536,7 @@ func (p *Plugin) check(pp string) (jobs.Consumer, jobs.Pipeline, error) {
 		return nil, nil, errors.E(errors.Str("no pipe registered, value is nil"))
 	}
 
-	ppl := pipe.(jobs.Pipeline)
+	ppl := pipe.(jobsApi.Pipeline)
 
 	d, ok := p.consumers.Load(ppl.Name())
 	if !ok {
@@ -552,7 +544,19 @@ func (p *Plugin) check(pp string) (jobs.Consumer, jobs.Pipeline, error) {
 		return nil, nil, errors.E(errors.Errorf("driver for the pipeline not found, pipeline: %s", pp))
 	}
 
-	return d.(jobs.Consumer), ppl, nil
+	return d.(jobsApi.Driver), ppl, nil
+}
+
+func (p *Plugin) readCommands() {
+	for cmd := range p.commandsCh {
+		switch cmd.Command() { //nolint:gocritic
+		case jobsApi.Stop:
+			err := p.Destroy(cmd.Pipeline())
+			if err != nil {
+				p.log.Error("failed to destroy the pipeline", zap.Error(err), zap.String("pipeline", cmd.Pipeline()))
+			}
+		}
+	}
 }
 
 func (p *Plugin) getPayload(body, context []byte) *payload.Payload {
