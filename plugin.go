@@ -548,18 +548,12 @@ func (p *Plugin) check(pp string) (jobsApi.Driver, jobsApi.Pipeline, error) {
 }
 
 func (p *Plugin) readCommands() {
-	for {
-		select {
-		case ch, ok := <-p.commandsCh:
-			if !ok {
-				return
-			}
-			switch ch.Command() {
-			case jobsApi.Stop:
-				err := p.Destroy(ch.Pipeline())
-				if err != nil {
-					p.log.Error("failed to destroy the pipeline", zap.Error(err), zap.String("pipeline", ch.Pipeline()))
-				}
+	for cmd := range p.commandsCh {
+		switch cmd.Command() { //nolint:gocritic
+		case jobsApi.Stop:
+			err := p.Destroy(cmd.Pipeline())
+			if err != nil {
+				p.log.Error("failed to destroy the pipeline", zap.Error(err), zap.String("pipeline", cmd.Pipeline()))
 			}
 		}
 	}
