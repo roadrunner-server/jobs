@@ -10,7 +10,7 @@ require (
 	github.com/roadrunner-server/errors v1.2.0
 	github.com/roadrunner-server/goridge/v3 v3.6.2
 	github.com/roadrunner-server/sdk/v4 v4.0.0
-	go.buf.build/protocolbuffers/go/roadrunner-server/api v1.3.27
+	go.buf.build/protocolbuffers/go/roadrunner-server/api v1.3.29
 	go.uber.org/zap v1.24.0
 )
 
