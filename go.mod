@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/goccy/go-json v0.10.0
 	github.com/prometheus/client_golang v1.14.0
-	github.com/roadrunner-server/api/v4 v4.0.0
+	github.com/roadrunner-server/api/v4 v4.1.0
 	github.com/roadrunner-server/endure/v2 v2.2.0
 	github.com/roadrunner-server/errors v1.2.0
 	github.com/roadrunner-server/goridge/v3 v3.6.2
