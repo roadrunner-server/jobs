@@ -3,6 +3,7 @@ package jobs
 import (
 	"context"
 
+	"github.com/roadrunner-server/api/v4/plugins/v1/status"
 	"github.com/roadrunner-server/sdk/v4/payload"
 	"github.com/roadrunner-server/sdk/v4/pool"
 	staticPool "github.com/roadrunner-server/sdk/v4/pool/static_pool"
@@ -40,4 +41,8 @@ type Configurer interface {
 // Server creates workers for the application.
 type Server interface {
 	NewPool(ctx context.Context, cfg *pool.Config, env map[string]string, _ *zap.Logger) (*staticPool.Pool, error)
+}
+
+type PipelineStatus interface {
+	Status() (*status.Status, error)
 }

@@ -8,8 +8,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/gofiber/fiber/v2"
 	jobsApi "github.com/roadrunner-server/api/v4/plugins/v1/jobs"
 	pq "github.com/roadrunner-server/api/v4/plugins/v1/priority_queue"
+	"github.com/roadrunner-server/api/v4/plugins/v1/status"
 
 	"github.com/roadrunner-server/endure/v2/dep"
 	"github.com/roadrunner-server/errors"
@@ -127,6 +129,10 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 	}
 
 	return nil
+}
+
+type StatusQuery struct {
+	Pipeline string `query:"pipeline"`
 }
 
 func (p *Plugin) Serve() chan error {
@@ -571,4 +577,41 @@ func (p *Plugin) putPayload(pld *payload.Payload) {
 	pld.Body = nil
 	pld.Context = nil
 	p.pldPool.Put(pld)
+}
+
+func (p *Plugin) Status(ctx *fiber.Ctx) (*status.Status, error) {
+	StatusQuery := &StatusQuery{}
+	err := ctx.QueryParser(StatusQuery)
+	if err != nil {
+		return &status.Status{
+			Code: 500,
+		}, nil
+	}
+
+	if len(StatusQuery.Pipeline) == 0 {
+		return &status.Status{
+			Code: 500,
+		}, nil
+	}
+
+	var status *status.Status
+	p.pipelines.Range(func(key, value any) bool {
+		// pipeline associated with the name
+		pipe := value.(jobsApi.Pipeline)
+		if StatusQuery.Pipeline != pipe.Name() {
+			return true
+		}
+
+		d, ok := p.consumers.Load(pipe.Name())
+		if !ok {
+			p.log.Warn("driver for the pipeline not found", zap.String("pipeline", pipe.Name()))
+			return true
+		}
+
+		status, _ = d.(PipelineStatus).Status()
+
+		return false
+	})
+
+	return status, nil
 }
