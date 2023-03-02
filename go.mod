@@ -22,7 +22,7 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
-	github.com/prometheus/common v0.39.0 // indirect
+	github.com/prometheus/common v0.41.0 // indirect
 	github.com/prometheus/procfs v0.9.0 // indirect
 	github.com/roadrunner-server/tcplisten v1.3.0 // indirect
 	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
