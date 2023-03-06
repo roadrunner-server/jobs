@@ -10,6 +10,11 @@ import (
 
 	jobsApi "github.com/roadrunner-server/api/v4/plugins/v1/jobs"
 	pq "github.com/roadrunner-server/api/v4/plugins/v1/priority_queue"
+	jprop "go.opentelemetry.io/contrib/propagators/jaeger"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/roadrunner-server/endure/v2/dep"
 	"github.com/roadrunner-server/errors"
@@ -32,6 +37,9 @@ const (
 
 	// v2.7 and newer config key
 	cfgKey string = "config"
+
+	// v2023.1.0 OTEL
+	spanName string = "jobs"
 )
 
 type exporter struct {
@@ -51,6 +59,7 @@ type Plugin struct {
 	consumers       sync.Map // map[string]jobs.Consumer
 
 	metrics *exporter
+	tracer  *sdktrace.TracerProvider
 
 	// priority queue implementation
 	queue pq.Queue
@@ -121,10 +130,7 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 	// exporter
 	p.statsExporter = newStatsExporter(p, p.metrics.jobsOk, p.metrics.pushOk, p.metrics.jobsErr, p.metrics.pushErr)
 	p.respHandler = rh.NewResponseHandler(p.log)
-
-	if err != nil {
-		return errors.E(op, err)
-	}
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}, jprop.Jaeger{}))
 
 	return nil
 }
@@ -133,7 +139,14 @@ func (p *Plugin) Serve() chan error {
 	errCh := make(chan error, 1)
 	const op = errors.Op("jobs_plugin_serve")
 
+	if p.tracer == nil {
+		// noop tracer
+		p.tracer = sdktrace.NewTracerProvider()
+	}
+
+	p.mu.Lock()
 	go p.readCommands()
+	p.mu.Unlock()
 
 	// register initial pipelines
 	p.pipelines.Range(func(key, value any) bool {
@@ -251,6 +264,9 @@ func (p *Plugin) Collects() []*dep.In {
 			consumer := pp.(jobsApi.Constructor)
 			p.jobConstructors[consumer.Name()] = consumer
 		}, (*jobsApi.Constructor)(nil)),
+		dep.Fits(func(pp any) {
+			p.tracer = pp.(Tracer).Tracer()
+		}, (*Tracer)(nil)),
 	}
 }
 
@@ -319,7 +335,7 @@ func (p *Plugin) Reset() error {
 	return nil
 }
 
-func (p *Plugin) Push(j jobsApi.Job) error {
+func (p *Plugin) Push(ctx context.Context, j jobsApi.Job) error {
 	const op = errors.Op("jobs_plugin_push")
 
 	start := time.Now()
@@ -342,7 +358,7 @@ func (p *Plugin) Push(j jobsApi.Job) error {
 		j.UpdatePriority(ppl.Priority())
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
+	ctx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(p.cfg.Timeout))
 	defer cancel()
 
 	err := d.(jobsApi.Driver).Push(ctx, j)
@@ -358,7 +374,7 @@ func (p *Plugin) Push(j jobsApi.Job) error {
 	return nil
 }
 
-func (p *Plugin) PushBatch(j []jobsApi.Job) error {
+func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Job) error {
 	const op = errors.Op("jobs_plugin_push")
 	start := time.Now()
 
@@ -381,8 +397,8 @@ func (p *Plugin) PushBatch(j []jobsApi.Job) error {
 			j[i].UpdatePriority(ppl.Priority())
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
-		err := d.(jobsApi.Driver).Push(ctx, j[i])
+		ctxPush, cancel := context.WithTimeout(ctx, time.Second*time.Duration(p.cfg.Timeout))
+		err := d.(jobsApi.Driver).Push(ctxPush, j[i])
 		if err != nil {
 			cancel()
 			atomic.AddUint64(p.metrics.pushErr, 1)
@@ -396,32 +412,32 @@ func (p *Plugin) PushBatch(j []jobsApi.Job) error {
 	return nil
 }
 
-func (p *Plugin) Pause(pp string) error {
+func (p *Plugin) Pause(ctx context.Context, pp string) error {
 	d, ppl, err := p.check(pp)
 	if err != nil {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
+	ctx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(p.cfg.Timeout))
 	defer cancel()
 	// redirect call to the underlying driver
 	return d.Pause(ctx, ppl.Name())
 }
 
-func (p *Plugin) Resume(pp string) error {
+func (p *Plugin) Resume(ctx context.Context, pp string) error {
 	d, ppl, err := p.check(pp)
 	if err != nil {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
+	ctx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(p.cfg.Timeout))
 	defer cancel()
 	// redirect call to the underlying driver
 	return d.Resume(ctx, ppl.Name())
 }
 
 // Declare a pipeline.
-func (p *Plugin) Declare(pipeline jobsApi.Pipeline) error {
+func (p *Plugin) Declare(ctx context.Context, pipeline jobsApi.Pipeline) error {
 	const op = errors.Op("jobs_plugin_declare")
 	// driver for the pipeline (ie amqp, ephemeral, etc)
 	dr := pipeline.Driver()
@@ -455,9 +471,9 @@ func (p *Plugin) Declare(pipeline jobsApi.Pipeline) error {
 		// if pipeline initialized to be consumed, call Run on it
 		// but likely for the dynamic pipelines it should be started manually
 		if _, ok := p.consume[pipeline.Name()]; ok {
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
+			ctxDeclare, cancel := context.WithTimeout(ctx, time.Second*time.Duration(p.cfg.Timeout))
 			defer cancel()
-			err = initializedDriver.Run(ctx, pipeline)
+			err = initializedDriver.Run(ctxDeclare, pipeline)
 			if err != nil {
 				return errors.E(op, err)
 			}
@@ -473,7 +489,7 @@ func (p *Plugin) Declare(pipeline jobsApi.Pipeline) error {
 }
 
 // Destroy pipeline and release all associated resources.
-func (p *Plugin) Destroy(pp string) error {
+func (p *Plugin) Destroy(ctx context.Context, pp string) error {
 	const op = errors.Op("jobs_plugin_destroy")
 	pipe, ok := p.pipelines.Load(pp)
 	if !ok {
@@ -495,7 +511,7 @@ func (p *Plugin) Destroy(pp string) error {
 	// delete old pipeline
 	p.pipelines.Delete(pp)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
+	ctx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(p.cfg.Timeout))
 	err := d.(jobsApi.Driver).Stop(ctx)
 	if err != nil {
 		cancel()
@@ -549,12 +565,14 @@ func (p *Plugin) check(pp string) (jobsApi.Driver, jobsApi.Pipeline, error) {
 
 func (p *Plugin) readCommands() {
 	for cmd := range p.commandsCh {
+		ctx, span := p.tracer.Tracer(spanName).Start(context.Background(), "destroy_pipeline", trace.WithSpanKind(trace.SpanKindServer))
 		switch cmd.Command() { //nolint:gocritic
 		case jobsApi.Stop:
-			err := p.Destroy(cmd.Pipeline())
+			err := p.Destroy(ctx, cmd.Pipeline())
 			if err != nil {
 				p.log.Error("failed to destroy the pipeline", zap.Error(err), zap.String("pipeline", cmd.Pipeline()))
 			}
+			span.End()
 		}
 	}
 }

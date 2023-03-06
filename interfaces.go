@@ -8,6 +8,7 @@ import (
 	staticPool "github.com/roadrunner-server/sdk/v4/pool/static_pool"
 	"github.com/roadrunner-server/sdk/v4/state/process"
 	"github.com/roadrunner-server/sdk/v4/worker"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.uber.org/zap"
 )
 
@@ -17,6 +18,10 @@ type Logger interface {
 
 type Informer interface {
 	Workers() []*process.State
+}
+
+type Tracer interface {
+	Tracer() *sdktrace.TracerProvider
 }
 
 type Pool interface {

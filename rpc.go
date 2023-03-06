@@ -7,6 +7,8 @@ import (
 	"github.com/roadrunner-server/api/v4/plugins/v1/jobs"
 	"github.com/roadrunner-server/errors"
 	jobsProto "go.buf.build/protocolbuffers/go/roadrunner-server/api/jobs/v1"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type rpc struct {
@@ -22,8 +24,10 @@ func (r *rpc) Push(j *jobsProto.PushRequest, _ *jobsProto.Empty) error {
 	if j.GetJob().GetId() == "" {
 		return errors.E(op, errors.Str("empty ID field not allowed"))
 	}
+	ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "push", trace.WithSpanKind(trace.SpanKindServer))
+	defer span.End()
 
-	err := r.p.Push(from(j.GetJob()))
+	err := r.p.Push(ctx, from(j.GetJob()))
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -33,6 +37,9 @@ func (r *rpc) Push(j *jobsProto.PushRequest, _ *jobsProto.Empty) error {
 
 func (r *rpc) PushBatch(j *jobsProto.PushBatchRequest, _ *jobsProto.Empty) error {
 	const op = errors.Op("rpc_push_batch")
+
+	ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "push_batch", trace.WithSpanKind(trace.SpanKindServer))
+	defer span.End()
 
 	l := len(j.GetJobs())
 
@@ -44,8 +51,12 @@ func (r *rpc) PushBatch(j *jobsProto.PushBatchRequest, _ *jobsProto.Empty) error
 		batch[i] = from(j.GetJobs()[i])
 	}
 
-	err := r.p.PushBatch(batch)
+	err := r.p.PushBatch(ctx, batch)
 	if err != nil {
+		span.SetAttributes(attribute.KeyValue{
+			Key:   "error",
+			Value: attribute.StringValue(err.Error()),
+		})
 		return errors.E(op, err)
 	}
 
@@ -54,19 +65,33 @@ func (r *rpc) PushBatch(j *jobsProto.PushBatchRequest, _ *jobsProto.Empty) error
 
 func (r *rpc) Pause(req *jobsProto.Pipelines, _ *jobsProto.Empty) error {
 	for i := 0; i < len(req.GetPipelines()); i++ {
-		err := r.p.Pause(req.GetPipelines()[i])
+		ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "pause_pipeline", trace.WithSpanKind(trace.SpanKindServer))
+		err := r.p.Pause(ctx, req.GetPipelines()[i])
 		if err != nil {
+			span.SetAttributes(attribute.KeyValue{
+				Key:   "error",
+				Value: attribute.StringValue(err.Error()),
+			})
+
+			span.End()
 			return err
 		}
+		span.End()
 	}
 
 	return nil
 }
 
 func (r *rpc) Resume(req *jobsProto.Pipelines, _ *jobsProto.Empty) error {
+	ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "resume_pipeline", trace.WithSpanKind(trace.SpanKindServer))
+	defer span.End()
 	for i := 0; i < len(req.GetPipelines()); i++ {
-		err := r.p.Resume(req.GetPipelines()[i])
+		err := r.p.Resume(ctx, req.GetPipelines()[i])
 		if err != nil {
+			span.SetAttributes(attribute.KeyValue{
+				Key:   "error",
+				Value: attribute.StringValue(err.Error()),
+			})
 			return err
 		}
 	}
@@ -75,6 +100,8 @@ func (r *rpc) Resume(req *jobsProto.Pipelines, _ *jobsProto.Empty) error {
 }
 
 func (r *rpc) List(_ *jobsProto.Empty, resp *jobsProto.Pipelines) error {
+	_, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "list_pipelines", trace.WithSpanKind(trace.SpanKindServer))
+	defer span.End()
 	resp.Pipelines = r.p.List()
 	return nil
 }
@@ -88,12 +115,19 @@ func (r *rpc) Declare(req *jobsProto.DeclareRequest, _ *jobsProto.Empty) error {
 	const op = errors.Op("rpc_declare_pipeline")
 	pipe := Pipeline{}
 
+	ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "declare_pipeline", trace.WithSpanKind(trace.SpanKindServer))
+	defer span.End()
+
 	for i := range req.GetPipeline() {
 		pipe[i] = req.GetPipeline()[i]
 	}
 
-	err := r.p.Declare(pipe)
+	err := r.p.Declare(ctx, pipe)
 	if err != nil {
+		span.SetAttributes(attribute.KeyValue{
+			Key:   "error",
+			Value: attribute.StringValue(err.Error()),
+		})
 		return errors.E(op, err)
 	}
 
@@ -101,15 +135,23 @@ func (r *rpc) Declare(req *jobsProto.DeclareRequest, _ *jobsProto.Empty) error {
 }
 
 func (r *rpc) Destroy(req *jobsProto.Pipelines, resp *jobsProto.Pipelines) error {
-	const op = errors.Op("rpc_declare_pipeline")
+	const op = errors.Op("rpc_destroy_pipeline")
 
 	var destroyed []string //nolint:prealloc
 	for i := 0; i < len(req.GetPipelines()); i++ {
-		err := r.p.Destroy(req.GetPipelines()[i])
+		ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "destroy_pipeline", trace.WithSpanKind(trace.SpanKindServer))
+		err := r.p.Destroy(ctx, req.GetPipelines()[i])
+
 		if err != nil {
+			span.SetAttributes(attribute.KeyValue{
+				Key:   "error",
+				Value: attribute.StringValue(err.Error()),
+			})
+			span.End()
 			return errors.E(op, err)
 		}
 		destroyed = append(destroyed, req.GetPipelines()[i])
+		span.End()
 	}
 
 	// return destroyed pipelines
@@ -122,8 +164,16 @@ func (r *rpc) Stat(_ *jobsProto.Empty, resp *jobsProto.Stats) error {
 	const op = errors.Op("rpc_stats")
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
+
+	ctx, span := r.p.tracer.Tracer(spanName).Start(ctx, "destroy_pipeline", trace.WithSpanKind(trace.SpanKindServer))
+	defer span.End()
+
 	state, err := r.p.JobsState(ctx)
 	if err != nil {
+		span.SetAttributes(attribute.KeyValue{
+			Key:   "error",
+			Value: attribute.StringValue(err.Error()),
+		})
 		return errors.E(op, err)
 	}
 
