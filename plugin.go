@@ -150,7 +150,7 @@ func (p *Plugin) Serve() chan error {
 
 	// register initial pipelines
 	p.pipelines.Range(func(key, value any) bool {
-		t := time.Now()
+		t := time.Now().UTC()
 		// pipeline name (ie test-local, sqs-aws, etc)
 		name := key.(string)
 
@@ -338,7 +338,7 @@ func (p *Plugin) Reset() error {
 func (p *Plugin) Push(ctx context.Context, j jobsApi.Job) error {
 	const op = errors.Op("jobs_plugin_push")
 
-	start := time.Now()
+	start := time.Now().UTC()
 	// get the pipeline for the job
 	pipe, ok := p.pipelines.Load(j.Pipeline())
 	if !ok {
@@ -376,7 +376,7 @@ func (p *Plugin) Push(ctx context.Context, j jobsApi.Job) error {
 
 func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Job) error {
 	const op = errors.Op("jobs_plugin_push")
-	start := time.Now()
+	start := time.Now().UTC()
 
 	for i := 0; i < len(j); i++ {
 		// get the pipeline for the job

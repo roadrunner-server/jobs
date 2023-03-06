@@ -21,7 +21,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 					p.log.Debug("------> job poller was stopped <------")
 					return
 				default:
-					start := time.Now()
+					start := time.Now().UTC()
 					// get prioritized JOB from the queue
 					jb := p.queue.ExtractMin()
 
