@@ -353,6 +353,8 @@ func (p *Plugin) Push(ctx context.Context, j jobsApi.Job) error {
 		return errors.E(op, errors.Errorf("consumer not registered for the requested driver: %s", ppl.Driver()))
 	}
 
+	p.statsExporter.pushJobRequestCounter.WithLabelValues(ppl.Name(), ppl.Driver(), "single").Inc()
+
 	// if job has no priority, inherit it from the pipeline
 	if j.Priority() == 0 {
 		j.UpdatePriority(ppl.Priority())
@@ -369,6 +371,8 @@ func (p *Plugin) Push(ctx context.Context, j jobsApi.Job) error {
 	}
 
 	atomic.AddUint64(p.metrics.pushOk, 1)
+	p.statsExporter.pushJobLatencyHistogram.WithLabelValues(ppl.Name(), ppl.Driver(), "single").Observe(time.Since(start).Seconds())
+
 	p.log.Debug("job was pushed successfully", zap.String("ID", j.ID()), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 
 	return nil
@@ -379,6 +383,7 @@ func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Job) error {
 	start := time.Now().UTC()
 
 	for i := 0; i < len(j); i++ {
+		operationStart := time.Now().UTC()
 		// get the pipeline for the job
 		pipe, ok := p.pipelines.Load(j[i].Pipeline())
 		if !ok {
@@ -391,6 +396,8 @@ func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Job) error {
 		if !ok {
 			return errors.E(op, errors.Errorf("consumer not registered for the requested driver: %s", ppl.Driver()))
 		}
+
+		p.statsExporter.pushJobRequestCounter.WithLabelValues(ppl.Name(), ppl.Driver(), "single").Inc()
 
 		// if job has no priority, inherit it from the pipeline
 		if j[i].Priority() == 0 {
@@ -405,6 +412,8 @@ func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Job) error {
 			p.log.Error("job push batch error", zap.String("ID", j[i].ID()), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)), zap.Error(err))
 			return errors.E(op, err)
 		}
+
+		p.statsExporter.pushJobLatencyHistogram.WithLabelValues(ppl.Name(), ppl.Driver(), "batch").Observe(time.Since(operationStart).Seconds())
 
 		cancel()
 	}
