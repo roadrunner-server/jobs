@@ -301,6 +301,9 @@ func (p *Plugin) JobsState(ctx context.Context) ([]*jobsApi.State, error) {
 		var state *jobsApi.State
 		state, err = consumer.State(newCtx)
 		if err != nil {
+			jst = append(jst, &jobsApi.State{
+				ErrorMessage: err.Error(),
+			})
 			cancel()
 			return false
 		}
