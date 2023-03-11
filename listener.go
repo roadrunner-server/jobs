@@ -26,7 +26,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 					jb := p.queue.ExtractMin()
 
 					traceCtx := otel.GetTextMapPropagator().Extract(context.Background(), propagation.HeaderCarrier(jb.Metadata()))
-					_, span := p.tracer.Tracer("jobs").Start(traceCtx, "jobs_listener")
+					_, span := p.tracer.Tracer(PluginName).Start(traceCtx, "jobs_listener")
 
 					// parse the context
 					// for each job, context contains:
