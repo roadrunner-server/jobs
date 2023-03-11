@@ -17,14 +17,16 @@ const (
 )
 
 type statsExporter struct {
-	jobsOk      *uint64
-	pushOk      *uint64
-	jobsErr     *uint64
-	pushErr     *uint64
-	pushOkDesc  *prometheus.Desc
-	pushErrDesc *prometheus.Desc
-	jobsErrDesc *prometheus.Desc
-	jobsOkDesc  *prometheus.Desc
+	jobsOk                  *uint64
+	pushOk                  *uint64
+	jobsErr                 *uint64
+	pushErr                 *uint64
+	pushOkDesc              *prometheus.Desc
+	pushErrDesc             *prometheus.Desc
+	jobsErrDesc             *prometheus.Desc
+	jobsOkDesc              *prometheus.Desc
+	pushJobLatencyHistogram *prometheus.HistogramVec
+	pushJobRequestCounter   *prometheus.CounterVec
 
 	defaultExporter *metrics.StatsExporter
 }
@@ -53,6 +55,17 @@ func newStatsExporter(stats Informer, jobsOk, pushOk, jobsErr, pushErr *uint64) 
 		pushErrDesc: prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "push_err"), "Number of jobs push which was failed", nil, nil),
 		jobsErrDesc: prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "jobs_err"), "Number of jobs error while processing in the worker", nil, nil),
 		jobsOkDesc:  prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "jobs_ok"), "Number of successfully processed jobs", nil, nil),
+
+		pushJobLatencyHistogram: prometheus.NewHistogramVec(prometheus.HistogramOpts{
+			Name: prometheus.BuildFQName(namespace, "", "push_latency"),
+			Help: "Histogram represent latency for pushed operation",
+		}, []string{"job", "driver", "source"}),
+
+		pushJobRequestCounter: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Namespace: namespace,
+			Name:      "push_request_total",
+			Help:      "Total number of pushed requests",
+		}, []string{"job", "driver", "source"}),
 	}
 }
 
@@ -63,6 +76,9 @@ func (se *statsExporter) Describe(d chan<- *prometheus.Desc) {
 	d <- se.pushOkDesc
 	d <- se.jobsErrDesc
 	d <- se.jobsOkDesc
+
+	se.pushJobLatencyHistogram.Describe(d)
+	se.pushJobRequestCounter.Describe(d)
 }
 
 func (se *statsExporter) Collect(ch chan<- prometheus.Metric) {
@@ -74,4 +90,7 @@ func (se *statsExporter) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(se.jobsErrDesc, prometheus.GaugeValue, float64(atomic.LoadUint64(se.jobsErr)))
 	ch <- prometheus.MustNewConstMetric(se.pushOkDesc, prometheus.GaugeValue, float64(atomic.LoadUint64(se.pushOk)))
 	ch <- prometheus.MustNewConstMetric(se.pushErrDesc, prometheus.GaugeValue, float64(atomic.LoadUint64(se.pushErr)))
+
+	se.pushJobLatencyHistogram.Collect(ch)
+	se.pushJobRequestCounter.Collect(ch)
 }
