@@ -58,13 +58,13 @@ func newStatsExporter(stats Informer, jobsOk, pushOk, jobsErr, pushErr *uint64) 
 
 		pushJobLatencyHistogram: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Name: prometheus.BuildFQName(namespace, "", "push_latency"),
-			Help: "Histogram represent latency for pushed operation",
+			Help: "Histogram represents latency for pushed operation",
 		}, []string{"job", "driver", "source"}),
 
 		pushJobRequestCounter: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Namespace: namespace,
-			Name:      "push_request_total",
-			Help:      "Total number of pushed requests",
+			Name:      "requests_total",
+			Help:      "The total number of requests sent to the JOBS plugin",
 		}, []string{"job", "driver", "source"}),
 	}
 }

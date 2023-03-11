@@ -367,7 +367,7 @@ func (p *Plugin) PushBatch(j []jobsApi.Job) error {
 	start := time.Now()
 
 	for i := 0; i < len(j); i++ {
-		operationStart := time.Now()
+		operationStart := time.Now().UTC()
 		// get the pipeline for the job
 		pipe, ok := p.pipelines.Load(j[i].Pipeline())
 		if !ok {
