@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/roadrunner-server/api/v4/plugins/v1/jobs"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 	"go.uber.org/zap"
 )
 
@@ -19,9 +21,12 @@ func (p *Plugin) listener() { //nolint:gocognit
 					p.log.Debug("------> job poller was stopped <------")
 					return
 				default:
-					start := time.Now()
+					start := time.Now().UTC()
 					// get prioritized JOB from the queue
 					jb := p.queue.ExtractMin()
+
+					traceCtx := otel.GetTextMapPropagator().Extract(context.Background(), propagation.HeaderCarrier(jb.Metadata()))
+					_, span := p.tracer.Tracer(PluginName).Start(traceCtx, "jobs_listener")
 
 					// parse the context
 					// for each job, context contains:
@@ -44,6 +49,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 						if errNack != nil {
 							p.log.Error("negatively acknowledge was failed", zap.String("ID", jb.ID()), zap.Error(errNack))
 						}
+						span.End()
 						continue
 					}
 
@@ -60,6 +66,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 						if _, ok := jb.(jobs.Acknowledger); !ok {
 							p.log.Error("job execute failed, job is not a Acknowledger, skipping Ack/Nack")
 							p.putPayload(exec)
+							span.End()
 							continue
 						}
 						// RR protocol level error, Nack the job
@@ -71,12 +78,14 @@ func (p *Plugin) listener() { //nolint:gocognit
 						p.log.Error("job execute failed", zap.Error(err))
 						p.putPayload(exec)
 						jb = nil
+						span.End()
 						continue
 					}
 
 					if _, ok := jb.(jobs.Acknowledger); !ok {
 						// can't acknowledge, just continue
 						p.putPayload(exec)
+						span.End()
 						continue
 					}
 
@@ -88,6 +97,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 							atomic.AddUint64(p.metrics.jobsErr, 1)
 							p.log.Error("acknowledge error, job might be missed", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 							jb = nil
+							span.End()
 							continue
 						}
 
@@ -96,6 +106,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 						atomic.AddUint64(p.metrics.jobsOk, 1)
 
 						jb = nil
+						span.End()
 						continue
 					}
 
@@ -112,11 +123,13 @@ func (p *Plugin) listener() { //nolint:gocognit
 						if errAck != nil {
 							p.log.Error("acknowledge failed, job might be lost", zap.String("ID", jb.ID()), zap.Error(err), zap.Error(errAck))
 							jb = nil
+							span.End()
 							continue
 						}
 
 						p.log.Error("job acknowledged, but contains error", zap.Error(err))
 						jb = nil
+						span.End()
 						continue
 					}
 
@@ -128,6 +141,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 					// return payload
 					p.putPayload(exec)
 					jb = nil
+					span.End()
 				}
 			}
 		}()
