@@ -5,12 +5,12 @@ go 1.20
 require (
 	github.com/goccy/go-json v0.10.1
 	github.com/prometheus/client_golang v1.14.0
-	github.com/roadrunner-server/api/v4 v4.3.1
+	github.com/roadrunner-server/api/v4 v4.3.2
 	github.com/roadrunner-server/endure/v2 v2.2.0
 	github.com/roadrunner-server/errors v1.2.0
 	github.com/roadrunner-server/goridge/v3 v3.6.2
 	github.com/roadrunner-server/sdk/v4 v4.2.0
-	go.buf.build/protocolbuffers/go/roadrunner-server/api v1.3.36
+	go.buf.build/protocolbuffers/go/roadrunner-server/api v1.3.39
 	go.opentelemetry.io/contrib/propagators/jaeger v1.15.0
 	go.opentelemetry.io/otel v1.14.0
 	go.opentelemetry.io/otel/sdk v1.14.0
