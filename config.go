@@ -1,8 +1,6 @@
 package jobs
 
 import (
-	"runtime"
-
 	poolImpl "github.com/roadrunner-server/sdk/v4/pool"
 )
 
@@ -45,10 +43,6 @@ func (c *Config) InitDefaults() {
 		c.PipelineSize = 1_000_000
 	}
 
-	if c.NumPollers == 0 {
-		c.NumPollers = uint8(runtime.NumCPU())
-	}
-
 	for k := range c.Pipelines {
 		// set the pipeline name
 		c.Pipelines[k].With(pipelineName, k)
@@ -60,4 +54,10 @@ func (c *Config) InitDefaults() {
 	}
 
 	c.Pool.InitDefaults()
+
+	// NumPollers is hardcoded because it should be slightly more than the number of workers
+	// to properly load all workers
+	if c.NumPollers == 0 {
+		c.NumPollers = uint8(c.Pool.NumWorkers) + 2
+	}
 }
