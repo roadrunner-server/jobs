@@ -91,7 +91,16 @@ func (p Pipeline) Int(name string, d int) int {
 		if val, ok := p[config]; ok {
 			if rv, ok := val.(map[string]any); ok {
 				if rv[name] != nil {
-					return rv[name].(int)
+					switch v := rv[name].(type) {
+					case float32:
+						return int(v)
+					case float64:
+						return int(v)
+					case int:
+						return v
+					default:
+						return 0
+					}
 				}
 			}
 		}
@@ -177,7 +186,18 @@ func (p Pipeline) Priority() int64 {
 		if val, ok := p[config]; ok {
 			if rv, ok := val.(map[string]any); ok {
 				if rv[name] != nil {
-					return rv[name].(int64)
+					switch v := rv[name].(type) {
+					case float32:
+						return int64(v)
+					case float64:
+						return int64(v)
+					case int:
+						return int64(v)
+					case int64:
+						return v
+					default:
+						return 0
+					}
 				}
 			}
 		}
