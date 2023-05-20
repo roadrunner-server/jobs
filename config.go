@@ -15,7 +15,7 @@ type Config struct {
 	// NumPollers configures number of priority queue pollers
 	// Should be no more than 255
 	// Default - num logical cores
-	NumPollers uint8 `mapstructure:"num_pollers"`
+	NumPollers int `mapstructure:"num_pollers"`
 
 	// PipelineSize is the limit of a main jobs queue which consume Items from the drivers pipeline
 	// Driver pipeline might be much larger than a main jobs queue
@@ -58,6 +58,6 @@ func (c *Config) InitDefaults() {
 	// NumPollers is hardcoded because it should be slightly more than the number of workers
 	// to properly load all workers
 	if c.NumPollers == 0 {
-		c.NumPollers = uint8(c.Pool.NumWorkers) + 2
+		c.NumPollers = int(c.Pool.NumWorkers) + 2
 	}
 }

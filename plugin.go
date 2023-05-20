@@ -228,7 +228,7 @@ func (p *Plugin) Stop(context.Context) error {
 	// but if not, this is not a problem at all.
 	// The main target is to stop the drivers
 	go func() {
-		for i := uint8(0); i < p.cfg.NumPollers+1; i++ {
+		for i := 0; i < p.cfg.NumPollers; i++ {
 			// stop jobs plugin pollers
 			p.stopCh <- struct{}{}
 		}

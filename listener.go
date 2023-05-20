@@ -13,7 +13,7 @@ import (
 
 // non blocking listener
 func (p *Plugin) listener() { //nolint:gocognit
-	for i := uint8(0); i < p.cfg.NumPollers; i++ {
+	for i := 0; i < p.cfg.NumPollers; i++ {
 		go func() {
 			for {
 				select {
