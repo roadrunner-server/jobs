@@ -305,10 +305,16 @@ func (p *Plugin) Workers() []*process.State {
 
 func (p *Plugin) JobsState(ctx context.Context) ([]*jobsApi.State, error) {
 	const op = errors.Op("jobs_plugin_drivers_state")
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
 	jst := make([]*jobsApi.State, 0, 2)
 	var err error
 	p.consumers.Range(func(_, value any) bool {
 		consumer := value.(jobsApi.Driver)
+		if consumer == nil {
+			return true
+		}
 		newCtx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(p.cfg.Timeout))
 
 		var state *jobsApi.State
