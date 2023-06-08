@@ -270,14 +270,27 @@ func (p *Plugin) Collects() []*dep.In {
 	}
 }
 
+// Weight of the plugin
+func (p *Plugin) Weight() uint {
+	return 1
+}
+
 func (p *Plugin) Workers() []*process.State {
 	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	if p.workersPool == nil {
+		return nil
+	}
+
 	wrk := p.workersPool.Workers()
-	p.mu.RUnlock()
 
 	ps := make([]*process.State, len(wrk))
 
 	for i := 0; i < len(wrk); i++ {
+		if wrk[i] == nil {
+			continue
+		}
 		st, err := process.WorkerProcessState(wrk[i])
 		if err != nil {
 			p.log.Error("jobs workers state", zap.Error(err))
@@ -294,7 +307,7 @@ func (p *Plugin) JobsState(ctx context.Context) ([]*jobsApi.State, error) {
 	const op = errors.Op("jobs_plugin_drivers_state")
 	jst := make([]*jobsApi.State, 0, 2)
 	var err error
-	p.consumers.Range(func(key, value any) bool {
+	p.consumers.Range(func(_, value any) bool {
 		consumer := value.(jobsApi.Driver)
 		newCtx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(p.cfg.Timeout))
 
