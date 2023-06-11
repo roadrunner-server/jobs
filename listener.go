@@ -2,7 +2,6 @@ package jobs
 
 import (
 	"context"
-	"sync/atomic"
 	"time"
 
 	"github.com/roadrunner-server/api/v4/plugins/v1/jobs"
@@ -42,7 +41,8 @@ func (p *Plugin) listener() { //nolint:gocognit
 
 					ctx, err := jb.Context()
 					if err != nil {
-						atomic.AddUint64(p.metrics.jobsErr, 1)
+						p.metrics.JobErr()
+
 						p.log.Error("job marshal error", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 
 						errNack := jb.(jobs.Acknowledger).Nack()
@@ -60,8 +60,10 @@ func (p *Plugin) listener() { //nolint:gocognit
 					p.mu.RLock()
 					resp, err := p.workersPool.Exec(context.Background(), exec)
 					p.mu.RUnlock()
+
 					if err != nil {
-						atomic.AddUint64(p.metrics.jobsErr, 1)
+						p.metrics.JobErr()
+
 						p.log.Error("job processed with errors", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 						if _, ok := jb.(jobs.Acknowledger); !ok {
 							p.log.Error("job execute failed, job is not a Acknowledger, skipping Ack/Nack")
@@ -94,7 +96,8 @@ func (p *Plugin) listener() { //nolint:gocognit
 						p.putPayload(exec)
 						err = jb.(jobs.Acknowledger).Ack()
 						if err != nil {
-							atomic.AddUint64(p.metrics.jobsErr, 1)
+							p.metrics.JobErr()
+
 							p.log.Error("acknowledge error, job might be missed", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 							jb = nil
 							span.End()
@@ -102,8 +105,8 @@ func (p *Plugin) listener() { //nolint:gocognit
 						}
 
 						p.log.Debug("job was processed successfully", zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
-						// exporter
-						atomic.AddUint64(p.metrics.jobsOk, 1)
+						// collector
+						p.metrics.JobOk()
 
 						jb = nil
 						span.End()
@@ -113,7 +116,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 					// handle the response protocol
 					err = p.respHandler.Handle(resp, jb.(jobs.Acknowledger))
 					if err != nil {
-						atomic.AddUint64(p.metrics.jobsErr, 1)
+						p.metrics.JobErr()
 						p.log.Error("response handler error", zap.Error(err), zap.String("ID", jb.ID()), zap.ByteString("response", resp.Body), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 						p.putPayload(exec)
 						/*
@@ -133,8 +136,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 						continue
 					}
 
-					// exporter
-					atomic.AddUint64(p.metrics.jobsOk, 1)
+					p.metrics.JobOk()
 
 					p.log.Debug("job was processed successfully", zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 
