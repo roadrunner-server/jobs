@@ -406,6 +406,8 @@ func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Job) error {
 			return errors.E(op, err)
 		}
 
+		p.metrics.PushOk()
+
 		p.metrics.pushJobLatencyHistogram.WithLabelValues(ppl.Name(), ppl.Driver(), "batch").Observe(time.Since(operationStart).Seconds())
 
 		cancel()
