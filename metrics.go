@@ -28,15 +28,6 @@ type statsExporter struct {
 	defaultExporter *metrics.StatsExporter
 }
 
-type JobEvent struct {
-	name  string
-	delta int
-}
-
-type JobEvents struct {
-	jobsOk, pushOk, jobsErr, pushErr <-chan JobEvent
-}
-
 func (se *statsExporter) JobOk() {
 	atomic.AddUint64(se.jobsOk, 1)
 }
