@@ -98,7 +98,7 @@ func (j *Job) UpdatePriority(p int64) {
 
 func (j *Job) Priority() int64 {
 	if j.Options == nil {
-		return 10
+		return defaultPriority
 	}
 
 	return j.Options.Priority

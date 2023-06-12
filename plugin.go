@@ -358,14 +358,12 @@ func (p *Plugin) Push(ctx context.Context, j jobsApi.Job) error {
 	err := d.(jobsApi.Driver).Push(ctx, j)
 	if err != nil {
 		p.metrics.PushErr()
-		//atomic.AddUint64(p.metrics.pushErr, 1)
 		p.log.Error("job push error", zap.String("ID", j.ID()), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)), zap.Error(err))
 		return errors.E(op, err)
 	}
 
 	p.metrics.PushOk()
 
-	//atomic.AddUint64(p.metrics.pushOk, 1)
 	p.metrics.pushJobLatencyHistogram.WithLabelValues(ppl.Name(), ppl.Driver(), "single").Observe(time.Since(start).Seconds())
 
 	p.log.Debug("job was pushed successfully", zap.String("ID", j.ID()), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
