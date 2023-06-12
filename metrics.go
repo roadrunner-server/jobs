@@ -1,6 +1,7 @@
 package jobs
 
 import (
+	"github.com/roadrunner-server/sdk/v4/utils"
 	"sync/atomic"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -56,6 +57,11 @@ func newStatsExporter(stats Informer) *statsExporter {
 
 			Workers: stats,
 		},
+
+		jobsOk:  utils.Uint64(0),
+		pushOk:  utils.Uint64(0),
+		jobsErr: utils.Uint64(0),
+		pushErr: utils.Uint64(0),
 
 		pushOkDesc:  prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "push_ok"), "Number of job push", nil, nil),
 		pushErrDesc: prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "push_err"), "Number of jobs push which was failed", nil, nil),
