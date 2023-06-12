@@ -105,7 +105,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 						}
 
 						p.log.Debug("job was processed successfully", zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
-						// collector
+
 						p.metrics.JobOk()
 
 						jb = nil

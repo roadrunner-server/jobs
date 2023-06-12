@@ -12,8 +12,6 @@ const (
 )
 
 type statsExporter struct {
-	Informer
-
 	jobsOk  *uint64
 	pushOk  *uint64
 	jobsErr *uint64
@@ -69,11 +67,6 @@ func newStatsExporter(stats Informer) *statsExporter {
 
 			Workers: stats,
 		},
-
-		/*jobsOk:  exporter.jobsOk,
-		pushOk:  exporter.pushOk,
-		jobsErr: exporter.jobsErr,
-		pushErr: exporter.pushErr,*/
 
 		pushOkDesc:  prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "push_ok"), "Number of job push", nil, nil),
 		pushErrDesc: prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "push_err"), "Number of jobs push which was failed", nil, nil),
