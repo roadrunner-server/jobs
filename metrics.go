@@ -27,6 +27,11 @@ type statsExporter struct {
 	defaultExporter *metrics.StatsExporter
 }
 
+func (p *Plugin) MetricsCollector() []prometheus.Collector {
+	// p - implements Exporter interface (workers)
+	return []prometheus.Collector{p.metrics}
+}
+
 func (se *statsExporter) JobOk() {
 	atomic.AddUint64(se.jobsOk, 1)
 }
