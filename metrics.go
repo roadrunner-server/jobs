@@ -32,19 +32,19 @@ func (p *Plugin) MetricsCollector() []prometheus.Collector {
 	return []prometheus.Collector{p.metrics}
 }
 
-func (se *statsExporter) JobOk() {
+func (se *statsExporter) CountJobOk() {
 	atomic.AddUint64(se.jobsOk, 1)
 }
 
-func (se *statsExporter) JobErr() {
+func (se *statsExporter) CountJobErr() {
 	atomic.AddUint64(se.jobsErr, 1)
 }
 
-func (se *statsExporter) PushOk() {
+func (se *statsExporter) CountPushOk() {
 	atomic.AddUint64(se.pushOk, 1)
 }
 
-func (se *statsExporter) PushErr() {
+func (se *statsExporter) CountPushErr() {
 	atomic.AddUint64(se.pushErr, 1)
 }
 

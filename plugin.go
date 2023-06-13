@@ -357,12 +357,12 @@ func (p *Plugin) Push(ctx context.Context, j jobsApi.Job) error {
 
 	err := d.(jobsApi.Driver).Push(ctx, j)
 	if err != nil {
-		p.metrics.PushErr()
+		p.metrics.CountPushErr()
 		p.log.Error("job push error", zap.String("ID", j.ID()), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)), zap.Error(err))
 		return errors.E(op, err)
 	}
 
-	p.metrics.PushOk()
+	p.metrics.CountPushOk()
 
 	p.metrics.pushJobLatencyHistogram.WithLabelValues(ppl.Name(), ppl.Driver(), "single").Observe(time.Since(start).Seconds())
 
@@ -390,7 +390,7 @@ func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Job) error {
 			return errors.E(op, errors.Errorf("consumer not registered for the requested driver: %s", ppl.Driver()))
 		}
 
-		p.metrics.pushJobRequestCounter.WithLabelValues(ppl.Name(), ppl.Driver(), "single").Inc()
+		p.metrics.pushJobRequestCounter.WithLabelValues(ppl.Name(), ppl.Driver(), "batch").Inc()
 
 		// if job has no priority, inherit it from the pipeline
 		if j[i].Priority() == 0 {
@@ -401,12 +401,12 @@ func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Job) error {
 		err := d.(jobsApi.Driver).Push(ctxPush, j[i])
 		if err != nil {
 			cancel()
-			p.metrics.PushErr()
+			p.metrics.CountPushErr()
 			p.log.Error("job push batch error", zap.String("ID", j[i].ID()), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)), zap.Error(err))
 			return errors.E(op, err)
 		}
 
-		p.metrics.PushOk()
+		p.metrics.CountPushOk()
 
 		p.metrics.pushJobLatencyHistogram.WithLabelValues(ppl.Name(), ppl.Driver(), "batch").Observe(time.Since(operationStart).Seconds())
 

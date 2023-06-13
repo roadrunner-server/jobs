@@ -41,7 +41,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 
 					ctx, err := jb.Context()
 					if err != nil {
-						p.metrics.JobErr()
+						p.metrics.CountJobErr()
 
 						p.log.Error("job marshal error", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 
@@ -62,7 +62,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 					p.mu.RUnlock()
 
 					if err != nil {
-						p.metrics.JobErr()
+						p.metrics.CountJobErr()
 
 						p.log.Error("job processed with errors", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 						if _, ok := jb.(jobs.Acknowledger); !ok {
@@ -96,7 +96,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 						p.putPayload(exec)
 						err = jb.(jobs.Acknowledger).Ack()
 						if err != nil {
-							p.metrics.JobErr()
+							p.metrics.CountJobErr()
 
 							p.log.Error("acknowledge error, job might be missed", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 							jb = nil
@@ -106,7 +106,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 
 						p.log.Debug("job was processed successfully", zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 
-						p.metrics.JobOk()
+						p.metrics.CountJobOk()
 
 						jb = nil
 						span.End()
@@ -116,7 +116,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 					// handle the response protocol
 					err = p.respHandler.Handle(resp, jb.(jobs.Acknowledger))
 					if err != nil {
-						p.metrics.JobErr()
+						p.metrics.CountJobErr()
 						p.log.Error("response handler error", zap.Error(err), zap.String("ID", jb.ID()), zap.ByteString("response", resp.Body), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 						p.putPayload(exec)
 						/*
@@ -136,7 +136,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 						continue
 					}
 
-					p.metrics.JobOk()
+					p.metrics.CountJobOk()
 
 					p.log.Debug("job was processed successfully", zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 
