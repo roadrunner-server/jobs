@@ -13,10 +13,11 @@ const (
 )
 
 type statsExporter struct {
-	jobsOk                  *uint64
-	pushOk                  *uint64
-	jobsErr                 *uint64
-	pushErr                 *uint64
+	jobsOk  *uint64
+	pushOk  *uint64
+	jobsErr *uint64
+	pushErr *uint64
+
 	pushOkDesc              *prometheus.Desc
 	pushErrDesc             *prometheus.Desc
 	jobsErrDesc             *prometheus.Desc
