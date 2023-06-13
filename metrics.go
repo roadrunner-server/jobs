@@ -1,11 +1,11 @@
 package jobs
 
 import (
-	"github.com/roadrunner-server/sdk/v4/utils"
 	"sync/atomic"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/roadrunner-server/sdk/v4/metrics"
+	"github.com/roadrunner-server/sdk/v4/utils"
 )
 
 const (
