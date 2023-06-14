@@ -18,11 +18,6 @@ require (
 	go.uber.org/zap v1.24.0
 )
 
-replace (
-	github.com/roadrunner-server/api/v4 => ../../api
-	github.com/roadrunner-server/sdk/v4 => ../../sdk
-)
-
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect

@@ -2,12 +2,12 @@ package protocol
 
 import (
 	"github.com/goccy/go-json"
-	"github.com/roadrunner-server/api/v4/plugins/v2/jobs"
+	"github.com/roadrunner-server/api/v4/plugins/v1/jobs"
 	"github.com/roadrunner-server/errors"
 	"go.uber.org/zap"
 )
 
-func (rh *RespHandler) handleErrResp(data []byte, jb jobs.Job) error {
+func (rh *RespHandler) handleErrResp(data []byte, jb jobs.Acknowledger) error {
 	er := rh.getErrResp()
 	defer rh.putErrResp(er)
 

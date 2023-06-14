@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/roadrunner-server/api/v4/plugins/v2/jobs"
+	"github.com/roadrunner-server/api/v4/plugins/v1/jobs"
 	"github.com/roadrunner-server/errors"
 	jobsProto "go.buf.build/protocolbuffers/go/roadrunner-server/api/jobs/v1"
 	"go.opentelemetry.io/otel/attribute"
@@ -43,7 +43,7 @@ func (r *rpc) PushBatch(j *jobsProto.PushBatchRequest, _ *jobsProto.Empty) error
 
 	l := len(j.GetJobs())
 
-	batch := make([]jobs.Message, l)
+	batch := make([]jobs.Job, l)
 
 	for i := 0; i < l; i++ {
 		// convert transport entity into domain
