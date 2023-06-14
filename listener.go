@@ -5,7 +5,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/roadrunner-server/api/v4/plugins/v1/jobs"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	"go.uber.org/zap"
@@ -25,7 +24,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 					// get prioritized JOB from the queue
 					jb := p.queue.ExtractMin()
 
-					traceCtx := otel.GetTextMapPropagator().Extract(context.Background(), propagation.HeaderCarrier(jb.Metadata()))
+					traceCtx := otel.GetTextMapPropagator().Extract(context.Background(), propagation.HeaderCarrier(jb.Headers()))
 					_, span := p.tracer.Tracer(PluginName).Start(traceCtx, "jobs_listener")
 
 					// parse the context
@@ -45,7 +44,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 						atomic.AddUint64(p.metrics.jobsErr, 1)
 						p.log.Error("job marshal error", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 
-						errNack := jb.(jobs.Acknowledger).Nack()
+						errNack := jb.Nack()
 						if errNack != nil {
 							p.log.Error("negatively acknowledge was failed", zap.String("ID", jb.ID()), zap.Error(errNack))
 						}
@@ -63,14 +62,8 @@ func (p *Plugin) listener() { //nolint:gocognit
 					if err != nil {
 						atomic.AddUint64(p.metrics.jobsErr, 1)
 						p.log.Error("job processed with errors", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
-						if _, ok := jb.(jobs.Acknowledger); !ok {
-							p.log.Error("job execute failed, job is not a Acknowledger, skipping Ack/Nack")
-							p.putPayload(exec)
-							span.End()
-							continue
-						}
 						// RR protocol level error, Nack the job
-						errNack := jb.(jobs.Acknowledger).Nack()
+						errNack := jb.Nack()
 						if errNack != nil {
 							p.log.Error("negatively acknowledge failed", zap.String("ID", jb.ID()), zap.Error(errNack))
 						}
@@ -82,17 +75,10 @@ func (p *Plugin) listener() { //nolint:gocognit
 						continue
 					}
 
-					if _, ok := jb.(jobs.Acknowledger); !ok {
-						// can't acknowledge, just continue
-						p.putPayload(exec)
-						span.End()
-						continue
-					}
-
 					// if response is nil or body is nil, just acknowledge the job
 					if resp == nil || resp.Body == nil {
 						p.putPayload(exec)
-						err = jb.(jobs.Acknowledger).Ack()
+						err = jb.Ack()
 						if err != nil {
 							atomic.AddUint64(p.metrics.jobsErr, 1)
 							p.log.Error("acknowledge error, job might be missed", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
@@ -111,7 +97,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 					}
 
 					// handle the response protocol
-					err = p.respHandler.Handle(resp, jb.(jobs.Acknowledger))
+					err = p.respHandler.Handle(resp, jb)
 					if err != nil {
 						atomic.AddUint64(p.metrics.jobsErr, 1)
 						p.log.Error("response handler error", zap.Error(err), zap.String("ID", jb.ID()), zap.ByteString("response", resp.Body), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
@@ -119,7 +105,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 						/*
 							Job malformed, acknowledge it to prevent endless loop
 						*/
-						errAck := jb.(jobs.Acknowledger).Ack()
+						errAck := jb.Ack()
 						if errAck != nil {
 							p.log.Error("acknowledge failed, job might be lost", zap.String("ID", jb.ID()), zap.Error(err), zap.Error(errAck))
 							jb = nil

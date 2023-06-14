@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/goccy/go-json"
-	"github.com/roadrunner-server/api/v4/plugins/v1/jobs"
+	"github.com/roadrunner-server/api/v4/plugins/v2/jobs"
 	"github.com/roadrunner-server/errors"
 	"github.com/roadrunner-server/sdk/v4/payload"
 	"go.uber.org/zap"
@@ -16,7 +16,6 @@ type Type uint32
 const (
 	NoError Type = iota
 	Error
-	Response
 )
 
 // internal worker protocol (jobs mode)
@@ -30,7 +29,6 @@ type protocol struct {
 type RespHandler struct {
 	log *zap.Logger
 	// response pools
-	qPool sync.Pool
 	ePool sync.Pool
 	pPool sync.Pool
 }
@@ -45,12 +43,6 @@ func NewResponseHandler(log *zap.Logger) *RespHandler {
 			},
 		},
 
-		qPool: sync.Pool{
-			New: func() any {
-				return new(queueResp)
-			},
-		},
-
 		ePool: sync.Pool{
 			New: func() any {
 				return new(errorResp)
@@ -59,7 +51,7 @@ func NewResponseHandler(log *zap.Logger) *RespHandler {
 	}
 }
 
-func (rh *RespHandler) Handle(pld *payload.Payload, jb jobs.Acknowledger) error {
+func (rh *RespHandler) Handle(pld *payload.Payload, jb jobs.Job) error {
 	const op = errors.Op("jobs_handle_response")
 	p := rh.getProtocol()
 	defer rh.putProtocol(p)
@@ -84,14 +76,8 @@ func (rh *RespHandler) Handle(pld *payload.Payload, jb jobs.Acknowledger) error 
 			return errors.E(op, err)
 		}
 		return nil
-		// RR should send a response to the queue/tube/subject
-	case Response:
-		err = rh.handleQueueResp(p.Data, jb)
-		if err != nil {
-			return err
-		}
-		return nil
 	default:
+		rh.log.Warn("unknown response type, acknowledgin the JOB", zap.Uint32("type", uint32(p.T)))
 		err = jb.Ack()
 		if err != nil {
 			return errors.E(op, err)
@@ -121,13 +107,4 @@ func (rh *RespHandler) putErrResp(p *errorResp) {
 	p.Delay = 0
 	p.Requeue = false
 	rh.ePool.Put(p)
-}
-
-func (rh *RespHandler) getQResp() *queueResp {
-	return rh.qPool.Get().(*queueResp)
-}
-
-func (rh *RespHandler) putQResp(p *queueResp) {
-	p.Queue = ""
-	rh.qPool.Put(p)
 }
