@@ -49,7 +49,7 @@ func (j *Job) ID() string {
 	return j.Ident
 }
 
-func (j *Job) PipelineID() string {
+func (j *Job) GroupID() string {
 	if j.Options == nil {
 		return ""
 	}

@@ -354,9 +354,9 @@ func (p *Plugin) Push(ctx context.Context, j jobsApi.Message) error {
 
 	start := time.Now().UTC()
 	// get the pipeline for the job
-	pipe, ok := p.pipelines.Load(j.PipelineID())
+	pipe, ok := p.pipelines.Load(j.GroupID())
 	if !ok {
-		return errors.E(op, errors.Errorf("no such pipeline, requested: %s", j.PipelineID()))
+		return errors.E(op, errors.Errorf("no such pipeline, requested: %s", j.GroupID()))
 	}
 
 	// type conversion
@@ -399,9 +399,9 @@ func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Message) error {
 	for i := 0; i < len(j); i++ {
 		operationStart := time.Now().UTC()
 		// get the pipeline for the job
-		pipe, ok := p.pipelines.Load(j[i].PipelineID())
+		pipe, ok := p.pipelines.Load(j[i].GroupID())
 		if !ok {
-			return errors.E(op, errors.Errorf("no such pipeline, requested: %s", j[i].PipelineID()))
+			return errors.E(op, errors.Errorf("no such pipeline, requested: %s", j[i].GroupID()))
 		}
 
 		ppl := pipe.(jobsApi.Pipeline)
