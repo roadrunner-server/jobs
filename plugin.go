@@ -7,8 +7,7 @@ import (
 	"sync"
 	"time"
 
-	jobsApi "github.com/roadrunner-server/api/v4/plugins/v1/jobs"
-	pq "github.com/roadrunner-server/api/v4/plugins/v1/priority_queue"
+	jobsApi "github.com/roadrunner-server/api/v4/plugins/v2/jobs"
 	jprop "go.opentelemetry.io/contrib/propagators/jaeger"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -55,7 +54,7 @@ type Plugin struct {
 	tracer *sdktrace.TracerProvider
 
 	// priority queue implementation
-	queue pq.Queue
+	queue jobsApi.Queue
 
 	// parent config for broken options. keys are pipelines names, values - pointers to the associated pipeline
 	pipelines sync.Map
@@ -111,7 +110,7 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 	}
 
 	// initialize priority queue
-	p.queue = pqImpl.NewBinHeap[pq.Item](p.cfg.PipelineSize)
+	p.queue = pqImpl.NewBinHeap[jobsApi.Job](p.cfg.PipelineSize)
 	p.log = new(zap.Logger)
 	p.log = log.NamedLogger(PluginName)
 
@@ -194,20 +193,18 @@ func (p *Plugin) Serve() chan error {
 		return errCh
 	}
 
-	go func() {
-		p.mu.Lock()
-		defer p.mu.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
-		var err error
-		p.workersPool, err = p.server.NewPool(context.Background(), p.cfg.Pool, map[string]string{RrMode: RrModeJobs}, nil)
-		if err != nil {
-			errCh <- err
-			return
-		}
+	var err error
+	p.workersPool, err = p.server.NewPool(context.Background(), p.cfg.Pool, map[string]string{RrMode: RrModeJobs}, nil)
+	if err != nil {
+		errCh <- err
+		return errCh
+	}
 
-		// start listening
-		p.listener()
-	}()
+	// start listening
+	p.listener()
 
 	return errCh
 }
@@ -257,11 +254,6 @@ func (p *Plugin) Collects() []*dep.In {
 			p.tracer = pp.(Tracer).Tracer()
 		}, (*Tracer)(nil)),
 	}
-}
-
-// Weight of the plugin
-func (p *Plugin) Weight() uint {
-	return 1
 }
 
 func (p *Plugin) Workers() []*process.State {
@@ -346,14 +338,14 @@ func (p *Plugin) Reset() error {
 	return nil
 }
 
-func (p *Plugin) Push(ctx context.Context, j jobsApi.Job) error {
+func (p *Plugin) Push(ctx context.Context, j jobsApi.Message) error {
 	const op = errors.Op("jobs_plugin_push")
 
 	start := time.Now().UTC()
 	// get the pipeline for the job
-	pipe, ok := p.pipelines.Load(j.Pipeline())
+	pipe, ok := p.pipelines.Load(j.GroupID())
 	if !ok {
-		return errors.E(op, errors.Errorf("no such pipeline, requested: %s", j.Pipeline()))
+		return errors.E(op, errors.Errorf("no such pipeline, requested: %s", j.GroupID()))
 	}
 
 	// type conversion
@@ -390,16 +382,16 @@ func (p *Plugin) Push(ctx context.Context, j jobsApi.Job) error {
 	return nil
 }
 
-func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Job) error {
+func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Message) error {
 	const op = errors.Op("jobs_plugin_push")
 	start := time.Now().UTC()
 
 	for i := 0; i < len(j); i++ {
 		operationStart := time.Now().UTC()
 		// get the pipeline for the job
-		pipe, ok := p.pipelines.Load(j[i].Pipeline())
+		pipe, ok := p.pipelines.Load(j[i].GroupID())
 		if !ok {
-			return errors.E(op, errors.Errorf("no such pipeline, requested: %s", j[i].Pipeline()))
+			return errors.E(op, errors.Errorf("no such pipeline, requested: %s", j[i].GroupID()))
 		}
 
 		ppl := pipe.(jobsApi.Pipeline)
