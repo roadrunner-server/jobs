@@ -13,7 +13,6 @@ const (
 // Config defines settings for job broker, workers and job-pipeline mapping.
 type Config struct {
 	// NumPollers configures number of priority queue pollers
-	// Should be no more than 255
 	// Default - num logical cores
 	NumPollers int `mapstructure:"num_pollers"`
 
@@ -25,7 +24,7 @@ type Config struct {
 	Timeout int `mapstructure:"timeout"`
 
 	// Pool configures roadrunner workers pool.
-	Pool *poolImpl.Config `mapstructure:"Pool"`
+	Pool *poolImpl.Config `mapstructure:"pool"`
 
 	// Pipelines defines mapping between PHP job pipeline and associated job broker.
 	Pipelines map[string]Pipeline `mapstructure:"pipelines"`

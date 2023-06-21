@@ -5,22 +5,19 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/roadrunner-server/sdk/v4/metrics"
+	"github.com/roadrunner-server/sdk/v4/utils"
 )
-
-func (p *Plugin) MetricsCollector() []prometheus.Collector {
-	// p - implements Exporter interface (workers)
-	return []prometheus.Collector{p.statsExporter}
-}
 
 const (
 	namespace = "rr_jobs"
 )
 
 type statsExporter struct {
-	jobsOk                  *uint64
-	pushOk                  *uint64
-	jobsErr                 *uint64
-	pushErr                 *uint64
+	jobsOk  *uint64
+	pushOk  *uint64
+	jobsErr *uint64
+	pushErr *uint64
+
 	pushOkDesc              *prometheus.Desc
 	pushErrDesc             *prometheus.Desc
 	jobsErrDesc             *prometheus.Desc
@@ -31,7 +28,28 @@ type statsExporter struct {
 	defaultExporter *metrics.StatsExporter
 }
 
-func newStatsExporter(stats Informer, jobsOk, pushOk, jobsErr, pushErr *uint64) *statsExporter {
+func (p *Plugin) MetricsCollector() []prometheus.Collector {
+	// p - implements Exporter interface (workers)
+	return []prometheus.Collector{p.metrics}
+}
+
+func (se *statsExporter) CountJobOk() {
+	atomic.AddUint64(se.jobsOk, 1)
+}
+
+func (se *statsExporter) CountJobErr() {
+	atomic.AddUint64(se.jobsErr, 1)
+}
+
+func (se *statsExporter) CountPushOk() {
+	atomic.AddUint64(se.pushOk, 1)
+}
+
+func (se *statsExporter) CountPushErr() {
+	atomic.AddUint64(se.pushErr, 1)
+}
+
+func newStatsExporter(stats Informer) *statsExporter {
 	return &statsExporter{
 		defaultExporter: &metrics.StatsExporter{
 			TotalWorkersDesc: prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "total_workers"), "Total number of workers used by the plugin", nil, nil),
@@ -46,10 +64,10 @@ func newStatsExporter(stats Informer, jobsOk, pushOk, jobsErr, pushErr *uint64) 
 			Workers: stats,
 		},
 
-		jobsOk:  jobsOk,
-		pushOk:  pushOk,
-		jobsErr: jobsErr,
-		pushErr: pushErr,
+		jobsOk:  utils.Uint64(0),
+		pushOk:  utils.Uint64(0),
+		jobsErr: utils.Uint64(0),
+		pushErr: utils.Uint64(0),
 
 		pushOkDesc:  prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "push_ok"), "Number of job push", nil, nil),
 		pushErrDesc: prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "push_err"), "Number of jobs push which was failed", nil, nil),
