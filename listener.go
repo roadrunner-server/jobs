@@ -2,7 +2,6 @@ package jobs
 
 import (
 	"context"
-	"sync/atomic"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -41,7 +40,8 @@ func (p *Plugin) listener() { //nolint:gocognit
 
 					ctx, err := jb.Context()
 					if err != nil {
-						atomic.AddUint64(p.metrics.jobsErr, 1)
+						p.metrics.CountJobErr()
+
 						p.log.Error("job marshal error", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 
 						errNack := jb.Nack()
@@ -59,8 +59,10 @@ func (p *Plugin) listener() { //nolint:gocognit
 					p.mu.RLock()
 					resp, err := p.workersPool.Exec(context.Background(), exec)
 					p.mu.RUnlock()
+
 					if err != nil {
-						atomic.AddUint64(p.metrics.jobsErr, 1)
+						p.metrics.CountJobErr()
+
 						p.log.Error("job processed with errors", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 						// RR protocol level error, Nack the job
 						errNack := jb.Nack()
@@ -80,7 +82,8 @@ func (p *Plugin) listener() { //nolint:gocognit
 						p.putPayload(exec)
 						err = jb.Ack()
 						if err != nil {
-							atomic.AddUint64(p.metrics.jobsErr, 1)
+							p.metrics.CountJobErr()
+
 							p.log.Error("acknowledge error, job might be missed", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 							jb = nil
 							span.End()
@@ -88,8 +91,8 @@ func (p *Plugin) listener() { //nolint:gocognit
 						}
 
 						p.log.Debug("job was processed successfully", zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
-						// exporter
-						atomic.AddUint64(p.metrics.jobsOk, 1)
+
+						p.metrics.CountJobOk()
 
 						jb = nil
 						span.End()
@@ -99,7 +102,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 					// handle the response protocol
 					err = p.respHandler.Handle(resp, jb)
 					if err != nil {
-						atomic.AddUint64(p.metrics.jobsErr, 1)
+						p.metrics.CountJobErr()
 						p.log.Error("response handler error", zap.Error(err), zap.String("ID", jb.ID()), zap.ByteString("response", resp.Body), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 						p.putPayload(exec)
 						/*
@@ -119,8 +122,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 						continue
 					}
 
-					// exporter
-					atomic.AddUint64(p.metrics.jobsOk, 1)
+					p.metrics.CountJobOk()
 
 					p.log.Debug("job was processed successfully", zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	jobsApi "github.com/roadrunner-server/api/v4/plugins/v2/jobs"
@@ -22,7 +21,6 @@ import (
 	"github.com/roadrunner-server/sdk/v4/payload"
 	pqImpl "github.com/roadrunner-server/sdk/v4/priority_queue"
 	"github.com/roadrunner-server/sdk/v4/state/process"
-	"github.com/roadrunner-server/sdk/v4/utils"
 	"go.uber.org/zap"
 )
 
@@ -41,10 +39,6 @@ const (
 	spanName string = "jobs"
 )
 
-type exporter struct {
-	jobsOk, pushOk, jobsErr, pushErr *uint64
-}
-
 type Plugin struct {
 	mu sync.RWMutex
 
@@ -57,8 +51,7 @@ type Plugin struct {
 	jobConstructors map[string]jobsApi.Constructor
 	consumers       sync.Map // map[string]jobs.Consumer
 
-	metrics *exporter
-	tracer  *sdktrace.TracerProvider
+	tracer *sdktrace.TracerProvider
 
 	// priority queue implementation
 	queue jobsApi.Queue
@@ -74,9 +67,10 @@ type Plugin struct {
 	commandsCh chan jobsApi.Commander
 
 	// internal payloads pool
-	pldPool       sync.Pool
-	statsExporter *statsExporter
-	respHandler   *rh.RespHandler
+	pldPool sync.Pool
+
+	metrics     *statsExporter
+	respHandler *rh.RespHandler
 }
 
 func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
@@ -119,15 +113,10 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 	p.queue = pqImpl.NewBinHeap[jobsApi.Job](p.cfg.PipelineSize)
 	p.log = new(zap.Logger)
 	p.log = log.NamedLogger(PluginName)
-	p.metrics = &exporter{
-		jobsOk:  utils.Uint64(0),
-		pushOk:  utils.Uint64(0),
-		jobsErr: utils.Uint64(0),
-		pushErr: utils.Uint64(0),
-	}
 
-	// exporter
-	p.statsExporter = newStatsExporter(p, p.metrics.jobsOk, p.metrics.pushOk, p.metrics.jobsErr, p.metrics.pushErr)
+	// collector
+	p.metrics = newStatsExporter(p)
+
 	p.respHandler = rh.NewResponseHandler(p.log)
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}, jprop.Jaeger{}))
 
@@ -367,7 +356,7 @@ func (p *Plugin) Push(ctx context.Context, j jobsApi.Message) error {
 		return errors.E(op, errors.Errorf("consumer not registered for the requested driver: %s", ppl.Driver()))
 	}
 
-	p.statsExporter.pushJobRequestCounter.WithLabelValues(ppl.Name(), ppl.Driver(), "single").Inc()
+	p.metrics.pushJobRequestCounter.WithLabelValues(ppl.Name(), ppl.Driver(), "single").Inc()
 
 	// if job has no priority, inherit it from the pipeline
 	if j.Priority() == 0 {
@@ -379,13 +368,14 @@ func (p *Plugin) Push(ctx context.Context, j jobsApi.Message) error {
 
 	err := d.(jobsApi.Driver).Push(ctx, j)
 	if err != nil {
-		atomic.AddUint64(p.metrics.pushErr, 1)
+		p.metrics.CountPushErr()
 		p.log.Error("job push error", zap.String("ID", j.ID()), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)), zap.Error(err))
 		return errors.E(op, err)
 	}
 
-	atomic.AddUint64(p.metrics.pushOk, 1)
-	p.statsExporter.pushJobLatencyHistogram.WithLabelValues(ppl.Name(), ppl.Driver(), "single").Observe(time.Since(start).Seconds())
+	p.metrics.CountPushOk()
+
+	p.metrics.pushJobLatencyHistogram.WithLabelValues(ppl.Name(), ppl.Driver(), "single").Observe(time.Since(start).Seconds())
 
 	p.log.Debug("job was pushed successfully", zap.String("ID", j.ID()), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 
@@ -411,7 +401,7 @@ func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Message) error {
 			return errors.E(op, errors.Errorf("consumer not registered for the requested driver: %s", ppl.Driver()))
 		}
 
-		p.statsExporter.pushJobRequestCounter.WithLabelValues(ppl.Name(), ppl.Driver(), "single").Inc()
+		p.metrics.pushJobRequestCounter.WithLabelValues(ppl.Name(), ppl.Driver(), "batch").Inc()
 
 		// if job has no priority, inherit it from the pipeline
 		if j[i].Priority() == 0 {
@@ -422,12 +412,14 @@ func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Message) error {
 		err := d.(jobsApi.Driver).Push(ctxPush, j[i])
 		if err != nil {
 			cancel()
-			atomic.AddUint64(p.metrics.pushErr, 1)
+			p.metrics.CountPushErr()
 			p.log.Error("job push batch error", zap.String("ID", j[i].ID()), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)), zap.Error(err))
 			return errors.E(op, err)
 		}
 
-		p.statsExporter.pushJobLatencyHistogram.WithLabelValues(ppl.Name(), ppl.Driver(), "batch").Observe(time.Since(operationStart).Seconds())
+		p.metrics.CountPushOk()
+
+		p.metrics.pushJobLatencyHistogram.WithLabelValues(ppl.Name(), ppl.Driver(), "batch").Observe(time.Since(operationStart).Seconds())
 
 		cancel()
 	}
