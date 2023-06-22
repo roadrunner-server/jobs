@@ -10,10 +10,11 @@ import (
 type Pipeline map[string]any
 
 const (
-	priority string = "priority"
-	driver   string = "driver"
-	name     string = "name"
-	queue    string = "queue"
+	priority        string = "priority"
+	defaultPriority int64  = 10
+	driver          string = "driver"
+	name            string = "name"
+	queue           string = "queue"
 
 	// config
 	config string = "config"
@@ -196,14 +197,14 @@ func (p Pipeline) Priority() int64 {
 					case int64:
 						return v
 					default:
-						return 0
+						return defaultPriority
 					}
 				}
 			}
 		}
 	}
 
-	return 10
+	return defaultPriority
 }
 
 // Get used to get the data associated with the key
