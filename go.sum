@@ -53,6 +53,8 @@ github.com/roadrunner-server/goridge/v3 v3.6.3 h1:8hCuPVK9BxIE4IGyNphK6KPAy9Kg6t
 github.com/roadrunner-server/goridge/v3 v3.6.3/go.mod h1:hB5+lHhl8msuHrngjKQ+Wx8B705AU0/2DlYGFXbjtgU=
 github.com/roadrunner-server/sdk/v4 v4.3.0 h1:QdCK5kd/eLTnyLQsOOFtkd3CQK+NR4j/5PF5OpeHvA0=
 github.com/roadrunner-server/sdk/v4 v4.3.0/go.mod h1:7LIxYOBo306SncMKUxEy9Xd3GQWYHW0G4zuDHnKZ3l4=
+github.com/roadrunner-server/sdk/v4 v4.3.1 h1:DwmyzcKbprXz6JLnyR4fbOmgSC0qr528xC4uSwxRVSY=
+github.com/roadrunner-server/sdk/v4 v4.3.1/go.mod h1:YiYFMLx2zVcDjy52P8i/c++VJIY/qaUSdboN0PiPGok=
 github.com/roadrunner-server/tcplisten v1.3.0 h1:VDd6IbP8oIjm5vKvMVozeZgeHgOcoP0XYLOyOqcZHCY=
 github.com/roadrunner-server/tcplisten v1.3.0/go.mod h1:VR6Ob5am0oEuLMOeLiVvQxG9ShykAEgrlvZddX8EfoU=
 github.com/shirou/gopsutil v3.21.11+incompatible h1:+1+c1VGhc88SSonWP6foOcLhvnKlUeu/erjjvaPEYiI=
@@ -90,8 +92,6 @@ golang.org/x/sync v0.3.0/go.mod h1:FU7BRWz2tNW+3quACPkgCx/L+uEAv1htQ0V83Z9Rj+Y=
 golang.org/x/sys v0.0.0-20190916202348-b4ddaad3f8a3/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.2.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.8.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
-golang.org/x/sys v0.9.0 h1:KS/R3tvhPqvJvwcKfnBHJwwthS11LRhmM5D59eEXa0s=
-golang.org/x/sys v0.9.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.10.0 h1:SqMFp9UcQJZa+pmYuAKjd9xq1f0j5rLcDIk0mj4qAsA=
 golang.org/x/sys v0.10.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
