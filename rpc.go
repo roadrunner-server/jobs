@@ -165,7 +165,7 @@ func (r *rpc) Stat(_ *jobsProto.Empty, resp *jobsProto.Stats) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
-	ctx, span := r.p.tracer.Tracer(spanName).Start(ctx, "destroy_pipeline", trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := r.p.tracer.Tracer(spanName).Start(ctx, "rpc_stats", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
 	state, err := r.p.JobsState(ctx)
