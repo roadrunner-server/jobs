@@ -226,9 +226,7 @@ func (p *Plugin) Stop(context.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
 		err := consumer.Stop(ctx)
 		if err != nil {
-			cancel()
 			p.log.Error("stop job driver", zap.Any("driver", key), zap.Error(err))
-			return true
 		}
 		cancel()
 		return true

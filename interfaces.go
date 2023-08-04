@@ -28,7 +28,7 @@ type Pool interface {
 	// Workers returns worker list associated with the pool.
 	Workers() (workers []*worker.Process)
 	// Exec payload
-	Exec(ctx context.Context, p *payload.Payload) (*payload.Payload, error)
+	Exec(ctx context.Context, p *payload.Payload, stopCh chan struct{}) (chan *staticPool.PExec, error)
 	// Reset kill all workers inside the watcher and replaces with new
 	Reset(ctx context.Context) error
 	// Destroy all underlying stack (but let them to complete the task).

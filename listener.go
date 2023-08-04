@@ -57,7 +57,8 @@ func (p *Plugin) listener() { //nolint:gocognit
 
 					// protect from the pool reset
 					p.mu.RLock()
-					resp, err := p.workersPool.Exec(context.Background(), exec)
+					sc := make(chan struct{}, 1)
+					re, err := p.workersPool.Exec(context.Background(), exec, sc)
 					p.mu.RUnlock()
 
 					if err != nil {
@@ -77,8 +78,22 @@ func (p *Plugin) listener() { //nolint:gocognit
 						continue
 					}
 
+					resp := <-re
+					// we don't support streaming
+					if resp.Payload().IsStream {
+						p.log.Warn("streaming is not supported",
+							zap.String("ID", jb.ID()),
+							zap.Time("start", start),
+							zap.Duration("elapsed", time.Since(start)))
+
+						p.putPayload(exec)
+						jb = nil
+						span.End()
+						continue
+					}
+
 					// if response is nil or body is nil, just acknowledge the job
-					if resp == nil || resp.Body == nil {
+					if resp == nil || resp.Body() == nil {
 						p.putPayload(exec)
 						err = jb.Ack()
 						if err != nil {
@@ -100,10 +115,10 @@ func (p *Plugin) listener() { //nolint:gocognit
 					}
 
 					// handle the response protocol
-					err = p.respHandler.Handle(resp, jb)
+					err = p.respHandler.Handle(resp.Payload(), jb)
 					if err != nil {
 						p.metrics.CountJobErr()
-						p.log.Error("response handler error", zap.Error(err), zap.String("ID", jb.ID()), zap.ByteString("response", resp.Body), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
+						p.log.Error("response handler error", zap.Error(err), zap.String("ID", jb.ID()), zap.ByteString("response", resp.Body()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 						p.putPayload(exec)
 						/*
 							Job malformed, acknowledge it to prevent endless loop
