@@ -4,13 +4,14 @@ import (
 	"context"
 	"time"
 
+	"github.com/roadrunner-server/sdk/v4/payload"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	"go.uber.org/zap"
 )
 
 // non blocking listener
-func (p *Plugin) listener() { //nolint:gocognit
+func (p *Plugin) listener() {
 	for i := 0; i < p.cfg.NumPollers; i++ {
 		go func() {
 			for {
@@ -41,9 +42,7 @@ func (p *Plugin) listener() { //nolint:gocognit
 					ctx, err := jb.Context()
 					if err != nil {
 						p.metrics.CountJobErr()
-
 						p.log.Error("job marshal error", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
-
 						errNack := jb.Nack()
 						if errNack != nil {
 							p.log.Error("negatively acknowledge was failed", zap.String("ID", jb.ID()), zap.Error(errNack))
@@ -53,12 +52,12 @@ func (p *Plugin) listener() { //nolint:gocognit
 					}
 
 					// get payload from the sync.Pool
-					exec := p.getPayload(jb.Body(), ctx)
+					exec := p.payload(jb.Body(), ctx)
 
 					// protect from the pool reset
 					p.mu.RLock()
-					sc := make(chan struct{}, 1)
-					re, err := p.workersPool.Exec(context.Background(), exec, sc)
+					// TODO(rustatian): context.Background() is not a good idea, we need to pass the context with timeout from the configuration
+					re, err := p.workersPool.Exec(context.Background(), exec, nil)
 					p.mu.RUnlock()
 
 					if err != nil {
@@ -71,29 +70,70 @@ func (p *Plugin) listener() { //nolint:gocognit
 							p.log.Error("negatively acknowledge failed", zap.String("ID", jb.ID()), zap.Error(errNack))
 						}
 
-						p.log.Error("job execute failed", zap.Error(err))
 						p.putPayload(exec)
 						jb = nil
 						span.End()
 						continue
 					}
 
-					resp := <-re
-					// we don't support streaming
-					if resp.Payload().IsStream {
-						p.log.Warn("streaming is not supported",
-							zap.String("ID", jb.ID()),
-							zap.Time("start", start),
-							zap.Duration("elapsed", time.Since(start)))
+					var resp *payload.Payload
 
+					select {
+					case pld := <-re:
+						if pld.Error() != nil {
+							p.metrics.CountJobErr()
+
+							p.log.Error("job processed with errors", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
+							// RR protocol level error, Nack the job
+							errNack := jb.Nack()
+							if errNack != nil {
+								p.log.Error("negatively acknowledge failed", zap.String("ID", jb.ID()), zap.Error(errNack))
+							}
+
+							p.putPayload(exec)
+							jb = nil
+							span.End()
+							continue
+						}
+
+						// streaming is not supported
+						if pld.Payload().IsStream {
+							p.metrics.CountJobErr()
+
+							p.log.Warn("streaming is not supported",
+								zap.String("ID", jb.ID()),
+								zap.Time("start", start),
+								zap.Duration("elapsed", time.Since(start)))
+
+							errNack := jb.Nack()
+							if errNack != nil {
+								p.log.Error("negatively acknowledge failed", zap.String("ID", jb.ID()), zap.Error(errNack))
+							}
+
+							p.log.Error("job execute failed", zap.Error(err))
+							p.putPayload(exec)
+							jb = nil
+							span.End()
+							continue
+						}
+
+						// assign the payload
+						resp = pld.Payload()
+					default:
+						// should never happen
+						p.metrics.CountJobErr()
+						p.log.Error("worker null response, this is not expected")
+						errNack := jb.Nack()
+						if errNack != nil {
+							p.log.Error("negatively acknowledge failed", zap.String("ID", jb.ID()), zap.Error(errNack))
+						}
 						p.putPayload(exec)
 						jb = nil
 						span.End()
-						continue
 					}
 
 					// if response is nil or body is nil, just acknowledge the job
-					if resp == nil || resp.Body() == nil {
+					if resp == nil || resp.Body == nil {
 						p.putPayload(exec)
 						err = jb.Ack()
 						if err != nil {
@@ -115,10 +155,10 @@ func (p *Plugin) listener() { //nolint:gocognit
 					}
 
 					// handle the response protocol
-					err = p.respHandler.Handle(resp.Payload(), jb)
+					err = p.respHandler.Handle(resp, jb)
 					if err != nil {
 						p.metrics.CountJobErr()
-						p.log.Error("response handler error", zap.Error(err), zap.String("ID", jb.ID()), zap.ByteString("response", resp.Body()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
+						p.log.Error("response handler error", zap.Error(err), zap.String("ID", jb.ID()), zap.ByteString("response", resp.Body), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 						p.putPayload(exec)
 						/*
 							Job malformed, acknowledge it to prevent endless loop

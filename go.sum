@@ -53,6 +53,8 @@ github.com/roadrunner-server/sdk/v4 v4.4.0-beta.3 h1:XBMmlRf7JhXMjkuhuY5VWhoqhHc
 github.com/roadrunner-server/sdk/v4 v4.4.0-beta.3/go.mod h1:QcZBTccDGT8zhbHkbzqM7SORktVtvh6Jigkz3hy6kBk=
 github.com/roadrunner-server/sdk/v4 v4.4.0-beta.4 h1:DtHQBo9xXdN5ru2GAf8tCGnwxLG6lgknzYaDr+c3Fv4=
 github.com/roadrunner-server/sdk/v4 v4.4.0-beta.4/go.mod h1:QcZBTccDGT8zhbHkbzqM7SORktVtvh6Jigkz3hy6kBk=
+github.com/roadrunner-server/sdk/v4 v4.4.0-beta.5 h1:+CmSTbz+y51auBr48ldwx6ZgAnWKl7f3537xyW8GDsU=
+github.com/roadrunner-server/sdk/v4 v4.4.0-beta.5/go.mod h1:UkiAk5IdmUzkXncfy671OoH6i/zWpWc+JY3IU/AnQuc=
 github.com/roadrunner-server/tcplisten v1.3.0 h1:VDd6IbP8oIjm5vKvMVozeZgeHgOcoP0XYLOyOqcZHCY=
 github.com/roadrunner-server/tcplisten v1.3.0/go.mod h1:VR6Ob5am0oEuLMOeLiVvQxG9ShykAEgrlvZddX8EfoU=
 github.com/shirou/gopsutil v3.21.11+incompatible h1:+1+c1VGhc88SSonWP6foOcLhvnKlUeu/erjjvaPEYiI=

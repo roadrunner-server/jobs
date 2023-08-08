@@ -590,7 +590,7 @@ func (p *Plugin) readCommands() {
 	}
 }
 
-func (p *Plugin) getPayload(body, context []byte) *payload.Payload {
+func (p *Plugin) payload(body, context []byte) *payload.Payload {
 	pld := p.pldPool.Get().(*payload.Payload)
 	pld.Body = body
 	pld.Context = context
