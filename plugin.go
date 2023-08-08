@@ -33,6 +33,8 @@ const (
 	PluginName string = "jobs"
 	pipelines  string = "pipelines"
 
+	pipelinesRegisterConcurrencyLimit = 10
+
 	// v2.7 and newer config key
 	cfgKey string = "config"
 
@@ -149,7 +151,6 @@ func (p *Plugin) Serve() chan error {
 
 	// do not continue processing, immediately stop if channel contains an error
 	if len(errCh) > 0 {
-		p.log.Error("Pipelines initialization failed", zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 		return errCh
 	}
 
@@ -568,6 +569,7 @@ func (p *Plugin) putPayload(pld *payload.Payload) {
 
 func (p *Plugin) registerPipelines() error {
 	eg := &errgroup.Group{}
+	eg.SetLimit(pipelinesRegisterConcurrencyLimit)
 
 	p.pipelines.Range(func(key, value any) bool {
 		eg.Go(func() error {
