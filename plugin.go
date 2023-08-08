@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"context"
+	stderr "errors"
 	"fmt"
 	"strconv"
 	"sync"
@@ -13,6 +14,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/roadrunner-server/endure/v2/dep"
 	"github.com/roadrunner-server/errors"
@@ -67,7 +69,8 @@ type Plugin struct {
 	commandsCh chan jobsApi.Commander
 
 	// internal payloads pool
-	pldPool sync.Pool
+	pldPool       sync.Pool
+	jobsProcessor *processor
 
 	metrics     *statsExporter
 	respHandler *rh.RespHandler
@@ -113,6 +116,7 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 	p.queue = pqImpl.NewBinHeap[jobsApi.Job](p.cfg.PipelineSize)
 	p.log = new(zap.Logger)
 	p.log = log.NamedLogger(PluginName)
+	p.jobsProcessor = newPipesProc(p.log, &p.consumers, &p.consume, p.cfg.NumPollers)
 
 	// collector
 	p.metrics = newStatsExporter(p)
@@ -138,12 +142,9 @@ func (p *Plugin) Serve() chan error {
 
 	// register initial pipelines
 	p.pipelines.Range(func(key, value any) bool {
-		t := time.Now().UTC()
-		// pipeline name (ie test-local, sqs-aws, etc)
-		name := key.(string)
-
 		// pipeline associated with the name
 		pipe := value.(jobsApi.Pipeline)
+		pipeName := key.(string)
 		// driver for the pipeline (ie amqp, ephemeral, etc)
 		dr := pipe.Driver()
 
@@ -151,61 +152,52 @@ func (p *Plugin) Serve() chan error {
 			p.log.Warn("can't find driver name for the pipeline, please, check that the 'driver' keyword for the pipelines specified correctly, JOBS plugin will try to run the next pipeline")
 			return true
 		}
-
-		// jobConstructors contains constructors for the drivers
-		// we need here to initialize these drivers for the pipelines
-		if _, ok := p.jobConstructors[dr]; ok {
-			// v2.7 and newer
-			// config key for the particular sub-driver jobs.pipelines.test-local
-			configKey := fmt.Sprintf("%s.%s.%s.%s", PluginName, pipelines, name, cfgKey)
-
-			// init the driver
-			initializedDriver, err := p.jobConstructors[dr].DriverFromConfig(configKey, p.queue, pipe, p.commandsCh)
-			if err != nil {
-				errCh <- errors.E(op, err)
-				return false
-			}
-
-			// add driver to the set of the consumers (name - pipeline name, value - associated driver)
-			p.consumers.Store(name, initializedDriver)
-
-			p.log.Debug("driver ready", zap.String("pipeline", pipe.Name()), zap.String("driver", pipe.Driver()), zap.Time("start", t), zap.Duration("elapsed", time.Since(t)))
-			// if pipeline initialized to be consumed, call Run on it
-			if _, ok := p.consume[name]; ok {
-				ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
-				defer cancel()
-				err = initializedDriver.Run(ctx, pipe)
-				if err != nil {
-					errCh <- errors.E(op, err)
-					return false
-				}
-				return true
-			}
-
+		if _, ok := p.jobConstructors[dr]; !ok {
+			p.log.Warn("can't find driver constructor for the pipeline, please, check the global configuration for the specified driver",
+				zap.String("driver", dr),
+				zap.String("pipeline", pipeName))
 			return true
 		}
+
+		configKey := fmt.Sprintf("%s.%s.%s.%s", PluginName, pipelines, pipeName, cfgKey)
+
+		p.jobsProcessor.add(&pjob{
+			p.jobConstructors[dr],
+			pipe,
+			p.queue,
+			p.commandsCh,
+			configKey,
+			p.cfg.Timeout,
+		})
 
 		return true
 	})
 
-	// do not continue processing, immediately stop if channel contains an error
-	if len(errCh) > 0 {
+	// block until all jobs are processed
+	p.jobsProcessor.wait()
+	// check for the errors
+	if len(p.jobsProcessor.errors()) > 0 {
+		// TODO(rustatian): pretty print errors
+		errCh <- errors.E(op, stderr.Join(p.jobsProcessor.errors()...))
 		return errCh
 	}
 
 	p.mu.Lock()
-	defer p.mu.Unlock()
 
 	var err error
 	p.workersPool, err = p.server.NewPool(context.Background(), p.cfg.Pool, map[string]string{RrMode: RrModeJobs}, nil)
 	if err != nil {
-		errCh <- err
+		p.mu.Unlock()
+		errCh <- errors.E(op, err)
 		return errCh
 	}
 
 	// start listening
 	p.listener()
+	// we don't jobs processor anymore
+	p.jobsProcessor.stop()
 
+	p.mu.Unlock()
 	return errCh
 }
 
@@ -220,15 +212,22 @@ func (p *Plugin) Stop(context.Context) error {
 		}
 	}()
 
+	errgr := errgroup.Group{}
+	errgr.SetLimit(8)
+
 	// range over all consumers and call stop
 	p.consumers.Range(func(key, value any) bool {
-		consumer := value.(jobsApi.Driver)
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
-		err := consumer.Stop(ctx)
-		if err != nil {
-			p.log.Error("stop job driver", zap.Any("driver", key), zap.Error(err))
-		}
-		cancel()
+		errgr.Go(func() error {
+			consumer := value.(jobsApi.Driver)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
+			err := consumer.Stop(ctx)
+			if err != nil {
+				p.log.Error("stop job driver", zap.Any("driver", key), zap.Error(err))
+			}
+			cancel()
+			return nil
+		})
+		// process next
 		return true
 	})
 

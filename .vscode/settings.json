@@ -1,3 +1,12 @@
 {
-  "cSpell.words": ["opentelemetry", "otel"]
+  "cSpell.words": [
+    "errgr",
+    "errgroup",
+    "goridge",
+    "mapstructure",
+    "opentelemetry",
+    "otel",
+    "pjob",
+    "sdktrace"
+  ]
 }
