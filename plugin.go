@@ -3,7 +3,6 @@ package jobs
 import (
 	"context"
 	"fmt"
-	"golang.org/x/sync/errgroup"
 	"strconv"
 	"sync"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/roadrunner-server/endure/v2/dep"
 	"github.com/roadrunner-server/errors"
