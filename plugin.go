@@ -3,6 +3,7 @@ package jobs
 import (
 	"context"
 	"fmt"
+	"golang.org/x/sync/errgroup"
 	"strconv"
 	"sync"
 	"time"
@@ -126,6 +127,7 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 func (p *Plugin) Serve() chan error {
 	errCh := make(chan error, 1)
 	const op = errors.Op("jobs_plugin_serve")
+	var err error
 
 	if p.tracer == nil {
 		// noop tracer
@@ -136,70 +138,30 @@ func (p *Plugin) Serve() chan error {
 	go p.readCommands()
 	p.mu.Unlock()
 
-	// register initial pipelines
-	p.pipelines.Range(func(key, value any) bool {
-		t := time.Now().UTC()
-		// pipeline name (ie test-local, sqs-aws, etc)
-		name := key.(string)
+	start := time.Now().UTC()
 
-		// pipeline associated with the name
-		pipe := value.(jobsApi.Pipeline)
-		// driver for the pipeline (ie amqp, ephemeral, etc)
-		dr := pipe.Driver()
+	err = p.registerPipelines()
 
-		if dr == "" {
-			p.log.Warn("can't find driver name for the pipeline, please, check that the 'driver' keyword for the pipelines specified correctly, JOBS plugin will try to run the next pipeline")
-			return true
-		}
-
-		// jobConstructors contains constructors for the drivers
-		// we need here to initialize these drivers for the pipelines
-		if _, ok := p.jobConstructors[dr]; ok {
-			// v2.7 and newer
-			// config key for the particular sub-driver jobs.pipelines.test-local
-			configKey := fmt.Sprintf("%s.%s.%s.%s", PluginName, pipelines, name, cfgKey)
-
-			// init the driver
-			initializedDriver, err := p.jobConstructors[dr].DriverFromConfig(configKey, p.queue, pipe, p.commandsCh)
-			if err != nil {
-				errCh <- errors.E(op, err)
-				return false
-			}
-
-			// add driver to the set of the consumers (name - pipeline name, value - associated driver)
-			p.consumers.Store(name, initializedDriver)
-
-			p.log.Debug("driver ready", zap.String("pipeline", pipe.Name()), zap.String("driver", pipe.Driver()), zap.Time("start", t), zap.Duration("elapsed", time.Since(t)))
-			// if pipeline initialized to be consumed, call Run on it
-			if _, ok := p.consume[name]; ok {
-				ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
-				defer cancel()
-				err = initializedDriver.Run(ctx, pipe)
-				if err != nil {
-					errCh <- errors.E(op, err)
-					return false
-				}
-				return true
-			}
-
-			return true
-		}
-
-		return true
-	})
+	if err != nil {
+		p.log.Error("Pipelines initialization failed", zap.Error(err), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
+		errCh <- errors.E(op, err)
+	}
 
 	// do not continue processing, immediately stop if channel contains an error
 	if len(errCh) > 0 {
+		p.log.Error("Pipelines initialization failed", zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 		return errCh
 	}
+
+	p.log.Info("Pipelines successfully initialized", zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
 
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	var err error
 	p.workersPool, err = p.server.NewPool(context.Background(), p.cfg.Pool, map[string]string{RrMode: RrModeJobs}, nil)
 	if err != nil {
-		errCh <- err
+		errCh <- errors.E(op, err)
+
 		return errCh
 	}
 
@@ -602,4 +564,67 @@ func (p *Plugin) putPayload(pld *payload.Payload) {
 	pld.Body = nil
 	pld.Context = nil
 	p.pldPool.Put(pld)
+}
+
+func (p *Plugin) registerPipelines() error {
+	eg := &errgroup.Group{}
+
+	p.pipelines.Range(func(key, value any) bool {
+		eg.Go(func() error {
+			t := time.Now().UTC()
+			// pipeline name (ie test-local, sqs-aws, etc)
+			name := key.(string)
+
+			// pipeline associated with the name
+			pipe := value.(jobsApi.Pipeline)
+			// driver for the pipeline (ie amqp, ephemeral, etc)
+			dr := pipe.Driver()
+
+			if dr == "" {
+				p.log.Warn("can't find driver name for the pipeline, please, check that the 'driver' keyword for the pipelines specified correctly, JOBS plugin will try to run the next pipeline")
+				return nil
+			}
+
+			// jobConstructors contains constructors for the drivers
+			// we need here to initialize these drivers for the pipelines
+			if _, ok := p.jobConstructors[dr]; ok {
+				// v2.7 and newer
+				// config key for the particular sub-driver jobs.pipelines.test-local
+				configKey := fmt.Sprintf("%s.%s.%s.%s", PluginName, pipelines, name, cfgKey)
+
+				// init the driver
+				initializedDriver, err := p.jobConstructors[dr].DriverFromConfig(configKey, p.queue, pipe, p.commandsCh)
+				if err != nil {
+					return err
+				}
+
+				// add driver to the set of the consumers (name - pipeline name, value - associated driver)
+				p.consumers.Store(name, initializedDriver)
+
+				p.log.Debug("driver ready", zap.String("pipeline", pipe.Name()), zap.String("driver", pipe.Driver()), zap.Time("start", t), zap.Duration("elapsed", time.Since(t)))
+				// if pipeline initialized to be consumed, call Run on it
+				if _, ok := p.consume[name]; ok {
+					ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
+					defer cancel()
+					err = initializedDriver.Run(ctx, pipe)
+					if err != nil {
+						return err
+					}
+					return nil
+				} else {
+					// error?
+				}
+
+				return nil
+			} else {
+				// error?
+			}
+
+			return nil
+		})
+
+		return true
+	})
+
+	return eg.Wait()
 }
