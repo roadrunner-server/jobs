@@ -1,6 +1,8 @@
 module github.com/roadrunner-server/jobs/v4
 
-go 1.20
+go 1.21
+
+toolchain go1.21.0
 
 require (
 	github.com/goccy/go-json v0.10.2
@@ -15,6 +17,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.16.0
 	go.opentelemetry.io/otel/trace v1.16.0
 	go.uber.org/zap v1.25.0
+	golang.org/x/sync v0.3.0
 )
 
 require (
@@ -36,7 +39,6 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	go.opentelemetry.io/otel/metric v1.16.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 )
