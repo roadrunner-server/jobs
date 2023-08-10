@@ -3,7 +3,6 @@ module github.com/roadrunner-server/jobs/v4
 go 1.21
 
 require (
-	buf.build/gen/go/roadrunner-server/api/protocolbuffers/go v1.31.0-20230627200035-4e59a69f79a2.1
 	github.com/goccy/go-json v0.10.2
 	github.com/prometheus/client_golang v1.16.0
 	github.com/roadrunner-server/api/v4 v4.6.2

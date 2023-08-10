@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	jobsProto "buf.build/gen/go/roadrunner-server/api/protocolbuffers/go/jobs/v1"
+	jobsProto "github.com/roadrunner-server/api/v4/build/jobs/v1"
 	"github.com/roadrunner-server/api/v4/plugins/v2/jobs"
 	"github.com/roadrunner-server/errors"
 	"go.opentelemetry.io/otel/attribute"
