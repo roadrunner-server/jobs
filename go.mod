@@ -6,7 +6,7 @@ require (
 	github.com/goccy/go-json v0.10.2
 	github.com/prometheus/client_golang v1.16.0
 	github.com/roadrunner-server/api/v4 v4.6.1
-	github.com/roadrunner-server/endure/v2 v2.3.1
+	github.com/roadrunner-server/endure/v2 v2.4.1
 	github.com/roadrunner-server/errors v1.2.0
 	github.com/roadrunner-server/goridge/v3 v3.6.3
 	github.com/roadrunner-server/sdk/v4 v4.4.0-beta.5
