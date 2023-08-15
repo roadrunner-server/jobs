@@ -116,7 +116,7 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 	p.queue = pqImpl.NewBinHeap[jobsApi.Job](p.cfg.PipelineSize)
 	p.log = new(zap.Logger)
 	p.log = log.NamedLogger(PluginName)
-	p.jobsProcessor = newPipesProc(p.log, &p.consumers, &p.consume, p.cfg.NumPollers)
+	p.jobsProcessor = newPipesProc(p.log, &p.consumers, &p.consume, p.cfg.Parallelism)
 
 	// collector
 	p.metrics = newStatsExporter(p)
@@ -194,7 +194,7 @@ func (p *Plugin) Serve() chan error {
 
 	// start listening
 	p.listener()
-	// we don't jobs processor anymore
+	// we don't need jobs processor anymore
 	p.jobsProcessor.stop()
 
 	p.mu.Unlock()
@@ -202,18 +202,11 @@ func (p *Plugin) Serve() chan error {
 }
 
 func (p *Plugin) Stop(context.Context) error {
-	// this function can block forever, but we don't care, because we might have a chance to exit from the pollers,
-	// but if not, this is not a problem at all.
-	// The main target is to stop the drivers
-	go func() {
-		for i := 0; i < p.cfg.NumPollers; i++ {
-			// stop jobs plugin pollers
-			p.stopCh <- struct{}{}
-		}
-	}()
+	// Broadcast stop signal to all pollers
+	close(p.stopCh)
 
 	errgr := errgroup.Group{}
-	errgr.SetLimit(8)
+	errgr.SetLimit(p.cfg.Parallelism)
 
 	// range over all consumers and call stop
 	p.consumers.Range(func(key, value any) bool {

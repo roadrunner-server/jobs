@@ -142,7 +142,7 @@ func (r *rpc) Destroy(req *jobsProto.Pipelines, resp *jobsProto.Pipelines) error
 	mu := sync.Mutex{}
 
 	errg := errgroup.Group{}
-	errg.SetLimit(10)
+	errg.SetLimit(r.p.cfg.Parallelism)
 
 	var destroyed []string
 	for i := 0; i < len(req.GetPipelines()); i++ {
