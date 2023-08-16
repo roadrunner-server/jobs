@@ -15,20 +15,17 @@ type Config struct {
 	// NumPollers configures number of priority queue pollers
 	// Default - num logical cores
 	NumPollers int `mapstructure:"num_pollers"`
-
+	// Parallelism configures number of pipelines to be started at the same time
+	Parallelism int `mapstructure:"parallelism"`
 	// PipelineSize is the limit of a main jobs queue which consume Items from the drivers pipeline
 	// Driver pipeline might be much larger than a main jobs queue
 	PipelineSize uint64 `mapstructure:"pipeline_size"`
-
 	// Timeout in seconds is the per-push limit to put the job into queue
 	Timeout int `mapstructure:"timeout"`
-
 	// Pool configures roadrunner workers pool.
 	Pool *poolImpl.Config `mapstructure:"pool"`
-
 	// Pipelines defines mapping between PHP job pipeline and associated job broker.
 	Pipelines map[string]Pipeline `mapstructure:"pipelines"`
-
 	// Consuming specifies names of pipelines to be consumed on service start.
 	Consume []string `mapstructure:"consume"`
 }
@@ -36,6 +33,10 @@ type Config struct {
 func (c *Config) InitDefaults() {
 	if c.Pool == nil {
 		c.Pool = &poolImpl.Config{}
+	}
+
+	if c.Parallelism == 0 {
+		c.Parallelism = 10
 	}
 
 	if c.PipelineSize == 0 {

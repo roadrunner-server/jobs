@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	jobsProto "github.com/roadrunner-server/api/v4/build/jobs/v1"
@@ -9,6 +10,7 @@ import (
 	"github.com/roadrunner-server/errors"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/sync/errgroup"
 )
 
 type rpc struct {
@@ -137,21 +139,39 @@ func (r *rpc) Declare(req *jobsProto.DeclareRequest, _ *jobsProto.Empty) error {
 func (r *rpc) Destroy(req *jobsProto.Pipelines, resp *jobsProto.Pipelines) error {
 	const op = errors.Op("rpc_destroy_pipeline")
 
-	var destroyed []string //nolint:prealloc
-	for i := 0; i < len(req.GetPipelines()); i++ {
-		ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "destroy_pipeline", trace.WithSpanKind(trace.SpanKindServer))
-		err := r.p.Destroy(ctx, req.GetPipelines()[i])
+	mu := sync.Mutex{}
 
-		if err != nil {
-			span.SetAttributes(attribute.KeyValue{
-				Key:   "error",
-				Value: attribute.StringValue(err.Error()),
-			})
+	errg := errgroup.Group{}
+	errg.SetLimit(r.p.cfg.Parallelism)
+
+	var destroyed []string
+	for i := 0; i < len(req.GetPipelines()); i++ {
+		i := i
+		errg.Go(func() error {
+			ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "destroy_pipeline", trace.WithSpanKind(trace.SpanKindServer))
+			err := r.p.Destroy(ctx, req.GetPipelines()[i])
+
+			if err != nil {
+				span.SetAttributes(attribute.KeyValue{
+					Key:   "error",
+					Value: attribute.StringValue(err.Error()),
+				})
+				span.End()
+				return errors.E(op, err)
+			}
+			mu.Lock()
+			destroyed = append(destroyed, req.GetPipelines()[i])
+			mu.Unlock()
 			span.End()
-			return errors.E(op, err)
-		}
-		destroyed = append(destroyed, req.GetPipelines()[i])
-		span.End()
+			return nil
+		})
+	}
+
+	err := errg.Wait()
+	if err != nil {
+		// return destroyed pipelines
+		resp.Pipelines = destroyed
+		return err
 	}
 
 	// return destroyed pipelines
