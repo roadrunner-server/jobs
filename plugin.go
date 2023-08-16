@@ -14,7 +14,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
-	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 
 	"github.com/roadrunner-server/endure/v2/dep"
 	"github.com/roadrunner-server/errors"
@@ -149,11 +149,11 @@ func (p *Plugin) Serve() chan error {
 		dr := pipe.Driver()
 
 		if dr == "" {
-			p.log.Warn("can't find driver name for the pipeline, please, check that the 'driver' keyword for the pipelines specified correctly, JOBS plugin will try to run the next pipeline")
+			p.log.Error("can't find driver name for the pipeline, please, check that the 'driver' keyword for the pipelines specified correctly, JOBS plugin will try to run the next pipeline")
 			return true
 		}
 		if _, ok := p.jobConstructors[dr]; !ok {
-			p.log.Warn("can't find driver constructor for the pipeline, please, check the global configuration for the specified driver",
+			p.log.Error("can't find driver constructor for the pipeline, please, check the global configuration for the specified driver",
 				zap.String("driver", dr),
 				zap.String("pipeline", pipeName))
 			return true
@@ -201,28 +201,39 @@ func (p *Plugin) Serve() chan error {
 	return errCh
 }
 
-func (p *Plugin) Stop(context.Context) error {
+func (p *Plugin) Stop(ctx context.Context) error {
 	// Broadcast stop signal to all pollers
 	close(p.stopCh)
 
-	errgr := errgroup.Group{}
-	errgr.SetLimit(p.cfg.Parallelism)
-
+	sema := semaphore.NewWeighted(int64(p.cfg.Parallelism))
 	// range over all consumers and call stop
 	p.consumers.Range(func(key, value any) bool {
-		errgr.Go(func() error {
+		// acquire semaphore, but if RR canceled the context, we should stop
+		errA := sema.Acquire(ctx, 1)
+		if errA != nil {
+			return false
+		}
+
+		go func() {
 			consumer := value.(jobsApi.Driver)
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(p.cfg.Timeout))
-			err := consumer.Stop(ctx)
+			ctxT, cancel := context.WithTimeout(ctx, time.Second*time.Duration(p.cfg.Timeout))
+			err := consumer.Stop(ctxT)
 			if err != nil {
 				p.log.Error("stop job driver", zap.Any("driver", key), zap.Error(err))
 			}
 			cancel()
-			return nil
-		})
+
+			// release semaphore
+			sema.Release(1)
+		}()
 		// process next
 		return true
 	})
+
+	err := sema.Acquire(ctx, int64(p.cfg.Parallelism))
+	if err != nil {
+		return err
+	}
 
 	p.pipelines.Range(func(key, _ any) bool {
 		p.pipelines.Delete(key)
