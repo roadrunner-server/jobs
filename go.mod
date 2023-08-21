@@ -11,7 +11,7 @@ require (
 	github.com/roadrunner-server/endure/v2 v2.4.2
 	github.com/roadrunner-server/errors v1.3.0
 	github.com/roadrunner-server/goridge/v3 v3.7.0
-	github.com/roadrunner-server/sdk/v4 v4.4.0-beta.5
+	github.com/roadrunner-server/sdk/v4 v4.4.0-beta.6
 	go.opentelemetry.io/contrib/propagators/jaeger v1.17.0
 	go.opentelemetry.io/otel v1.16.0
 	go.opentelemetry.io/otel/sdk v1.16.0
