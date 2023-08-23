@@ -6,7 +6,7 @@ import (
 	"time"
 
 	jobsProto "github.com/roadrunner-server/api/v4/build/jobs/v1"
-	"github.com/roadrunner-server/api/v4/plugins/v2/jobs"
+	"github.com/roadrunner-server/api/v4/plugins/v3/jobs"
 	"github.com/roadrunner-server/errors"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -142,7 +142,7 @@ func (r *rpc) Destroy(req *jobsProto.Pipelines, resp *jobsProto.Pipelines) error
 	mu := sync.Mutex{}
 
 	errg := errgroup.Group{}
-	errg.SetLimit(r.p.cfg.Parallelism)
+	errg.SetLimit(r.p.cfg.CfgOptions.Parallelism)
 
 	var destroyed []string
 	for i := 0; i < len(req.GetPipelines()); i++ {
