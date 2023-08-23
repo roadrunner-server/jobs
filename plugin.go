@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	jobsApi "github.com/roadrunner-server/api/v4/plugins/v2/jobs"
+	jobsApi "github.com/roadrunner-server/api/v4/plugins/v3/jobs"
 	jprop "go.opentelemetry.io/contrib/propagators/jaeger"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -116,7 +116,7 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 	p.queue = pqImpl.NewBinHeap[jobsApi.Job](p.cfg.PipelineSize)
 	p.log = new(zap.Logger)
 	p.log = log.NamedLogger(PluginName)
-	p.jobsProcessor = newPipesProc(p.log, &p.consumers, &p.consume, p.cfg.Parallelism)
+	p.jobsProcessor = newPipesProc(p.log, &p.consumers, &p.consume, p.cfg.CfgOptions.Parallelism)
 
 	// collector
 	p.metrics = newStatsExporter(p)
@@ -205,7 +205,7 @@ func (p *Plugin) Stop(ctx context.Context) error {
 	// Broadcast stop signal to all pollers
 	close(p.stopCh)
 
-	sema := semaphore.NewWeighted(int64(p.cfg.Parallelism))
+	sema := semaphore.NewWeighted(int64(p.cfg.CfgOptions.Parallelism))
 	// range over all consumers and call stop
 	p.consumers.Range(func(key, value any) bool {
 		// acquire semaphore, but if RR canceled the context, we should stop
@@ -230,7 +230,7 @@ func (p *Plugin) Stop(ctx context.Context) error {
 		return true
 	})
 
-	err := sema.Acquire(ctx, int64(p.cfg.Parallelism))
+	err := sema.Acquire(ctx, int64(p.cfg.CfgOptions.Parallelism))
 	if err != nil {
 		return err
 	}
@@ -597,12 +597,14 @@ func (p *Plugin) payload(body, context []byte) *payload.Payload {
 	pld := p.pldPool.Get().(*payload.Payload)
 	pld.Body = body
 	pld.Context = context
-	pld.Codec = frame.CodecJSON
+	pld.Codec = frame.CodecRaw
 	return pld
 }
 
 func (p *Plugin) putPayload(pld *payload.Payload) {
 	pld.Body = nil
 	pld.Context = nil
+	pld.Codec = 0
+	pld.Flags = 0
 	p.pldPool.Put(pld)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/roadrunner-server/goridge/v3/pkg/frame"
 	"github.com/roadrunner-server/sdk/v4/payload"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -97,7 +98,7 @@ func (p *Plugin) listener() {
 						}
 
 						// streaming is not supported
-						if pld.Payload().IsStream {
+						if pld.Payload().Flags&frame.STREAM != 0 {
 							p.metrics.CountJobErr()
 
 							p.log.Warn("streaming is not supported",

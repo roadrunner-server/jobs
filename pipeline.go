@@ -2,8 +2,7 @@ package jobs
 
 import (
 	"encoding/json"
-
-	"github.com/roadrunner-server/sdk/v4/utils"
+	"unsafe"
 )
 
 // Pipeline defines pipeline options.
@@ -151,7 +150,7 @@ func (p Pipeline) Bool(name string, d bool) bool {
 func (p Pipeline) Map(name string, out map[string]string) error {
 	if value, ok := p[name]; ok {
 		if m, ok := value.(string); ok {
-			err := json.Unmarshal(utils.AsBytes(m), &out)
+			err := json.Unmarshal(strToBytes(m), &out)
 			if err != nil {
 				return err
 			}
@@ -162,7 +161,7 @@ func (p Pipeline) Map(name string, out map[string]string) error {
 			if rv, ok := val.(map[string]any); ok {
 				if val, ok := rv[name]; ok {
 					if m, ok := val.(string); ok {
-						err := json.Unmarshal(utils.AsBytes(m), &out)
+						err := json.Unmarshal(strToBytes(m), &out)
 						if err != nil {
 							return err
 						}
@@ -210,4 +209,12 @@ func (p Pipeline) Priority() int64 {
 // Get used to get the data associated with the key
 func (p Pipeline) Get(key string) any {
 	return p[key]
+}
+
+func strToBytes(data string) []byte {
+	if data == "" {
+		return nil
+	}
+
+	return unsafe.Slice(unsafe.StringData(data), len(data))
 }

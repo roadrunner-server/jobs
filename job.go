@@ -10,7 +10,7 @@ type Job struct {
 	// Ident is unique identifier of the job, should be provided from outside
 	Ident string `json:"id"`
 	// Payload is string data (usually JSON) passed to Job broker.
-	Pld string `json:"payload"`
+	Pld []byte `json:"payload"`
 	// Headers with key-value pairs
 	Hdr map[string][]string `json:"headers"`
 	// Options contains set of PipelineOptions specific to job execution. Can be empty.
@@ -77,7 +77,7 @@ func (j *Job) Name() string {
 	return j.Job
 }
 
-func (j *Job) Payload() string {
+func (j *Job) Payload() []byte {
 	return j.Pld
 }
 

@@ -15,8 +15,8 @@ type Config struct {
 	// NumPollers configures number of priority queue pollers
 	// Default - num logical cores
 	NumPollers int `mapstructure:"num_pollers"`
-	// Parallelism configures number of pipelines to be started at the same time
-	Parallelism int `mapstructure:"parallelism"`
+	// Options contains additional configuration options for the jobs plugin
+	CfgOptions *CfgOptions `mapstructure:"options"`
 	// PipelineSize is the limit of a main jobs queue which consume Items from the drivers pipeline
 	// Driver pipeline might be much larger than a main jobs queue
 	PipelineSize uint64 `mapstructure:"pipeline_size"`
@@ -30,13 +30,24 @@ type Config struct {
 	Consume []string `mapstructure:"consume"`
 }
 
+type CfgOptions struct {
+	// Parallelism configures number of pipelines to be started at the same time
+	Parallelism int `mapstructure:"parallelism"`
+}
+
 func (c *Config) InitDefaults() {
 	if c.Pool == nil {
 		c.Pool = &poolImpl.Config{}
 	}
 
-	if c.Parallelism == 0 {
-		c.Parallelism = 10
+	if c.CfgOptions == nil {
+		c.CfgOptions = &CfgOptions{
+			Parallelism: 10,
+		}
+	}
+
+	if c.CfgOptions.Parallelism == 0 {
+		c.CfgOptions.Parallelism = 10
 	}
 
 	if c.PipelineSize == 0 {
