@@ -84,7 +84,7 @@ func (p *processor) run() {
 				p.wg.Done()
 			}
 
-			p.log.Debug("exited from jobs processor")
+			p.log.Debug("exited from jobs pipeline processor")
 		}()
 	}
 }

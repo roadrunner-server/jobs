@@ -1,0 +1,146 @@
+version: '3'
+
+rpc:
+  listen: tcp://127.0.0.1:6001
+
+server:
+  command: "php php_test_files/jobs/jobs_ok.php"
+  relay: "pipes"
+  relay_timeout: "20s"
+
+nats:
+  addr: "nats://127.0.0.1:4222"
+
+amqp:
+  addr: amqp://guest:guest@127.0.0.1:5672/
+
+beanstalk:
+  addr: tcp://127.0.0.1:11300
+  timeout: 10s
+
+sqs:
+  key: api-key
+  secret: api-secret
+  region: us-west-1
+  endpoint: http://127.0.0.1:9324
+
+kafka:
+  brokers: ["127.0.0.1:9092"]
+
+logs:
+  level: debug
+  encoding: console
+  mode: development
+
+jobs:
+  # num logical cores by default
+  num_pollers: 12
+  # 1mi by default
+  pipeline_size: 100000
+  # worker pool configuration
+  pool:
+    num_workers: 10
+    allocate_timeout: 60s
+    destroy_timeout: 60s
+
+  # list of broker pipelines associated with endpoints
+  pipelines:
+    test-1-memory:
+      driver: memory
+      config:
+        priority: 10
+        prefetch: 10000
+
+    test-2-memory:
+      driver: memory
+      config:
+        priority: 1
+        prefetch: 10000
+
+    test-3-memory:
+      driver: memory
+      config:
+        priority: 2
+        prefetch: 10000
+
+    test-4-amqp:
+      driver: amqp
+      config:
+        prefetch: 1000000
+        queue: test-1-queue
+        priority: 1
+        exchange: default
+        exchange_type: direct
+        routing_key: test
+
+    test-5-amqp:
+      driver: amqp
+      config:
+        priority: 2
+        prefetch: 1000000
+        queue: test-2-queue
+        exchange: default
+        exchange_type: direct
+        routing_key: test-2
+
+    test-6-beanstalk:
+      driver: beanstalk
+      config:
+        priority: 11
+        tube: default
+
+    test-7-sqs:
+      driver: sqs
+      config:
+        prefetch: 1000000
+        queue: default
+        attributes:
+          MessageRetentionPeriod: 86400
+        tags:
+          test: "tag"
+
+    test-8-kafka:
+      driver: kafka
+      config:
+        priority: 1
+
+        auto_create_topics_enable: true
+
+        group_options:
+          group_id: bar
+          block_rebalance_on_poll: true
+
+        producer_options:
+          max_message_bytes: 1000
+          required_acks: LeaderAck
+          compression_codec: snappy
+          disable_idempotent: true
+
+        consumer_options:
+          topics: [ "test-8-kafka" ]
+          consumer_offset:
+            type: AtStart
+
+    test-9-nats:
+      driver: nats
+      config:
+        prefetch: 100
+        subject: "default"
+        stream: "foo"
+        delete_after_ack: true
+        deliver_new: "true"
+        priority: 1
+
+  # list of pipelines to be consumed by the server, keep empty if you want to start consuming manually
+  consume: [
+    "test-1-memory",
+    "test-2-memory",
+    "test-3-memory",
+    "test-4-amqp",
+    "test-5-amqp",
+    "test-6-beanstalk",
+    "test-7-sqs",
+    "test-8-kafka",
+    "test-9-nats",
+  ]
+
