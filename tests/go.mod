@@ -1,6 +1,8 @@
 module tests
 
-go 1.21.1
+go 1.21
+
+toolchain go1.21.1
 
 require (
 	github.com/google/uuid v1.3.1
@@ -28,7 +30,7 @@ require (
 replace github.com/roadrunner-server/jobs/v4 => ../
 
 require (
-	github.com/aws/aws-sdk-go v1.45.15 // indirect
+	github.com/aws/aws-sdk-go v1.45.17 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.21.0 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.18.42 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.40 // indirect
