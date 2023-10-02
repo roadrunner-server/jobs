@@ -266,7 +266,6 @@ func TestJOBSMetrics(t *testing.T) {
 	t.Run("DestroyPipeline", helpers.DestroyPipelines("127.0.0.1:6001", "test-3"))
 
 	close(sig)
-
 	wg.Wait()
 }
 

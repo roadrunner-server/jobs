@@ -9,11 +9,11 @@ require (
 	github.com/roadrunner-server/amqp/v4 v4.9.0
 	github.com/roadrunner-server/api/v4 v4.8.0
 	github.com/roadrunner-server/beanstalk/v4 v4.5.5
-	github.com/roadrunner-server/config/v4 v4.4.4
+	github.com/roadrunner-server/config/v4 v4.4.5
 	github.com/roadrunner-server/endure/v2 v2.4.2
 	github.com/roadrunner-server/goridge/v3 v3.8.1
 	github.com/roadrunner-server/informer/v4 v4.3.1
-	github.com/roadrunner-server/jobs/v4 v4.7.1
+	github.com/roadrunner-server/jobs/v4 v4.7.2
 	github.com/roadrunner-server/kafka/v4 v4.4.5
 	github.com/roadrunner-server/logger/v4 v4.2.3
 	github.com/roadrunner-server/memory/v4 v4.6.3
@@ -30,7 +30,7 @@ require (
 replace github.com/roadrunner-server/jobs/v4 => ../
 
 require (
-	github.com/aws/aws-sdk-go v1.45.17 // indirect
+	github.com/aws/aws-sdk-go v1.45.19 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.21.0 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.18.42 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.40 // indirect
@@ -66,14 +66,14 @@ require (
 	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/nats-io/jwt/v2 v2.5.2 // indirect
-	github.com/nats-io/nats.go v1.30.1 // indirect
+	github.com/nats-io/nats.go v1.30.2 // indirect
 	github.com/nats-io/nkeys v0.4.5 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.18 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_golang v1.16.0 // indirect
-	github.com/prometheus/client_model v0.4.0 // indirect
+	github.com/prometheus/client_golang v1.17.0 // indirect
+	github.com/prometheus/client_model v0.4.1-0.20230718164431-9a2bf3000d16 // indirect
 	github.com/prometheus/common v0.44.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/rabbitmq/amqp091-go v1.8.1 // indirect
@@ -91,14 +91,14 @@ require (
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/twmb/franz-go v1.15.0 // indirect
 	github.com/twmb/franz-go/pkg/kmsg v1.6.1 // indirect
-	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
+	github.com/vmihailenco/msgpack/v5 v5.4.0 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
-	go.opentelemetry.io/contrib/propagators/jaeger v1.19.0 // indirect
-	go.opentelemetry.io/otel v1.18.0 // indirect
-	go.opentelemetry.io/otel/metric v1.18.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.18.0 // indirect
-	go.opentelemetry.io/otel/trace v1.18.0 // indirect
+	go.opentelemetry.io/contrib/propagators/jaeger v1.20.0 // indirect
+	go.opentelemetry.io/otel v1.19.0 // indirect
+	go.opentelemetry.io/otel/metric v1.19.0 // indirect
+	go.opentelemetry.io/otel/sdk v1.19.0 // indirect
+	go.opentelemetry.io/otel/trace v1.19.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.13.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
