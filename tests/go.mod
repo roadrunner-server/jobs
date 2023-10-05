@@ -31,19 +31,19 @@ require (
 replace github.com/roadrunner-server/jobs/v4 => ../
 
 require (
-	github.com/aws/aws-sdk-go v1.45.19 // indirect
+	github.com/aws/aws-sdk-go v1.45.23 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.21.0 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.18.42 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.13.40 // indirect
+	github.com/aws/aws-sdk-go-v2/config v1.18.43 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.13.41 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.13.11 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.41 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.35 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.43 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.35 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.24.5 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.14.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.15.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.17.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.22.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.23.0 // indirect
 	github.com/aws/smithy-go v1.14.2 // indirect
 	github.com/beanstalkd/go-beanstalk v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -73,12 +73,12 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.18 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.17.0 // indirect
-	github.com/prometheus/client_model v0.4.1-0.20230718164431-9a2bf3000d16 // indirect
+	github.com/prometheus/client_model v0.5.0 // indirect
 	github.com/prometheus/common v0.44.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
-	github.com/rabbitmq/amqp091-go v1.8.1 // indirect
+	github.com/rabbitmq/amqp091-go v1.9.0 // indirect
 	github.com/roadrunner-server/errors v1.3.0 // indirect
-	github.com/roadrunner-server/sdk/v4 v4.5.0 // indirect
+	github.com/roadrunner-server/sdk/v4 v4.5.2 // indirect
 	github.com/roadrunner-server/tcplisten v1.4.0 // indirect
 	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
 	github.com/spf13/afero v1.10.0 // indirect
@@ -100,9 +100,9 @@ require (
 	go.opentelemetry.io/otel/sdk v1.19.0 // indirect
 	go.opentelemetry.io/otel/trace v1.19.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.13.0 // indirect
-	golang.org/x/sync v0.3.0 // indirect
-	golang.org/x/sys v0.12.0 // indirect
+	golang.org/x/crypto v0.14.0 // indirect
+	golang.org/x/sync v0.4.0 // indirect
+	golang.org/x/sys v0.13.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
