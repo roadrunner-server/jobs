@@ -7,23 +7,23 @@ toolchain go1.21.1
 require (
 	github.com/goccy/go-json v0.10.2
 	github.com/google/uuid v1.3.1
-	github.com/roadrunner-server/amqp/v4 v4.9.0
+	github.com/roadrunner-server/amqp/v4 v4.9.1
 	github.com/roadrunner-server/api/v4 v4.8.0
-	github.com/roadrunner-server/beanstalk/v4 v4.5.5
-	github.com/roadrunner-server/config/v4 v4.4.5
+	github.com/roadrunner-server/beanstalk/v4 v4.5.6
+	github.com/roadrunner-server/config/v4 v4.4.6
 	github.com/roadrunner-server/endure/v2 v2.4.2
 	github.com/roadrunner-server/goridge/v3 v3.8.1
-	github.com/roadrunner-server/informer/v4 v4.3.1
-	github.com/roadrunner-server/jobs/v4 v4.7.2
-	github.com/roadrunner-server/kafka/v4 v4.4.5
-	github.com/roadrunner-server/logger/v4 v4.2.3
-	github.com/roadrunner-server/memory/v4 v4.6.3
-	github.com/roadrunner-server/metrics/v4 v4.1.5
-	github.com/roadrunner-server/nats/v4 v4.5.4
-	github.com/roadrunner-server/resetter/v4 v4.0.10
-	github.com/roadrunner-server/rpc/v4 v4.2.4
-	github.com/roadrunner-server/server/v4 v4.4.1
-	github.com/roadrunner-server/sqs/v4 v4.5.3
+	github.com/roadrunner-server/informer/v4 v4.3.2
+	github.com/roadrunner-server/jobs/v4 v4.7.3
+	github.com/roadrunner-server/kafka/v4 v4.4.6
+	github.com/roadrunner-server/logger/v4 v4.2.4
+	github.com/roadrunner-server/memory/v4 v4.6.4
+	github.com/roadrunner-server/metrics/v4 v4.1.6
+	github.com/roadrunner-server/nats/v4 v4.5.5
+	github.com/roadrunner-server/resetter/v4 v4.0.11
+	github.com/roadrunner-server/rpc/v4 v4.2.5
+	github.com/roadrunner-server/server/v4 v4.4.2
+	github.com/roadrunner-server/sqs/v4 v4.5.4
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/zap v1.26.0
 )
