@@ -32,7 +32,7 @@ type pjob struct {
 func newPipesProc(log *zap.Logger, consumers *sync.Map, runners *map[string]struct{}, maxWorkers int) *processor {
 	p := &processor{
 		log:        log,
-		queueCh:    make(chan *pjob, 1),
+		queueCh:    make(chan *pjob, 100),
 		maxWorkers: maxWorkers,
 		consumers:  consumers,
 		runners:    runners,
