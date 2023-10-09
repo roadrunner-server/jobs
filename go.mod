@@ -7,7 +7,7 @@ toolchain go1.21.0
 require (
 	github.com/goccy/go-json v0.10.2
 	github.com/prometheus/client_golang v1.17.0
-	github.com/roadrunner-server/api/v4 v4.8.0
+	github.com/roadrunner-server/api/v4 v4.9.0
 	github.com/roadrunner-server/endure/v2 v2.4.2
 	github.com/roadrunner-server/errors v1.3.0
 	github.com/roadrunner-server/goridge/v3 v3.8.1
