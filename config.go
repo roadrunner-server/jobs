@@ -17,21 +17,21 @@ type Config struct {
 	NumPollers int `mapstructure:"num_pollers"`
 	// Options contains additional configuration options for the jobs plugin
 	CfgOptions *CfgOptions `mapstructure:"options"`
-	// PipelineSize is the limit of a main jobs queue which consume Items from the drivers pipeline
+	// PipelineSize is the limit of a main jobs queue which consumes Items from the driver's pipeline
 	// Driver pipeline might be much larger than a main jobs queue
 	PipelineSize uint64 `mapstructure:"pipeline_size"`
-	// Timeout in seconds is the per-push limit to put the job into queue
+	// Timeout in seconds is the per-push limit to put the job into the queue
 	Timeout int `mapstructure:"timeout"`
 	// Pool configures roadrunner workers pool.
 	Pool *poolImpl.Config `mapstructure:"pool"`
-	// Pipelines defines mapping between PHP job pipeline and associated job broker.
+	// Pipelines define mapping between PHP job pipeline and associated job broker.
 	Pipelines map[string]Pipeline `mapstructure:"pipelines"`
 	// Consuming specifies names of pipelines to be consumed on service start.
 	Consume []string `mapstructure:"consume"`
 }
 
 type CfgOptions struct {
-	// Parallelism configures number of pipelines to be started at the same time
+	// Parallelism configures the number of pipelines to be started at the same time
 	Parallelism int `mapstructure:"parallelism"`
 }
 
