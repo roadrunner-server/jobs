@@ -31,7 +31,7 @@ require (
 replace github.com/roadrunner-server/jobs/v4 => ../
 
 require (
-	github.com/aws/aws-sdk-go v1.45.27 // indirect
+	github.com/aws/aws-sdk-go v1.45.28 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.21.2 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.19.0 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.43 // indirect
