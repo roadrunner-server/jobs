@@ -6,24 +6,24 @@ toolchain go1.21.1
 
 require (
 	github.com/goccy/go-json v0.10.2
-	github.com/google/uuid v1.3.1
-	github.com/roadrunner-server/amqp/v4 v4.9.3
+	github.com/google/uuid v1.4.0
+	github.com/roadrunner-server/amqp/v4 v4.9.4
 	github.com/roadrunner-server/api/v4 v4.9.0
-	github.com/roadrunner-server/beanstalk/v4 v4.5.8
-	github.com/roadrunner-server/config/v4 v4.4.8
+	github.com/roadrunner-server/beanstalk/v4 v4.5.9
+	github.com/roadrunner-server/config/v4 v4.4.9
 	github.com/roadrunner-server/endure/v2 v2.4.3
 	github.com/roadrunner-server/goridge/v3 v3.8.1
-	github.com/roadrunner-server/informer/v4 v4.3.6
-	github.com/roadrunner-server/jobs/v4 v4.7.5
-	github.com/roadrunner-server/kafka/v4 v4.4.8
-	github.com/roadrunner-server/logger/v4 v4.2.6
-	github.com/roadrunner-server/memory/v4 v4.6.6
-	github.com/roadrunner-server/metrics/v4 v4.1.8
-	github.com/roadrunner-server/nats/v4 v4.5.7
-	github.com/roadrunner-server/resetter/v4 v4.0.13
-	github.com/roadrunner-server/rpc/v4 v4.2.7
-	github.com/roadrunner-server/server/v4 v4.4.5
-	github.com/roadrunner-server/sqs/v4 v4.5.6
+	github.com/roadrunner-server/informer/v4 v4.3.7
+	github.com/roadrunner-server/jobs/v4 v4.7.6
+	github.com/roadrunner-server/kafka/v4 v4.4.9
+	github.com/roadrunner-server/logger/v4 v4.2.7
+	github.com/roadrunner-server/memory/v4 v4.6.7
+	github.com/roadrunner-server/metrics/v4 v4.1.9
+	github.com/roadrunner-server/nats/v4 v4.5.8
+	github.com/roadrunner-server/resetter/v4 v4.0.14
+	github.com/roadrunner-server/rpc/v4 v4.2.8
+	github.com/roadrunner-server/server/v4 v4.4.6
+	github.com/roadrunner-server/sqs/v4 v4.5.7
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/zap v1.26.0
 )
@@ -31,7 +31,7 @@ require (
 replace github.com/roadrunner-server/jobs/v4 => ../
 
 require (
-	github.com/aws/aws-sdk-go v1.46.4 // indirect
+	github.com/aws/aws-sdk-go v1.46.5 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.21.2 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.19.1 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.43 // indirect
@@ -52,7 +52,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/go-logr/logr v1.2.4 // indirect
+	github.com/go-logr/logr v1.3.0 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
