@@ -10,7 +10,7 @@ require (
 	github.com/roadrunner-server/amqp/v4 v4.9.4
 	github.com/roadrunner-server/api/v4 v4.9.0
 	github.com/roadrunner-server/beanstalk/v4 v4.5.9
-	github.com/roadrunner-server/config/v4 v4.4.9
+	github.com/roadrunner-server/config/v4 v4.5.0
 	github.com/roadrunner-server/endure/v2 v2.4.3
 	github.com/roadrunner-server/goridge/v3 v3.8.1
 	github.com/roadrunner-server/informer/v4 v4.3.7
@@ -31,7 +31,7 @@ require (
 replace github.com/roadrunner-server/jobs/v4 => ../
 
 require (
-	github.com/aws/aws-sdk-go v1.46.5 // indirect
+	github.com/aws/aws-sdk-go v1.46.7 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.21.2 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.19.1 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.43 // indirect
