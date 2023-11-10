@@ -7,23 +7,23 @@ toolchain go1.21.1
 require (
 	github.com/goccy/go-json v0.10.2
 	github.com/google/uuid v1.4.0
-	github.com/roadrunner-server/amqp/v4 v4.9.4
+	github.com/roadrunner-server/amqp/v4 v4.9.5
 	github.com/roadrunner-server/api/v4 v4.9.0
-	github.com/roadrunner-server/beanstalk/v4 v4.5.9
-	github.com/roadrunner-server/config/v4 v4.6.0
+	github.com/roadrunner-server/beanstalk/v4 v4.5.10
+	github.com/roadrunner-server/config/v4 v4.6.1
 	github.com/roadrunner-server/endure/v2 v2.4.3
 	github.com/roadrunner-server/goridge/v3 v3.8.1
-	github.com/roadrunner-server/informer/v4 v4.3.7
-	github.com/roadrunner-server/jobs/v4 v4.7.6
-	github.com/roadrunner-server/kafka/v4 v4.4.9
-	github.com/roadrunner-server/logger/v4 v4.2.7
-	github.com/roadrunner-server/memory/v4 v4.6.7
-	github.com/roadrunner-server/metrics/v4 v4.1.9
-	github.com/roadrunner-server/nats/v4 v4.6.0
-	github.com/roadrunner-server/resetter/v4 v4.0.14
-	github.com/roadrunner-server/rpc/v4 v4.2.8
-	github.com/roadrunner-server/server/v4 v4.4.6
-	github.com/roadrunner-server/sqs/v4 v4.5.7
+	github.com/roadrunner-server/informer/v4 v4.3.8
+	github.com/roadrunner-server/jobs/v4 v4.7.7
+	github.com/roadrunner-server/kafka/v4 v4.4.10
+	github.com/roadrunner-server/logger/v4 v4.2.8
+	github.com/roadrunner-server/memory/v4 v4.6.8
+	github.com/roadrunner-server/metrics/v4 v4.1.10
+	github.com/roadrunner-server/nats/v4 v4.6.1
+	github.com/roadrunner-server/resetter/v4 v4.0.15
+	github.com/roadrunner-server/rpc/v4 v4.2.9
+	github.com/roadrunner-server/server/v4 v4.4.7
+	github.com/roadrunner-server/sqs/v4 v4.5.8
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/zap v1.26.0
 )
@@ -31,14 +31,14 @@ require (
 replace github.com/roadrunner-server/jobs/v4 => ../
 
 require (
-	github.com/aws/aws-sdk-go v1.47.7 // indirect
+	github.com/aws/aws-sdk-go v1.47.8 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.22.2 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.22.3 // indirect
+	github.com/aws/aws-sdk-go-v2/config v1.23.0 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.15.2 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.14.3 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.2.2 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.5.2 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/ini v1.5.2 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/ini v1.6.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.10.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.28.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.17.1 // indirect
