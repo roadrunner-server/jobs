@@ -22,7 +22,7 @@ require (
 	github.com/roadrunner-server/nats/v4 v4.6.1
 	github.com/roadrunner-server/resetter/v4 v4.0.15
 	github.com/roadrunner-server/rpc/v4 v4.2.9
-	github.com/roadrunner-server/server/v4 v4.5.0
+	github.com/roadrunner-server/server/v4 v4.5.1
 	github.com/roadrunner-server/sqs/v4 v4.5.8
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/zap v1.26.0
@@ -31,14 +31,14 @@ require (
 replace github.com/roadrunner-server/jobs/v4 => ../
 
 require (
-	github.com/aws/aws-sdk-go v1.47.8 // indirect
+	github.com/aws/aws-sdk-go v1.47.10 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.22.2 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.23.0 // indirect
+	github.com/aws/aws-sdk-go-v2/config v1.24.0 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.15.2 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.14.3 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.2.2 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.5.2 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/ini v1.6.0 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/ini v1.7.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.10.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.28.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.17.1 // indirect
@@ -100,7 +100,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.20.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.15.0 // indirect
-	golang.org/x/exp v0.0.0-20231108232855-2478ac86f678 // indirect
+	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa // indirect
 	golang.org/x/sync v0.5.0 // indirect
 	golang.org/x/sys v0.14.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
