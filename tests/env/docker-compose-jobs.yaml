@@ -33,12 +33,11 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
-  sqs:
-    build:
-      context: .
-      dockerfile: Dockerfile-elastic-mq.yaml
+  localstack:
+    image: localstack/localstack
     ports:
-      - "127.0.0.1:9324:9324"
+      - "127.0.0.1:4566:4566"            # LocalStack Gateway
+      - "127.0.0.1:4510-4559:4510-4559"  # external services port range
 
   beanstalk:
     build:

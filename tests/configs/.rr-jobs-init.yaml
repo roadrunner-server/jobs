@@ -22,7 +22,7 @@ sqs:
   key: api-key
   secret: api-secret
   region: us-west-1
-  endpoint: http://127.0.0.1:9324
+  endpoint: http://127.0.0.1:4566
 
 kafka:
   brokers: ["127.0.0.1:9092"]
