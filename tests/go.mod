@@ -7,23 +7,23 @@ toolchain go1.21.5
 require (
 	github.com/goccy/go-json v0.10.2
 	github.com/google/uuid v1.5.0
-	github.com/roadrunner-server/amqp/v4 v4.9.8
+	github.com/roadrunner-server/amqp/v4 v4.9.9
 	github.com/roadrunner-server/api/v4 v4.10.0
-	github.com/roadrunner-server/beanstalk/v4 v4.6.1
-	github.com/roadrunner-server/config/v4 v4.6.3
+	github.com/roadrunner-server/beanstalk/v4 v4.6.2
+	github.com/roadrunner-server/config/v4 v4.6.4
 	github.com/roadrunner-server/endure/v2 v2.4.3
 	github.com/roadrunner-server/goridge/v3 v3.8.1
-	github.com/roadrunner-server/informer/v4 v4.3.10
-	github.com/roadrunner-server/jobs/v4 v4.7.9
-	github.com/roadrunner-server/kafka/v4 v4.4.12
-	github.com/roadrunner-server/logger/v4 v4.2.10
-	github.com/roadrunner-server/memory/v4 v4.6.10
-	github.com/roadrunner-server/metrics/v4 v4.1.12
-	github.com/roadrunner-server/nats/v4 v4.6.3
-	github.com/roadrunner-server/resetter/v4 v4.0.17
-	github.com/roadrunner-server/rpc/v4 v4.2.11
-	github.com/roadrunner-server/server/v4 v4.5.3
-	github.com/roadrunner-server/sqs/v4 v4.5.10
+	github.com/roadrunner-server/informer/v4 v4.3.11
+	github.com/roadrunner-server/jobs/v4 v4.7.10
+	github.com/roadrunner-server/kafka/v4 v4.4.13
+	github.com/roadrunner-server/logger/v4 v4.2.11
+	github.com/roadrunner-server/memory/v4 v4.6.11
+	github.com/roadrunner-server/metrics/v4 v4.1.13
+	github.com/roadrunner-server/nats/v4 v4.6.4
+	github.com/roadrunner-server/resetter/v4 v4.0.18
+	github.com/roadrunner-server/rpc/v4 v4.2.12
+	github.com/roadrunner-server/server/v4 v4.5.4
+	github.com/roadrunner-server/sqs/v4 v4.5.11
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/zap v1.26.0
 )
@@ -31,7 +31,7 @@ require (
 replace github.com/roadrunner-server/jobs/v4 => ../
 
 require (
-	github.com/aws/aws-sdk-go v1.49.1 // indirect
+	github.com/aws/aws-sdk-go v1.49.5 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.24.0 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.26.1 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.16.12 // indirect
@@ -86,7 +86,7 @@ require (
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/spf13/viper v1.18.1 // indirect
+	github.com/spf13/viper v1.18.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.13 // indirect
 	github.com/tklauser/numcpus v0.7.0 // indirect
@@ -101,8 +101,8 @@ require (
 	go.opentelemetry.io/otel/sdk v1.21.0 // indirect
 	go.opentelemetry.io/otel/trace v1.21.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.16.0 // indirect
-	golang.org/x/exp v0.0.0-20231206192017-f3f8817b8deb // indirect
+	golang.org/x/crypto v0.17.0 // indirect
+	golang.org/x/exp v0.0.0-20231214170342-aacd6d4b4611 // indirect
 	golang.org/x/sync v0.5.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect

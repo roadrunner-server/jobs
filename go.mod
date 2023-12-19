@@ -2,7 +2,7 @@ module github.com/roadrunner-server/jobs/v4
 
 go 1.21
 
-toolchain go1.21.0
+toolchain go1.21.5
 
 require (
 	github.com/goccy/go-json v0.10.2
