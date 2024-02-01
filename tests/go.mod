@@ -76,7 +76,7 @@ require (
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/rabbitmq/amqp091-go v1.9.0 // indirect
 	github.com/roadrunner-server/errors v1.4.0 // indirect
-	github.com/roadrunner-server/sdk/v4 v4.5.6 // indirect
+	github.com/roadrunner-server/sdk/v4 v4.6.0 // indirect
 	github.com/roadrunner-server/tcplisten v1.4.0 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
