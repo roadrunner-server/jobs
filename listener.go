@@ -38,12 +38,12 @@ func (p *Plugin) listener() {
 						5. Pipeline name
 					*/
 
-					p.log.Debug("job processing was started", zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int("elapsed", time.Since(start).Milliseconds()))
+					p.log.Debug("job processing was started", zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
 
 					ctx, err := jb.Context()
 					if err != nil {
 						p.metrics.CountJobErr()
-						p.log.Error("job marshal error", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int("elapsed", time.Since(start).Milliseconds()))
+						p.log.Error("job marshal error", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
 						errNack := jb.Nack()
 						if errNack != nil {
 							p.log.Error("negatively acknowledge was failed", zap.String("ID", jb.ID()), zap.Error(errNack))
@@ -64,7 +64,7 @@ func (p *Plugin) listener() {
 					if err != nil {
 						p.metrics.CountJobErr()
 
-						p.log.Error("job processed with errors", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int("elapsed", time.Since(start).Milliseconds()))
+						p.log.Error("job processed with errors", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
 						// RR protocol level error, Nack the job
 						errNack := jb.Nack()
 						if errNack != nil {
@@ -84,7 +84,7 @@ func (p *Plugin) listener() {
 						if pld.Error() != nil {
 							p.metrics.CountJobErr()
 
-							p.log.Error("job processed with errors", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int("elapsed", time.Since(start).Milliseconds()))
+							p.log.Error("job processed with errors", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
 							// RR protocol level error, Nack the job
 							errNack := jb.Nack()
 							if errNack != nil {
@@ -140,13 +140,13 @@ func (p *Plugin) listener() {
 						if err != nil {
 							p.metrics.CountJobErr()
 
-							p.log.Error("acknowledge error, job might be missed", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int("elapsed", time.Since(start).Milliseconds()))
+							p.log.Error("acknowledge error, job might be missed", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
 							jb = nil
 							span.End()
 							continue
 						}
 
-						p.log.Debug("job was processed successfully", zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int("elapsed", time.Since(start).Milliseconds()))
+						p.log.Debug("job was processed successfully", zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
 
 						p.metrics.CountJobOk()
 
@@ -159,7 +159,7 @@ func (p *Plugin) listener() {
 					err = p.respHandler.Handle(resp, jb)
 					if err != nil {
 						p.metrics.CountJobErr()
-						p.log.Error("response handler error", zap.Error(err), zap.String("ID", jb.ID()), zap.ByteString("response", resp.Body), zap.Time("start", start), zap.Int("elapsed", time.Since(start).Milliseconds()))
+						p.log.Error("response handler error", zap.Error(err), zap.String("ID", jb.ID()), zap.ByteString("response", resp.Body), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
 						p.putPayload(exec)
 						/*
 							Job malformed, acknowledge it to prevent endless loop
@@ -180,7 +180,7 @@ func (p *Plugin) listener() {
 
 					p.metrics.CountJobOk()
 
-					p.log.Debug("job was processed successfully", zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int("elapsed", time.Since(start).Milliseconds()))
+					p.log.Debug("job was processed successfully", zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
 
 					// return payload
 					p.putPayload(exec)
