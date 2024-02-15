@@ -103,8 +103,8 @@ github.com/prometheus/client_golang v1.18.0 h1:HzFfmkOzH5Q8L8G+kSJKUx5dtG87sewO+
 github.com/prometheus/client_golang v1.18.0/go.mod h1:T+GXkCk5wSJyOqMIzVgvvjFDlkOQntgjkJWKrN5txjA=
 github.com/prometheus/client_model v0.5.0 h1:VQw1hfvPvk3Uv6Qf29VrPF32JB6rtbgI6cYPYQjL0Qw=
 github.com/prometheus/client_model v0.5.0/go.mod h1:dTiFglRmd66nLR9Pv9f0mZi7B7fk5Pm3gvsjB5tr+kI=
-github.com/prometheus/common v0.46.0 h1:doXzt5ybi1HBKpsZOL0sSkaNHJJqkyfEWZGGqqScV0Y=
-github.com/prometheus/common v0.46.0/go.mod h1:Tp0qkxpb9Jsg54QMe+EAmqXkSV7Evdy1BTn+g2pa/hQ=
+github.com/prometheus/common v0.47.0 h1:p5Cz0FNHo7SnWOmWmoRozVcjEp0bIVU8cV7OShpjL1k=
+github.com/prometheus/common v0.47.0/go.mod h1:0/KsvlIEfPQCQ5I2iNSAWKPZziNCvRs5EC6ILDTlAPc=
 github.com/prometheus/procfs v0.12.0 h1:jluTpSng7V9hY0O2R9DzzJHYb2xULk9VTR1V1R/k6Bo=
 github.com/prometheus/procfs v0.12.0/go.mod h1:pcuDEFsWDnvcgNzo4EEweacyhjeA9Zk3cnaOZAZEfOo=
 github.com/rabbitmq/amqp091-go v1.9.0 h1:qrQtyzB4H8BQgEuJwhmVQqVHB9O4+MNDJCCAcpc3Aoo=
@@ -135,8 +135,8 @@ github.com/roadrunner-server/metrics/v4 v4.1.16 h1:KQ/toBGY2God3xxc+o33g6p08DLWc
 github.com/roadrunner-server/metrics/v4 v4.1.16/go.mod h1:hjCL0LuiUgckjhgYVE6qNigtny+Gn7Kqn8HcVMO4lIs=
 github.com/roadrunner-server/nats/v4 v4.6.7 h1:yw4ek0QkdNdmcceBHO0ae/dffdbJG9IsVXWtskpEI+g=
 github.com/roadrunner-server/nats/v4 v4.6.7/go.mod h1:0uzmokzT0/4NqFennQFv0/MvUn35jUr50X67qwdI5JA=
-github.com/roadrunner-server/resetter/v4 v4.0.21 h1:C3BF7YLTcZfqTKUZUudaTQ/IUfinz4VmshTEhywipx0=
-github.com/roadrunner-server/resetter/v4 v4.0.21/go.mod h1:yn/1UXSceuBQ+R+loXSKqmKtx6htcVRza2Ifni0i3FA=
+github.com/roadrunner-server/resetter/v4 v4.1.0 h1:xQ1zOpkwqTgzzp6FtS8x3HhNcceOpSmhtqTk2i/GWQw=
+github.com/roadrunner-server/resetter/v4 v4.1.0/go.mod h1:uJwGNu+Ktodo3JGAOEiz+EmvgB+vorTbR2HDL7bWR3M=
 github.com/roadrunner-server/rpc/v4 v4.2.15 h1:cGKsF2tYqe8k+oRM3aWsbddpihY1vhjd9n6/w6AqEqA=
 github.com/roadrunner-server/rpc/v4 v4.2.15/go.mod h1:Hxduua91f9pAkMzoJzG+a5Ep3azHeBsp2I842A6X+mQ=
 github.com/roadrunner-server/sdk/v4 v4.6.0 h1:dXMN7V8+VKjQAZamhKBizPGSqrpfAfVG6r4OCF66hNY=
