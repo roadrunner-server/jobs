@@ -1,1 +1,1 @@
-# Docs: [link](https://roadrunner.dev/docs/beep-beep-jobs)
+# Docs: [link](https://docs.roadrunner.dev/queues-and-jobs/overview-queues)
