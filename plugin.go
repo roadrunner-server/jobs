@@ -370,7 +370,7 @@ func (p *Plugin) Push(ctx context.Context, j jobsApi.Message) error {
 	err := d.(jobsApi.Driver).Push(ctx, j)
 	if err != nil {
 		p.metrics.CountPushErr()
-		p.log.Error("job push error", zap.String("ID", j.ID()), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)), zap.Error(err))
+		p.log.Error("job push error", zap.String("ID", j.ID()), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()), zap.Error(err))
 		return errors.E(op, err)
 	}
 
@@ -378,7 +378,7 @@ func (p *Plugin) Push(ctx context.Context, j jobsApi.Message) error {
 
 	p.metrics.pushJobLatencyHistogram.WithLabelValues(ppl.Name(), ppl.Driver(), "single").Observe(time.Since(start).Seconds())
 
-	p.log.Debug("job was pushed successfully", zap.String("ID", j.ID()), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)))
+	p.log.Debug("job was pushed successfully", zap.String("ID", j.ID()), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
 
 	return nil
 }
@@ -414,7 +414,7 @@ func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Message) error {
 		if err != nil {
 			cancel()
 			p.metrics.CountPushErr()
-			p.log.Error("job push batch error", zap.String("ID", j[i].ID()), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Duration("elapsed", time.Since(start)), zap.Error(err))
+			p.log.Error("job push batch error", zap.String("ID", j[i].ID()), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()), zap.Error(err))
 			return errors.E(op, err)
 		}
 

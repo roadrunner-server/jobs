@@ -69,7 +69,7 @@ func (p *processor) run() {
 				// add a driver to the set of the consumers (name - pipeline name, value - associated driver)
 				p.consumers.Store(job.pipe.Name(), initializedDriver)
 
-				p.log.Debug("driver ready", zap.String("pipeline", job.pipe.Name()), zap.String("driver", job.pipe.Driver()), zap.Time("start", t), zap.Duration("elapsed", time.Since(t)))
+				p.log.Debug("driver ready", zap.String("pipeline", job.pipe.Name()), zap.String("driver", job.pipe.Driver()), zap.Time("start", t), zap.Int64("elapsed", time.Since(t).Milliseconds()))
 				// if a pipeline initialized to be consumed, call Run on it
 				if _, ok := (*p.runners)[job.pipe.Name()]; ok {
 					ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(job.timeout))
