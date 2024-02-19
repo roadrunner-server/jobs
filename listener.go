@@ -180,7 +180,7 @@ func (p *Plugin) listener() {
 
 					p.metrics.CountJobOk()
 
-					p.log.Debug("job was processed successfully", zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int64("", time.Since(start).Milliseconds()))
+					p.log.Debug("job was processed successfully", zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
 
 					// return payload
 					p.putPayload(exec)
