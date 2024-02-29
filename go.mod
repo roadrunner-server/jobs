@@ -4,8 +4,8 @@ go 1.22.0
 
 require (
 	github.com/goccy/go-json v0.10.2
-	github.com/prometheus/client_golang v1.18.0
-	github.com/roadrunner-server/api/v4 v4.11.0
+	github.com/prometheus/client_golang v1.19.0
+	github.com/roadrunner-server/api/v4 v4.11.1
 	github.com/roadrunner-server/endure/v2 v2.4.3
 	github.com/roadrunner-server/errors v1.4.0
 	github.com/roadrunner-server/goridge/v3 v3.8.1
@@ -28,7 +28,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_model v0.6.0 // indirect
-	github.com/prometheus/common v0.48.0 // indirect
+	github.com/prometheus/common v0.49.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
 	github.com/tklauser/go-sysconf v0.3.13 // indirect
