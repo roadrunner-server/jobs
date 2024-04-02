@@ -384,7 +384,7 @@ func (p *Plugin) Push(ctx context.Context, j jobsApi.Message) error {
 }
 
 func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Message) error {
-	const op = errors.Op("jobs_plugin_push")
+	const op = errors.Op("jobs_plugin_push_batch")
 	start := time.Now().UTC()
 
 	for i := 0; i < len(j); i++ {
@@ -424,6 +424,8 @@ func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Message) error {
 
 		cancel()
 	}
+
+	p.log.Debug("job batch was pushed successfully", zap.Int("count", len(j)), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
 
 	return nil
 }
