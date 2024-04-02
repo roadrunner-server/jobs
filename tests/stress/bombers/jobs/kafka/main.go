@@ -22,7 +22,7 @@ const (
 	destroy string = "jobs.Destroy"
 	declare string = "jobs.Declare"
 	resume  string = "jobs.Resume"
-	stat    string = "jobs.Stat" //nolint:unused,deadcode,varcheck
+	stat    string = "jobs.Stat" //nolint:unused
 )
 
 func main() {
@@ -160,7 +160,7 @@ func destroyPipelines(rest chan<- string, client *rpc.Client, p string) {
 	}
 }
 
-func list(client *rpc.Client) []string { //nolint:unused,deadcode
+func list(client *rpc.Client) []string { //nolint:unused
 	resp := &jobsProto.Pipelines{}
 	er := &jobsProto.Empty{}
 	err := client.Call("jobs.List", er, resp)
