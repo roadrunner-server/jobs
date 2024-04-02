@@ -35,7 +35,7 @@ type Pool interface {
 	AddWorker() error
 	// Reset kill all workers inside the watcher and replaces with new
 	Reset(ctx context.Context) error
-	// Destroy all underlying stack (but let them to complete the task).
+	// Destroy all underlying stack (but let them complete the task).
 	Destroy(ctx context.Context)
 }
 
