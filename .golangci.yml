@@ -10,6 +10,8 @@ output:
 linters-settings:
   wsl:
     allow-assign-and-anything: true
+  govet:
+    shadow: true
   godot:
     scope: declarations
     capital: true
@@ -66,7 +68,6 @@ linters: # All available linters list: <https://golangci-lint.run/usage/linters/
     - unparam # Reports unused function parameters
     - unused # Checks Go code for unused constants, variables, functions and types
     - whitespace # Tool for detection of leading and trailing whitespace
-    - shadow
 
 issues:
   exclude-dirs:
