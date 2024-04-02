@@ -412,9 +412,9 @@ func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Message) error {
 		ctxPush, cancel := context.WithTimeout(ctx, time.Second*time.Duration(p.cfg.Timeout))
 		err := d.(jobsApi.Driver).Push(ctxPush, j[i])
 		if err != nil {
+			cancel()
 			p.metrics.CountPushErr()
 			p.log.Error("job push batch error", zap.String("ID", j[i].ID()), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()), zap.Error(err))
-			cancel()
 			return errors.E(op, err)
 		}
 
