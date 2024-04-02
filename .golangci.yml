@@ -2,21 +2,16 @@
 
 run:
   timeout: 1m
-  skip-dirs:
-    - .github
-    - .git
   allow-parallel-runners: true
 
 output:
-  format: colored-line-number # colored-line-number|line-number|json|tab|checkstyle|code-climate
+  formats:
+    - path: stdout
+      format: colored-line-number
 
 linters-settings:
   wsl:
     allow-assign-and-anything: true
-  govet:
-    check-shadowing: true
-  golint:
-    min-confidence: 0.1
   godot:
     scope: declarations
     capital: true
@@ -34,7 +29,6 @@ linters-settings:
     range-loops: true
     for-loops: true
   nolintlint:
-    allow-leading-space: false
     require-specific: true
 
 linters: # All available linters list: <https://golangci-lint.run/usage/linters/>
@@ -52,8 +46,8 @@ linters: # All available linters list: <https://golangci-lint.run/usage/linters/
     - gochecknoinits # Checks that no init functions are present in Go code
     - goconst # Finds repeated strings that could be replaced by a constant
     - gocritic # The most opinionated Go source code linter
-    - gofmt # Gofmt checks whether code was gofmt-ed. By default this tool runs with -s option to check for code simplification
-    - goimports # Goimports does everything that gofmt does. Additionally it checks unused imports
+    - gofmt # Gofmt checks whether code was gofmt-ed. By default, this tool runs with -s option to check for code simplification
+    - goimports # Goimports does everything that gofmt does. Additionally, it checks unused imports
     - revive
     - goprintffuncname # Checks that printf-like functions are named with `f` at the end
     - gosec # Inspects source code for security problems
@@ -65,7 +59,6 @@ linters: # All available linters list: <https://golangci-lint.run/usage/linters/
     - noctx # finds sending http request without context.Context
     - nolintlint # Reports ill-formed or insufficient nolint directives
     - prealloc # Finds slice declarations that could potentially be preallocated
-    - rowserrcheck # Checks whether Err of rows is checked successfully
     - staticcheck # Staticcheck is a go vet on steroids, applying a ton of static analysis checks
     - stylecheck # Stylecheck is a replacement for golint
     - tparallel # detects inappropriate usage of t.Parallel() method in your Go test codes
@@ -76,10 +69,12 @@ linters: # All available linters list: <https://golangci-lint.run/usage/linters/
     - whitespace # Tool for detection of leading and trailing whitespace
 
 issues:
+  exclude-dirs:
+    - .github
+    - .git
   exclude-rules:
     - path: _test\.go
       linters:
         - dupl
         - funlen
-        - scopelint
         - gocognit

@@ -18,7 +18,7 @@ func main() {
 	list(client)
 }
 
-func list(client *rpc.Client) { //nolint:unused,deadcode
+func list(client *rpc.Client) { //nolint:unused
 	resp := &jobsProto.Pipelines{}
 	er := &jobsProto.Empty{}
 	err := client.Call("jobs.List", er, resp)

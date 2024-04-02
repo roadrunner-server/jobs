@@ -22,7 +22,7 @@ jobs:
         os: [ "ubuntu-latest" ]
     steps:
       - name: Set up Go ${{ matrix.go }}
-        uses: actions/setup-go@v4 # action page: <https://github.com/actions/setup-go>
+        uses: actions/setup-go@v5 # action page: <https://github.com/actions/setup-go>
         with:
           go-version: ${{ matrix.go }}
 
@@ -42,7 +42,7 @@ jobs:
           echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
       - name: Init Composer Cache # Docs: <https://git.io/JfAKn#php---composer>
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ runner.os }}-composer-${{ matrix.php }}-${{ hashFiles('**/composer.json') }}
@@ -52,7 +52,7 @@ jobs:
         run: cd tests/php_test_files && composer update --prefer-dist --no-progress --ansi
 
       - name: Init Go modules Cache # Docs: <https://git.io/JfAKn#go---modules>
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
@@ -66,14 +66,14 @@ jobs:
           cd tests
           mkdir ./coverage-ci
 
-          docker-compose -f env/docker-compose-jobs.yaml up -d
+          docker compose -f env/docker-compose-jobs.yaml up -d
           sleep 30
           
           go test -timeout 20m -v -race -cover -tags=debug -failfast -coverpkg=$(cat pkgs.txt) -coverprofile=./coverage-ci/jobs.out -covermode=atomic jobs_general_test.go
           docker compose -f env/docker-compose-jobs.yaml down
 
       - name: Archive code coverage results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage
           path: ./tests/coverage-ci/jobs.out
@@ -87,7 +87,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Download code coverage results
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
       - run: |
           cd coverage
           echo 'mode: atomic' > summary.txt

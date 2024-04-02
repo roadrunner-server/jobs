@@ -245,7 +245,7 @@ func destroyPipelines(rest chan<- string, client *rpc.Client, p string) {
 	}
 }
 
-func list(client *rpc.Client) []string { //nolint:unused,deadcode
+func list(client *rpc.Client) []string { //nolint:unused
 	resp := &jobsProto.Pipelines{}
 	er := &jobsProto.Empty{}
 	err := client.Call("jobs.List", er, resp)
