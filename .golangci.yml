@@ -5,13 +5,13 @@ run:
   allow-parallel-runners: true
 
 output:
-  formats: colored-line-number # colored-line-number|line-number|json|tab|checkstyle|code-climate
+  formats:
+    - path: stdout
+      format: colored-line-number
 
 linters-settings:
   wsl:
     allow-assign-and-anything: true
-  govet:
-    shadow: true
   godot:
     scope: declarations
     capital: true
@@ -29,7 +29,6 @@ linters-settings:
     range-loops: true
     for-loops: true
   nolintlint:
-    allow-leading-space: false
     require-specific: true
 
 linters: # All available linters list: <https://golangci-lint.run/usage/linters/>
