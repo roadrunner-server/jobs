@@ -77,7 +77,7 @@ func (rh *RespHandler) Handle(pld *payload.Payload, jb jobs.Job) error {
 		}
 		return nil
 	default:
-		rh.log.Warn("unknown response type, acknowledging the JOB", zap.Uint32("type", p.T))
+		rh.log.Warn("unknown response type, acknowledging the JOB", zap.Uint32("type", uint32(p.T)))
 		err = jb.Ack()
 		if err != nil {
 			return errors.E(op, err)
