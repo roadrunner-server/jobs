@@ -1,6 +1,6 @@
 module github.com/roadrunner-server/jobs/v4
 
-go 1.22.2
+go 1.22.3
 
 require (
 	github.com/goccy/go-json v0.10.2
