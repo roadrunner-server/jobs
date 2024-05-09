@@ -4,7 +4,7 @@ go 1.22.3
 
 require (
 	github.com/goccy/go-json v0.10.2
-	github.com/prometheus/client_golang v1.19.0
+	github.com/prometheus/client_golang v1.19.1
 	github.com/roadrunner-server/api/v4 v4.12.0
 	github.com/roadrunner-server/endure/v2 v2.4.4
 	github.com/roadrunner-server/errors v1.4.0
