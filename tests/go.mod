@@ -5,23 +5,23 @@ go 1.22.3
 require (
 	github.com/goccy/go-json v0.10.2
 	github.com/google/uuid v1.6.0
-	github.com/roadrunner-server/amqp/v4 v4.11.1
+	github.com/roadrunner-server/amqp/v4 v4.11.2
 	github.com/roadrunner-server/api/v4 v4.12.0
-	github.com/roadrunner-server/beanstalk/v4 v4.8.1
-	github.com/roadrunner-server/config/v4 v4.8.1
+	github.com/roadrunner-server/beanstalk/v4 v4.8.2
+	github.com/roadrunner-server/config/v4 v4.8.2
 	github.com/roadrunner-server/endure/v2 v2.4.4
 	github.com/roadrunner-server/goridge/v3 v3.8.2
-	github.com/roadrunner-server/informer/v4 v4.5.1
+	github.com/roadrunner-server/informer/v4 v4.5.2
 	github.com/roadrunner-server/jobs/v4 v4.7.15
-	github.com/roadrunner-server/kafka/v4 v4.6.1
-	github.com/roadrunner-server/logger/v4 v4.4.1
-	github.com/roadrunner-server/memory/v4 v4.8.1
-	github.com/roadrunner-server/metrics/v4 v4.3.1
-	github.com/roadrunner-server/nats/v4 v4.8.1
-	github.com/roadrunner-server/resetter/v4 v4.3.1
-	github.com/roadrunner-server/rpc/v4 v4.4.1
-	github.com/roadrunner-server/server/v4 v4.8.1
-	github.com/roadrunner-server/sqs/v4 v4.8.1
+	github.com/roadrunner-server/kafka/v4 v4.6.2
+	github.com/roadrunner-server/logger/v4 v4.4.2
+	github.com/roadrunner-server/memory/v4 v4.8.2
+	github.com/roadrunner-server/metrics/v4 v4.3.2
+	github.com/roadrunner-server/nats/v4 v4.8.2
+	github.com/roadrunner-server/resetter/v4 v4.3.2
+	github.com/roadrunner-server/rpc/v4 v4.4.2
+	github.com/roadrunner-server/server/v4 v4.8.2
+	github.com/roadrunner-server/sqs/v4 v4.8.2
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/zap v1.27.0
 )
@@ -29,7 +29,7 @@ require (
 replace github.com/roadrunner-server/jobs/v4 => ../
 
 require (
-	github.com/aws/aws-sdk-go v1.53.4 // indirect
+	github.com/aws/aws-sdk-go v1.53.5 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.27.0 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.27.15 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.15 // indirect
@@ -62,7 +62,7 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/nats-io/nats.go v1.34.1 // indirect
+	github.com/nats-io/nats.go v1.35.0 // indirect
 	github.com/nats-io/nkeys v0.4.7 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
