@@ -162,7 +162,7 @@ func (p *Plugin) listener() {
 						p.log.Error("response handler error", zap.Error(err), zap.String("ID", jb.ID()), zap.ByteString("response", resp.Body), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
 						p.putPayload(exec)
 						// we don't need to use ACK to prevent endless loop here, since the ACK is controlled on the PHP side.
-+ // When experimental features are enabled, skip further processing of the current job.
+						// When experimental features are enabled, skip further processing of the current job.
 						if p.experimental {
 							jb = nil
 							span.End()
