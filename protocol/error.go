@@ -28,12 +28,35 @@ func (rh *RespHandler) handleErrResp(data []byte, jb jobs.Job) error {
 		return nil
 	}
 
-	// user don't want to requeue the job - silently ACK and return nil
+	// the user doesn't want to requeue the job - silently ACK and return nil
 	errAck := jb.Ack()
 	if errAck != nil {
 		rh.log.Error("job acknowledge was failed", zap.Error(errors.E(er.Msg)), zap.Error(errAck))
 		// do not return any error
 	}
+
+	return nil
+}
+
+func (rh *RespHandler) requeue(data []byte, jb jobs.Job) error {
+	er := rh.getErrResp()
+	defer rh.putErrResp(er)
+
+	err := json.Unmarshal(data, er)
+	if err != nil {
+		return err
+	}
+
+	err = jb.Requeue(er.Headers, er.Delay)
+	if err != nil {
+		return err
+	}
+
+	rh.log.Info("job was re-queued",
+		zap.String("message", er.Msg),
+		zap.Int64("delay", er.Delay),
+		zap.Bool("requeue", er.Requeue),
+	)
 
 	return nil
 }
