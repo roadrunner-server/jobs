@@ -17,9 +17,9 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        php: [ "8.2" ]
-        go: [ stable ]
-        os: [ "ubuntu-latest" ]
+        php: ["8.3"]
+        go: [stable]
+        os: ["ubuntu-latest"]
     steps:
       - name: Set up Go ${{ matrix.go }}
         uses: actions/setup-go@v5 # action page: <https://github.com/actions/setup-go>
@@ -68,7 +68,7 @@ jobs:
 
           docker compose -f env/docker-compose-jobs.yaml up -d
           sleep 30
-          
+
           go test -timeout 20m -v -race -cover -tags=debug -failfast -coverpkg=$(cat pkgs.txt) -coverprofile=./coverage-ci/jobs.out -covermode=atomic jobs_general_test.go
           docker compose -f env/docker-compose-jobs.yaml down
 

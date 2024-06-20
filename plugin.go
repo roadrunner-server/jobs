@@ -45,10 +45,11 @@ type Plugin struct {
 	mu sync.RWMutex
 
 	// Jobs plugin configuration
-	cfg         *Config `structure:"jobs"`
-	log         *zap.Logger
-	workersPool Pool
-	server      Server
+	cfg          *Config `structure:"jobs"`
+	log          *zap.Logger
+	workersPool  Pool
+	server       Server
+	experimental bool
 
 	jobConstructors map[string]jobsApi.Constructor
 	consumers       sync.Map // map[string]jobs.Consumer
@@ -117,6 +118,7 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 	p.log = new(zap.Logger)
 	p.log = log.NamedLogger(PluginName)
 	p.jobsProcessor = newPipesProc(p.log, &p.consumers, &p.consume, p.cfg.CfgOptions.Parallelism)
+	p.experimental = cfg.Experimental()
 
 	// collector
 	p.metrics = newStatsExporter(p)

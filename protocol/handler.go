@@ -16,6 +16,9 @@ type Type uint32
 const (
 	NoError Type = iota
 	Error
+	ACK
+	NACK
+	REQUEUE
 )
 
 // internal worker protocol (jobs mode)
@@ -72,6 +75,24 @@ func (rh *RespHandler) Handle(pld *payload.Payload, jb jobs.Job) error {
 		// error returned from the PHP
 	case Error:
 		err = rh.handleErrResp(p.Data, jb)
+		if err != nil {
+			return errors.E(op, err)
+		}
+		return nil
+	case ACK:
+		err = jb.Ack()
+		if err != nil {
+			return errors.E(op, err)
+		}
+		return nil
+	case NACK:
+		err = jb.Nack()
+		if err != nil {
+			return errors.E(op, err)
+		}
+		return nil
+	case REQUEUE:
+		err = rh.requeue(p.Data, jb)
 		if err != nil {
 			return errors.E(op, err)
 		}
