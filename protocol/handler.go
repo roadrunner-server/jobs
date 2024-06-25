@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/goccy/go-json"
-	"github.com/roadrunner-server/api/v4/plugins/v2/jobs"
+	"github.com/roadrunner-server/api/v4/plugins/v4/jobs"
 	"github.com/roadrunner-server/errors"
 	"github.com/roadrunner-server/sdk/v4/payload"
 	"go.uber.org/zap"
@@ -86,17 +86,9 @@ func (rh *RespHandler) Handle(pld *payload.Payload, jb jobs.Job) error {
 		}
 		return nil
 	case NACK:
-		err = jb.Nack()
-		if err != nil {
-			return errors.E(op, err)
-		}
-		return nil
+		return rh.handleNackResponse(p.Data, jb)
 	case REQUEUE:
-		err = rh.requeue(p.Data, jb)
-		if err != nil {
-			return errors.E(op, err)
-		}
-		return nil
+		return rh.requeue(p.Data, jb)
 	default:
 		rh.log.Warn("unknown response type, acknowledging the JOB", zap.Uint32("type", uint32(p.T)))
 		err = jb.Ack()
