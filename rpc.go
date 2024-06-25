@@ -6,7 +6,7 @@ import (
 	"time"
 
 	jobsProto "github.com/roadrunner-server/api/v4/build/jobs/v1"
-	"github.com/roadrunner-server/api/v4/plugins/v3/jobs"
+	"github.com/roadrunner-server/api/v4/plugins/v4/jobs"
 	"github.com/roadrunner-server/errors"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
