@@ -12,7 +12,7 @@ require (
 	github.com/roadrunner-server/endure/v2 v2.4.5
 	github.com/roadrunner-server/goridge/v3 v3.8.2
 	github.com/roadrunner-server/informer/v4 v4.5.5
-	github.com/roadrunner-server/jobs/v4 v4.7.15
+	github.com/roadrunner-server/jobs/v5 v5.0.0
 	github.com/roadrunner-server/kafka/v4 v4.6.5
 	github.com/roadrunner-server/logger/v4 v4.4.5
 	github.com/roadrunner-server/memory/v4 v4.8.5
@@ -26,7 +26,7 @@ require (
 	go.uber.org/zap v1.27.0
 )
 
-replace github.com/roadrunner-server/jobs/v4 => ../
+replace github.com/roadrunner-server/jobs/v5 => ../
 
 require (
 	github.com/aws/aws-sdk-go v1.54.13 // indirect

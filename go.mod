@@ -1,4 +1,4 @@
-module github.com/roadrunner-server/jobs/v4
+module github.com/roadrunner-server/jobs/v5
 
 go 1.22.5
 

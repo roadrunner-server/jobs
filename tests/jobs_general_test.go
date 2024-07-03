@@ -23,7 +23,7 @@ import (
 	"github.com/roadrunner-server/endure/v2"
 	goridgeRpc "github.com/roadrunner-server/goridge/v3/pkg/rpc"
 	"github.com/roadrunner-server/informer/v4"
-	"github.com/roadrunner-server/jobs/v4"
+	"github.com/roadrunner-server/jobs/v5"
 	"github.com/roadrunner-server/kafka/v4"
 	"github.com/roadrunner-server/logger/v4"
 	"github.com/roadrunner-server/memory/v4"
@@ -44,7 +44,6 @@ func TestJobsInit(t *testing.T) {
 	cfg := &config.Plugin{
 		Version: "2023.3.0",
 		Path:    "configs/.rr-jobs-init.yaml",
-		Prefix:  "rr",
 	}
 
 	l, oLogger := mocklogger.ZapTestLogger(zap.DebugLevel)
@@ -152,8 +151,7 @@ func TestJOBSMetrics(t *testing.T) {
 	cont := endure.New(slog.LevelDebug)
 
 	cfg := &config.Plugin{
-		Version: "2.9.0",
-		Prefix:  "rr",
+		Version: "2024.2.0",
 		Path:    "configs/.rr-jobs-metrics.yaml",
 	}
 
