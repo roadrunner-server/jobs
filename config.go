@@ -51,7 +51,7 @@ func (c *Config) InitDefaults() {
 	}
 
 	if c.CfgOptions.Parallelism == 0 {
-		c.CfgOptions.Parallelism = 10
+		c.CfgOptions.Parallelism = 5
 	}
 
 	if c.PipelineSize == 0 {

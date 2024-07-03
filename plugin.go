@@ -49,7 +49,7 @@ type Plugin struct {
 	mu sync.RWMutex
 
 	// Jobs plugin configuration
-	cfg         *Config `structure:"jobs"`
+	cfg         *Config `mapstructure:"jobs"`
 	log         *zap.Logger
 	workersPool Pool
 	server      Server
