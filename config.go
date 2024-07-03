@@ -1,13 +1,17 @@
 package jobs
 
 import (
-	poolImpl "github.com/roadrunner-server/sdk/v4/pool"
+	poolImpl "github.com/roadrunner-server/pool/pool"
 )
 
 const (
 	// name used to set pipeline name
 	pipelineName string = "name"
 	priorityKey  string = "priority"
+
+	// createdWithConfig and createdWithDeclare are used to determine how the pipeline was created
+	createdWithConfig  string = "created_with_config"
+	createdWithDeclare string = "created_with_declare"
 )
 
 // Config defines settings for job broker, workers and job-pipeline mapping.
@@ -15,10 +19,10 @@ type Config struct {
 	// NumPollers configures number of priority queue pollers
 	// Default - num logical cores
 	NumPollers int `mapstructure:"num_pollers"`
-	// Options contains additional configuration options for the jobs plugin
+	// Options contain additional configuration options for the job plugin
 	CfgOptions *CfgOptions `mapstructure:"options"`
 	// PipelineSize is the limit of a main jobs queue which consumes Items from the driver's pipeline
-	// Driver pipeline might be much larger than a main jobs queue
+	// a Driver pipeline might be much larger than a main jobs queue
 	PipelineSize uint64 `mapstructure:"pipeline_size"`
 	// Timeout in seconds is the per-push limit to put the job into the queue
 	Timeout int `mapstructure:"timeout"`
@@ -47,7 +51,7 @@ func (c *Config) InitDefaults() {
 	}
 
 	if c.CfgOptions.Parallelism == 0 {
-		c.CfgOptions.Parallelism = 10
+		c.CfgOptions.Parallelism = 5
 	}
 
 	if c.PipelineSize == 0 {
@@ -66,9 +70,7 @@ func (c *Config) InitDefaults() {
 
 	c.Pool.InitDefaults()
 
-	// NumPollers is hardcoded because it should be slightly more than the number of workers
-	// to properly load all workers
-	if c.NumPollers == 0 {
-		c.NumPollers = int(c.Pool.NumWorkers) + 2
-	}
+	// number of pollers should be slightly more than the number of workers
+	// overwrite user value, TODO: deprecate this configuration option
+	c.NumPollers = int(c.Pool.NumWorkers) + 2
 }

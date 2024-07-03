@@ -3,6 +3,7 @@ package jobs
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	jobsApi "github.com/roadrunner-server/api/v4/plugins/v4/jobs"
@@ -18,17 +19,22 @@ type processor struct {
 	queueCh    chan *pjob
 	maxWorkers int
 	errs       []error
+	stopped    *int64
 }
 
 type pjob struct {
 	jc        jobsApi.Constructor
 	pipe      jobsApi.Pipeline
 	queue     jobsApi.Queue
-	cmdCh     chan<- jobsApi.Commander
 	configKey string
 	timeout   int
 }
 
+// args:
+// log - logger
+// consumers - sync.Map with all drivers (consumers) for pipelines
+// runners - map with all pipelines that should be consumed (started immediately)
+// maxWorkers - number of parallel workers which will start pipelines
 func newPipesProc(log *zap.Logger, consumers *sync.Map, runners *map[string]struct{}, maxWorkers int) *processor {
 	p := &processor{
 		log:        log,
@@ -39,6 +45,7 @@ func newPipesProc(log *zap.Logger, consumers *sync.Map, runners *map[string]stru
 		wg:         sync.WaitGroup{},
 		mu:         sync.Mutex{},
 		errs:       make([]error, 0, 1),
+		stopped:    ptrTo(int64(0)),
 	}
 
 	// start the processor
@@ -53,7 +60,7 @@ func (p *processor) run() {
 			for job := range p.queueCh {
 				p.log.Debug("initializing driver", zap.String("pipeline", job.pipe.Name()), zap.String("driver", job.pipe.Driver()))
 				t := time.Now().UTC()
-				initializedDriver, err := job.jc.DriverFromConfig(job.configKey, job.queue, job.pipe, job.cmdCh)
+				initializedDriver, err := job.jc.DriverFromConfig(job.configKey, job.queue, job.pipe)
 				if err != nil {
 					p.mu.Lock()
 					p.errs = append(p.errs, err)
@@ -90,6 +97,10 @@ func (p *processor) run() {
 }
 
 func (p *processor) add(pjob *pjob) {
+	if atomic.LoadInt64(p.stopped) == 1 {
+		p.log.Warn("processor was stopped, can't add a new job")
+		return
+	}
 	p.wg.Add(1)
 	p.queueCh <- pjob
 }
@@ -99,6 +110,8 @@ func (p *processor) errors() []error {
 	defer p.mu.Unlock()
 	errs := make([]error, len(p.errs))
 	copy(errs, p.errs)
+	// clear the original errors
+	p.errs = make([]error, 0, 1)
 	return errs
 }
 
@@ -107,5 +120,6 @@ func (p *processor) wait() {
 }
 
 func (p *processor) stop() {
+	atomic.StoreInt64(p.stopped, 1)
 	close(p.queueCh)
 }

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/roadrunner-server/goridge/v3/pkg/frame"
-	"github.com/roadrunner-server/sdk/v4/payload"
+	"github.com/roadrunner-server/pool/payload"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	"go.uber.org/zap"
@@ -133,7 +133,7 @@ func (p *Plugin) listener() {
 						span.End()
 					}
 
-					// if response is nil or body is nil, just acknowledge the job
+					// if the response is nil or body is nil, acknowledge the job
 					if resp == nil || resp.Body == nil {
 						p.putPayload(exec)
 						err = jb.Ack()
