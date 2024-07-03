@@ -3,11 +3,11 @@ package jobs
 import (
 	"context"
 
-	"github.com/roadrunner-server/sdk/v4/payload"
-	"github.com/roadrunner-server/sdk/v4/pool"
-	staticPool "github.com/roadrunner-server/sdk/v4/pool/static_pool"
-	"github.com/roadrunner-server/sdk/v4/state/process"
-	"github.com/roadrunner-server/sdk/v4/worker"
+	"github.com/roadrunner-server/pool/payload"
+	"github.com/roadrunner-server/pool/pool"
+	staticPool "github.com/roadrunner-server/pool/pool/static_pool"
+	"github.com/roadrunner-server/pool/state/process"
+	"github.com/roadrunner-server/pool/worker"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.uber.org/zap"
 )

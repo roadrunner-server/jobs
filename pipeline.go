@@ -17,6 +17,9 @@ const (
 
 	// config
 	config string = "config"
+
+	trueStr  string = "true"
+	falseStr string = "false"
 )
 
 // With pipeline value
@@ -47,7 +50,7 @@ func (p Pipeline) Has(name string) bool {
 		return true
 	}
 
-	// check the config section if exists
+	// pipelineExists the config section if exists
 	if val, ok := p[config]; ok {
 		if rv, ok := val.(map[string]any); ok {
 			if _, ok := rv[name]; ok {
@@ -67,7 +70,7 @@ func (p Pipeline) String(name string, d string) string {
 			return str
 		}
 	} else {
-		// check the config section if exists
+		// pipelineExists the config section if exists
 		if val, ok := p[config]; ok {
 			if rv, ok := val.(map[string]any); ok {
 				if rv[name] != "" {
@@ -87,7 +90,7 @@ func (p Pipeline) Int(name string, d int) int {
 			return i
 		}
 	} else {
-		// check the config section if exists
+		// pipelineExists the config section if exists
 		if val, ok := p[config]; ok {
 			if rv, ok := val.(map[string]any); ok {
 				if rv[name] != nil {
@@ -114,24 +117,24 @@ func (p Pipeline) Bool(name string, d bool) bool {
 	if value, ok := p[name]; ok {
 		if i, ok := value.(string); ok {
 			switch i {
-			case "true":
+			case trueStr:
 				return true
-			case "false":
+			case falseStr:
 				return false
 			default:
 				return false
 			}
 		}
 	} else {
-		// check the config section if exists
+		// pipelineExists the config section if exists
 		if val, ok := p[config]; ok {
 			if rv, ok := val.(map[string]any); ok {
 				if rv[name] != nil {
 					if i, ok := value.(string); ok {
 						switch i {
-						case "true":
+						case trueStr:
 							return true
-						case "false":
+						case falseStr:
 							return false
 						default:
 							return false
@@ -156,7 +159,7 @@ func (p Pipeline) Map(name string, out map[string]string) error {
 			}
 		}
 	} else {
-		// check the config section if exists
+		// pipelineExists the config section if exists
 		if val, ok := p[config]; ok {
 			if rv, ok := val.(map[string]any); ok {
 				if val, ok := rv[name]; ok {
@@ -182,7 +185,7 @@ func (p Pipeline) Priority() int64 {
 			return v
 		}
 	} else {
-		// check the config section if exists
+		// pipelineExists the config section if exists
 		if val, ok := p[config]; ok {
 			if rv, ok := val.(map[string]any); ok {
 				if rv[name] != nil {
