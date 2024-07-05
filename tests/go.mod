@@ -5,23 +5,23 @@ go 1.22.5
 require (
 	github.com/goccy/go-json v0.10.3
 	github.com/google/uuid v1.6.0
-	github.com/roadrunner-server/amqp/v4 v4.11.5
+	github.com/roadrunner-server/amqp/v5 v5.0.0
 	github.com/roadrunner-server/api/v4 v4.15.0
-	github.com/roadrunner-server/beanstalk/v4 v4.8.5
-	github.com/roadrunner-server/config/v4 v4.9.3
+	github.com/roadrunner-server/beanstalk/v5 v5.0.0
+	github.com/roadrunner-server/config/v5 v5.0.0
 	github.com/roadrunner-server/endure/v2 v2.4.5
 	github.com/roadrunner-server/goridge/v3 v3.8.2
-	github.com/roadrunner-server/informer/v4 v4.5.5
+	github.com/roadrunner-server/informer/v5 v5.0.0
 	github.com/roadrunner-server/jobs/v5 v5.0.0
-	github.com/roadrunner-server/kafka/v4 v4.6.5
-	github.com/roadrunner-server/logger/v4 v4.4.5
-	github.com/roadrunner-server/memory/v4 v4.8.5
-	github.com/roadrunner-server/metrics/v4 v4.3.5
-	github.com/roadrunner-server/nats/v4 v4.8.5
-	github.com/roadrunner-server/resetter/v4 v4.3.5
-	github.com/roadrunner-server/rpc/v4 v4.4.5
-	github.com/roadrunner-server/server/v4 v4.8.5
-	github.com/roadrunner-server/sqs/v4 v4.8.5
+	github.com/roadrunner-server/kafka/v5 v5.0.0
+	github.com/roadrunner-server/logger/v5 v5.0.0
+	github.com/roadrunner-server/memory/v5 v5.0.0
+	github.com/roadrunner-server/metrics/v5 v5.0.0
+	github.com/roadrunner-server/nats/v5 v5.0.0
+	github.com/roadrunner-server/resetter/v5 v5.0.0
+	github.com/roadrunner-server/rpc/v5 v5.0.0
+	github.com/roadrunner-server/server/v5 v5.0.0
+	github.com/roadrunner-server/sqs/v5 v5.0.0
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/zap v1.27.0
 )
@@ -78,7 +78,6 @@ require (
 	github.com/roadrunner-server/events v1.0.0 // indirect
 	github.com/roadrunner-server/pool v1.0.0 // indirect
 	github.com/roadrunner-server/priority_queue v1.0.1 // indirect
-	github.com/roadrunner-server/sdk/v4 v4.8.0 // indirect
 	github.com/roadrunner-server/tcplisten v1.5.0 // indirect
 	github.com/sagikazarmark/locafero v0.6.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
@@ -105,7 +104,7 @@ require (
 	golang.org/x/crypto v0.24.0 // indirect
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8 // indirect
 	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/sys v0.22.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
