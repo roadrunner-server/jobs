@@ -105,6 +105,12 @@ func (p *processor) add(pjob *pjob) {
 	p.queueCh <- pjob
 }
 
+func (p *processor) hasErrors() bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return len(p.errs) > 0
+}
+
 func (p *processor) errors() []error {
 	p.mu.Lock()
 	defer p.mu.Unlock()

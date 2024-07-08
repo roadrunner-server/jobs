@@ -192,7 +192,7 @@ func (p *Plugin) Serve() chan error {
 	// block until all jobs are processed
 	p.jobsProcessor.wait()
 	// pipelineExists for the errors
-	if len(p.jobsProcessor.errors()) > 0 {
+	if p.jobsProcessor.hasErrors() {
 		// TODO(rustatian): pretty print errors
 		errCh <- errors.E(op, stderr.Join(p.jobsProcessor.errors()...))
 		return errCh
@@ -684,7 +684,7 @@ func (p *Plugin) readCommands() {
 					})
 
 					p.jobsProcessor.wait()
-					if len(p.jobsProcessor.errors()) > 0 {
+					if p.jobsProcessor.hasErrors() {
 						// TODO(rustatian): pretty print errors
 						p.log.Error("failed to restart the pipeline", zap.Errors("errors", p.jobsProcessor.errors()))
 						span.End()

@@ -29,7 +29,7 @@ require (
 replace github.com/roadrunner-server/jobs/v5 => ../
 
 require (
-	github.com/aws/aws-sdk-go v1.54.14 // indirect
+	github.com/aws/aws-sdk-go v1.54.16 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.30.1 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.27.24 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.24 // indirect
@@ -101,8 +101,8 @@ require (
 	go.opentelemetry.io/otel/sdk v1.28.0 // indirect
 	go.opentelemetry.io/otel/trace v1.28.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.24.0 // indirect
-	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8 // indirect
+	golang.org/x/crypto v0.25.0 // indirect
+	golang.org/x/exp v0.0.0-20240707233637-46b078467d37 // indirect
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.22.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
