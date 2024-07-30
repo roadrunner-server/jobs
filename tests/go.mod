@@ -5,23 +5,23 @@ go 1.22.5
 require (
 	github.com/goccy/go-json v0.10.3
 	github.com/google/uuid v1.6.0
-	github.com/roadrunner-server/amqp/v5 v5.0.1
+	github.com/roadrunner-server/amqp/v5 v5.0.2
 	github.com/roadrunner-server/api/v4 v4.16.0
-	github.com/roadrunner-server/beanstalk/v5 v5.0.1
-	github.com/roadrunner-server/config/v5 v5.0.1
+	github.com/roadrunner-server/beanstalk/v5 v5.0.2
+	github.com/roadrunner-server/config/v5 v5.0.2
 	github.com/roadrunner-server/endure/v2 v2.4.6
 	github.com/roadrunner-server/goridge/v3 v3.8.3
-	github.com/roadrunner-server/informer/v5 v5.0.1
+	github.com/roadrunner-server/informer/v5 v5.0.2
 	github.com/roadrunner-server/jobs/v5 v5.0.0
-	github.com/roadrunner-server/kafka/v5 v5.0.1
-	github.com/roadrunner-server/logger/v5 v5.0.1
-	github.com/roadrunner-server/memory/v5 v5.0.1
-	github.com/roadrunner-server/metrics/v5 v5.0.1
-	github.com/roadrunner-server/nats/v5 v5.0.1
-	github.com/roadrunner-server/resetter/v5 v5.0.1
-	github.com/roadrunner-server/rpc/v5 v5.0.1
-	github.com/roadrunner-server/server/v5 v5.0.1
-	github.com/roadrunner-server/sqs/v5 v5.0.1
+	github.com/roadrunner-server/kafka/v5 v5.0.2
+	github.com/roadrunner-server/logger/v5 v5.0.2
+	github.com/roadrunner-server/memory/v5 v5.0.2
+	github.com/roadrunner-server/metrics/v5 v5.0.2
+	github.com/roadrunner-server/nats/v5 v5.0.2
+	github.com/roadrunner-server/resetter/v5 v5.0.2
+	github.com/roadrunner-server/rpc/v5 v5.0.2
+	github.com/roadrunner-server/server/v5 v5.0.2
+	github.com/roadrunner-server/sqs/v5 v5.0.2
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/zap v1.27.0
 )
@@ -29,7 +29,7 @@ require (
 replace github.com/roadrunner-server/jobs/v5 => ../
 
 require (
-	github.com/aws/aws-sdk-go v1.55.2 // indirect
+	github.com/aws/aws-sdk-go v1.55.4 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.30.3 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.27.27 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.27 // indirect
@@ -90,7 +90,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.14 // indirect
 	github.com/tklauser/numcpus v0.8.0 // indirect
-	github.com/twmb/franz-go v1.17.0 // indirect
+	github.com/twmb/franz-go v1.17.1 // indirect
 	github.com/twmb/franz-go/pkg/kmsg v1.8.0 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
