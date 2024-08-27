@@ -72,5 +72,5 @@ func (c *Config) InitDefaults() {
 
 	// number of pollers should be slightly more than the number of workers
 	// overwrite user value, TODO: deprecate this configuration option
-	c.NumPollers = int(c.Pool.NumWorkers) + 2
+	c.NumPollers = int(c.Pool.NumWorkers) + 2 //nolint:gosec
 }
