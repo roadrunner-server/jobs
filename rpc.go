@@ -146,7 +146,6 @@ func (r *rpc) Destroy(req *jobsProto.Pipelines, resp *jobsProto.Pipelines) error
 
 	var destroyed []string
 	for i := 0; i < len(req.GetPipelines()); i++ {
-		i := i
 		errg.Go(func() error {
 			ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "destroy_pipeline", trace.WithSpanKind(trace.SpanKindServer))
 			err := r.p.Destroy(ctx, req.GetPipelines()[i])

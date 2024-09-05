@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"encoding/json"
+	"strconv"
 	"unsafe"
 )
 
@@ -86,8 +87,28 @@ func (p Pipeline) String(name string, d string) string {
 // Int must return option value as string or return default value.
 func (p Pipeline) Int(name string, d int) int {
 	if value, ok := p[name]; ok {
-		if i, ok := value.(int); ok {
-			return i
+		switch v := value.(type) {
+		// the most probable case
+		case string:
+			res, err := strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				// return default on failure
+				return d
+			}
+
+			return int(res)
+		case int:
+			return v
+		case int64:
+			return int(v)
+		case int32:
+			return int(v)
+		case int16:
+			return int(v)
+		case int8:
+			return int(v)
+		default:
+			return d
 		}
 	} else {
 		// pipelineExists the config section if exists
@@ -126,7 +147,7 @@ func (p Pipeline) Bool(name string, d bool) bool {
 			}
 		}
 	} else {
-		// pipelineExists the config section if exists
+		// check the config section if exists
 		if val, ok := p[config]; ok {
 			if rv, ok := val.(map[string]any); ok {
 				if rv[name] != nil {
@@ -149,7 +170,7 @@ func (p Pipeline) Bool(name string, d bool) bool {
 }
 
 // Map must return nested map value or empty config.
-// Here might be sqs attributes or tags for example
+// There might be sqs attributes or tags, for example
 func (p Pipeline) Map(name string, out map[string]string) error {
 	if value, ok := p[name]; ok {
 		if m, ok := value.(string); ok {
@@ -181,8 +202,28 @@ func (p Pipeline) Map(name string, out map[string]string) error {
 // Priority returns default pipeline priority
 func (p Pipeline) Priority() int64 {
 	if value, ok := p[priority]; ok {
-		if v, ok := value.(int64); ok {
+		switch v := value.(type) {
+		// the most probable case
+		case string:
+			res, err := strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				// return default on failure
+				return defaultPriority
+			}
+
+			return res
+		case int:
+			return int64(v)
+		case int64:
 			return v
+		case int32:
+			return int64(v)
+		case int16:
+			return int64(v)
+		case int8:
+			return int64(v)
+		default:
+			return defaultPriority
 		}
 	} else {
 		// pipelineExists the config section if exists

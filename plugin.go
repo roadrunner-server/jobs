@@ -9,6 +9,7 @@ import (
 	"time"
 
 	jobsApi "github.com/roadrunner-server/api/v4/plugins/v4/jobs"
+	"github.com/roadrunner-server/pool/pool/static_pool"
 	jprop "go.opentelemetry.io/contrib/propagators/jaeger"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -219,6 +220,22 @@ func (p *Plugin) Stop(ctx context.Context) error {
 	// drop subscriptions
 	p.eventBus.Unsubscribe(p.id)
 	close(p.eventsCh)
+
+	defer func() {
+		// workers' pool should be stopped
+		p.mu.Lock()
+		if p.workersPool != nil {
+			switch pp := p.workersPool.(type) {
+			case *static_pool.Pool:
+				if pp != nil {
+					pp.Destroy(ctx)
+				}
+			default:
+				// pool is nil, nothing to do
+			}
+		}
+		p.mu.Unlock()
+	}()
 
 	sema := semaphore.NewWeighted(int64(p.cfg.CfgOptions.Parallelism))
 	// range over all consumers and call stop
