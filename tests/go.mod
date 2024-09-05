@@ -1,27 +1,29 @@
 module tests
 
-go 1.23.0
+go 1.23
+
+toolchain go1.23.0
 
 require (
 	github.com/goccy/go-json v0.10.3
 	github.com/google/uuid v1.6.0
-	github.com/roadrunner-server/amqp/v5 v5.0.2
+	github.com/roadrunner-server/amqp/v5 v5.0.3
 	github.com/roadrunner-server/api/v4 v4.16.0
-	github.com/roadrunner-server/beanstalk/v5 v5.0.2
-	github.com/roadrunner-server/config/v5 v5.0.2
+	github.com/roadrunner-server/beanstalk/v5 v5.0.3
+	github.com/roadrunner-server/config/v5 v5.0.3
 	github.com/roadrunner-server/endure/v2 v2.6.1
 	github.com/roadrunner-server/goridge/v3 v3.8.3
-	github.com/roadrunner-server/informer/v5 v5.0.2
+	github.com/roadrunner-server/informer/v5 v5.0.3
 	github.com/roadrunner-server/jobs/v5 v5.0.0
-	github.com/roadrunner-server/kafka/v5 v5.0.2
-	github.com/roadrunner-server/logger/v5 v5.0.2
-	github.com/roadrunner-server/memory/v5 v5.0.2
-	github.com/roadrunner-server/metrics/v5 v5.0.2
-	github.com/roadrunner-server/nats/v5 v5.0.2
-	github.com/roadrunner-server/resetter/v5 v5.0.3
-	github.com/roadrunner-server/rpc/v5 v5.0.2
-	github.com/roadrunner-server/server/v5 v5.1.0
-	github.com/roadrunner-server/sqs/v5 v5.0.2
+	github.com/roadrunner-server/kafka/v5 v5.0.3
+	github.com/roadrunner-server/logger/v5 v5.0.3
+	github.com/roadrunner-server/memory/v5 v5.0.3
+	github.com/roadrunner-server/metrics/v5 v5.0.3
+	github.com/roadrunner-server/nats/v5 v5.0.3
+	github.com/roadrunner-server/resetter/v5 v5.0.4
+	github.com/roadrunner-server/rpc/v5 v5.0.3
+	github.com/roadrunner-server/server/v5 v5.1.1
+	github.com/roadrunner-server/sqs/v5 v5.0.3
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/zap v1.27.0
 )
@@ -101,7 +103,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.29.0 // indirect
 	go.opentelemetry.io/otel/trace v1.29.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.26.0 // indirect
+	golang.org/x/crypto v0.27.0 // indirect
 	golang.org/x/exp v0.0.0-20240904232852-e7e105dedf7e // indirect
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.25.0 // indirect
