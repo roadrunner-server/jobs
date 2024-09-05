@@ -220,6 +220,15 @@ func (p *Plugin) Stop(ctx context.Context) error {
 	p.eventBus.Unsubscribe(p.id)
 	close(p.eventsCh)
 
+	defer func() {
+		// workers' pool should be stopped
+		p.mu.Lock()
+		if p.workersPool != nil {
+			p.workersPool.Destroy(ctx)
+		}
+		p.mu.Unlock()
+	}()
+
 	sema := semaphore.NewWeighted(int64(p.cfg.CfgOptions.Parallelism))
 	// range over all consumers and call stop
 	p.consumers.Range(func(key, value any) bool {
