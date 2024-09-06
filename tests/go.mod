@@ -2,7 +2,7 @@ module tests
 
 go 1.23
 
-toolchain go1.23.0
+toolchain go1.23.1
 
 require (
 	github.com/goccy/go-json v0.10.3
