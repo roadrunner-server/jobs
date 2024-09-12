@@ -14,7 +14,7 @@ require (
 	github.com/roadrunner-server/goridge/v3 v3.8.3
 	github.com/roadrunner-server/pool v1.0.2
 	github.com/roadrunner-server/priority_queue v1.0.2
-	go.opentelemetry.io/contrib/propagators/jaeger v1.29.0
+	go.opentelemetry.io/contrib/propagators/jaeger v1.30.0
 	go.opentelemetry.io/otel v1.30.0
 	go.opentelemetry.io/otel/sdk v1.30.0
 	go.opentelemetry.io/otel/trace v1.30.0
