@@ -51,7 +51,7 @@ func (p Pipeline) Has(name string) bool {
 		return true
 	}
 
-	// pipelineExists the config section if exists
+	// check the config section if exists
 	if val, ok := p[config]; ok {
 		if rv, ok := val.(map[string]any); ok {
 			if _, ok := rv[name]; ok {
@@ -71,7 +71,7 @@ func (p Pipeline) String(name string, d string) string {
 			return str
 		}
 	} else {
-		// pipelineExists the config section if exists
+		// check the config section if exists
 		if val, ok := p[config]; ok {
 			if rv, ok := val.(map[string]any); ok {
 				if rv[name] != "" {
@@ -111,7 +111,7 @@ func (p Pipeline) Int(name string, d int) int {
 			return d
 		}
 	} else {
-		// pipelineExists the config section if exists
+		// check the config section if exists
 		if val, ok := p[config]; ok {
 			if rv, ok := val.(map[string]any); ok {
 				if rv[name] != nil {
@@ -180,7 +180,7 @@ func (p Pipeline) Map(name string, out map[string]string) error {
 			}
 		}
 	} else {
-		// pipelineExists the config section if exists
+		// check the config section if exists
 		if val, ok := p[config]; ok {
 			if rv, ok := val.(map[string]any); ok {
 				if val, ok := rv[name]; ok {
@@ -226,7 +226,7 @@ func (p Pipeline) Priority() int64 {
 			return defaultPriority
 		}
 	} else {
-		// pipelineExists the config section if exists
+		// check the config section if exists
 		if val, ok := p[config]; ok {
 			if rv, ok := val.(map[string]any); ok {
 				if rv[name] != nil {

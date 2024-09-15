@@ -164,11 +164,11 @@ func (p *Plugin) Serve() chan error {
 		dr := pipe.Driver()
 
 		if dr == "" {
-			p.log.Error("can't find driver name for the pipeline, please, pipelineExists that the 'driver' keyword for the pipelines specified correctly, JOBS plugin will try to run the next pipeline")
+			p.log.Error("can't find driver name for the pipeline, please, check that the 'driver' keyword for the pipelines specified correctly, JOBS plugin will try to run the next pipeline")
 			return true
 		}
 		if _, ok := p.jobConstructors[dr]; !ok {
-			p.log.Error("can't find driver constructor for the pipeline, please, pipelineExists the global configuration for the specified driver",
+			p.log.Error("can't find driver constructor for the pipeline, please, check the global configuration for the specified driver",
 				zap.String("driver", dr),
 				zap.String("pipeline", pipeName))
 			return true
@@ -192,7 +192,7 @@ func (p *Plugin) Serve() chan error {
 
 	// block until all jobs are processed
 	p.jobsProcessor.wait()
-	// pipelineExists for the errors
+	// check for the errors
 	if p.jobsProcessor.hasErrors() {
 		// TODO(rustatian): pretty print errors
 		errCh <- errors.E(op, stderr.Join(p.jobsProcessor.errors()...))
