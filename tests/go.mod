@@ -7,23 +7,23 @@ toolchain go1.23.1
 require (
 	github.com/goccy/go-json v0.10.3
 	github.com/google/uuid v1.6.0
-	github.com/roadrunner-server/amqp/v5 v5.0.3
+	github.com/roadrunner-server/amqp/v5 v5.0.4
 	github.com/roadrunner-server/api/v4 v4.16.0
-	github.com/roadrunner-server/beanstalk/v5 v5.0.3
-	github.com/roadrunner-server/config/v5 v5.0.3
+	github.com/roadrunner-server/beanstalk/v5 v5.0.4
+	github.com/roadrunner-server/config/v5 v5.0.4
 	github.com/roadrunner-server/endure/v2 v2.6.1
 	github.com/roadrunner-server/goridge/v3 v3.8.3
-	github.com/roadrunner-server/informer/v5 v5.0.3
+	github.com/roadrunner-server/informer/v5 v5.0.4
 	github.com/roadrunner-server/jobs/v5 v5.0.0
-	github.com/roadrunner-server/kafka/v5 v5.0.3
-	github.com/roadrunner-server/logger/v5 v5.0.3
-	github.com/roadrunner-server/memory/v5 v5.0.3
-	github.com/roadrunner-server/metrics/v5 v5.0.3
-	github.com/roadrunner-server/nats/v5 v5.0.3
-	github.com/roadrunner-server/resetter/v5 v5.0.4
-	github.com/roadrunner-server/rpc/v5 v5.0.3
-	github.com/roadrunner-server/server/v5 v5.1.1
-	github.com/roadrunner-server/sqs/v5 v5.0.3
+	github.com/roadrunner-server/kafka/v5 v5.0.4
+	github.com/roadrunner-server/logger/v5 v5.0.4
+	github.com/roadrunner-server/memory/v5 v5.0.4
+	github.com/roadrunner-server/metrics/v5 v5.0.4
+	github.com/roadrunner-server/nats/v5 v5.0.4
+	github.com/roadrunner-server/resetter/v5 v5.0.5
+	github.com/roadrunner-server/rpc/v5 v5.0.4
+	github.com/roadrunner-server/server/v5 v5.1.2
+	github.com/roadrunner-server/sqs/v5 v5.0.4
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/zap v1.27.0
 )
@@ -32,20 +32,20 @@ replace github.com/roadrunner-server/jobs/v5 => ../
 
 require (
 	github.com/aws/aws-sdk-go v1.55.5 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.30.5 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.27.33 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.32 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.13 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.17 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.17 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.31.0 // indirect
+	github.com/aws/aws-sdk-go-v2/config v1.27.38 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.36 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.14 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.18 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.18 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.4 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.19 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.34.8 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.22.7 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.26.7 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.30.7 // indirect
-	github.com/aws/smithy-go v1.20.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.5 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.20 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.35.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.23.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.27.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.31.2 // indirect
+	github.com/aws/smithy-go v1.21.0 // indirect
 	github.com/beanstalkd/go-beanstalk v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
@@ -59,7 +59,7 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
-	github.com/klauspost/compress v1.17.9 // indirect
+	github.com/klauspost/compress v1.17.10 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
@@ -71,7 +71,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/prometheus/client_golang v1.20.3 // indirect
+	github.com/prometheus/client_golang v1.20.4 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.59.1 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
