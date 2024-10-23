@@ -1,4 +1,5 @@
 {
+  "$id": "https://raw.githubusercontent.com/roadrunner-server/jobs/refs/heads/master/schema.json",
   "$schema": "https://json-schema.org/draft/2019-09/schema",
   "description": "All the valid configuration parameters for the jobs plugin for RoadRunner.",
   "title": "roadrunner-jobs",
@@ -6,7 +7,7 @@
   "additionalProperties": false,
   "properties": {
     "num_pollers": {
-      "description": "Number of threads which will try to obtain jobs from the priority queue. Default is the number of workers+1.",
+      "description": "Number of threads which will try to obtain jobs from the priority queue. Default is the number of workers in the pool +1.",
       "type": "integer",
       "minimum": 1,
       "examples": [
@@ -15,7 +16,7 @@
       ]
     },
     "timeout": {
-      "description": "Request timeout (in seconds) when attempting to send jobs to the queue.",
+      "description": "Request timeout (in seconds) when attempting to send jobs to the queue. If zero or omitted, this defaults to 60 seconds.",
       "type": "integer",
       "default": 60
     },
@@ -26,10 +27,11 @@
       "minimum": 0
     },
     "consume": {
-      "description": "A list of pipelines to be consumed by the server automatically when starting. You can omit this list if you want to start consuming manually. Each key in this list must be defined under `pipelines` as a consumer.",
+      "description": "A list of pipelines to be consumed by the server automatically when starting. You can omit this list if you want to start consuming manually. Each key in this list must be defined under `pipelines`.",
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9._-]+$"
       }
     },
     "pool": {
@@ -40,29 +42,30 @@
       "description": "List of broker pipelines associated with the configured drivers. This option is not required since you can declare pipelines at runtime. The selected pipeline `driver` must be configured in the root of your configuration file.",
       "type": "object",
       "patternProperties": {
+        "additionalProperties": false,
         "^[a-zA-Z0-9._-]+$": {
           "properties": {
             "oneOf": [
               {
-                "$ref": "https://raw.githubusercontent.com/roadrunner-server/amqp/refs/heads/master/schema.json"
+                "$ref": "https://raw.githubusercontent.com/roadrunner-server/amqp/refs/heads/master/schema.json#/definitions/pipeline"
               },
               {
-                "$ref": "https://raw.githubusercontent.com/roadrunner-server/beanstalk/refs/heads/master/schema.json"
+                "$ref": "https://raw.githubusercontent.com/roadrunner-server/beanstalk/refs/heads/master/schema.json#/definitions/pipeline"
               },
               {
-                "$ref": "https://raw.githubusercontent.com/roadrunner-server/boltdb/refs/heads/master/schema.json"
+                "$ref": "https://raw.githubusercontent.com/roadrunner-server/boltdb/refs/heads/master/schema.json#/definitions/pipeline"
               },
               {
-                "$ref": "https://raw.githubusercontent.com/roadrunner-server/kafka/refs/heads/master/schema.json"
+                "$ref": "https://raw.githubusercontent.com/roadrunner-server/kafka/refs/heads/master/schema.json#/definitions/pipeline"
               },
               {
-                "$ref": "https://raw.githubusercontent.com/roadrunner-server/memory/refs/heads/master/schema.json"
+                "$ref": "https://raw.githubusercontent.com/roadrunner-server/memory/refs/heads/master/schema.json#/definitions/pipeline"
               },
               {
-                "$ref": "https://raw.githubusercontent.com/roadrunner-server/nats/refs/heads/master/schema.json"
+                "$ref": "https://raw.githubusercontent.com/roadrunner-server/nats/refs/heads/master/schema.json#/definitions/pipeline"
               },
               {
-                "$ref": "https://raw.githubusercontent.com/roadrunner-server/sqs/refs/heads/master/schema.json"
+                "$ref": "https://raw.githubusercontent.com/roadrunner-server/sqs/refs/heads/master/schema.json#/definitions/pipeline"
               }
             ]
           }
@@ -72,7 +75,7 @@
   },
   "definitions": {
     "PipelineProperties": {
-      "description": "Common configuration options applied to different queues or KV plugins.",
+      "description": "Common configuration options for queues/pipelines.",
       "priority": {
         "description": "Pipeline priority. If the job pushed to the pipeline has priority set to 0, it will inherit the pipeline's priority.",
         "type": "integer",
@@ -80,10 +83,9 @@
         "default": 10
       },
       "prefetch": {
-        "description": "Number of jobs to prefetch from the driver.",
+        "description": "Number of jobs to prefetch from the driver. Please consult the driver for the maximum and default values. For instance, SQS allows only 10.",
         "type": "integer",
-        "minimum": 0,
-        "default": 100000
+        "minimum": 0
       },
       "consume_all": {
         "description": "Normally only jobs with a Jobs structure are consumed. Enable this to consume all jobs on the queue.",
