@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "description": "All the valid configuration parameters for the jobs plugin for RoadRunner.",
+  "title": "roadrunner-jobs",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "num_pollers": {
+      "description": "Number of threads which will try to obtain jobs from the priority queue. Default is the number of workers+1.",
+      "type": "integer",
+      "minimum": 1,
+      "examples": [
+        10,
+        32
+      ]
+    },
+    "timeout": {
+      "description": "Request timeout (in seconds) when attempting to send jobs to the queue.",
+      "type": "integer",
+      "default": 60
+    },
+    "pipeline_size": {
+      "description": "Size of the internal priority queue. If the internal priority queue is full, you cannot send (push) additional jobs to the queue. If you set this value to zero, it defaults to 1 million.",
+      "type": "integer",
+      "default": 1000000,
+      "minimum": 0
+    },
+    "consume": {
+      "description": "A list of pipelines to be consumed by the server automatically when starting. You can omit this list if you want to start consuming manually. Each key in this list must be defined under `pipelines` as a consumer.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "pool": {
+      "description": "Worker pool configuration for jobs.",
+      "$ref": "https://raw.githubusercontent.com/roadrunner-server/roadrunner/refs/heads/master/schemas/config/3.0.schema.json#/definitions/WorkersPool"
+    },
+    "pipelines": {
+      "description": "List of broker pipelines associated with the configured drivers. This option is not required since you can declare pipelines at runtime. The selected pipeline `driver` must be configured in the root of your configuration file.",
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z0-9._-]+$": {
+          "properties": {
+            "oneOf": [
+              {
+                "$ref": "https://raw.githubusercontent.com/roadrunner-server/amqp/refs/heads/master/schema.json"
+              },
+              {
+                "$ref": "https://raw.githubusercontent.com/roadrunner-server/beanstalk/refs/heads/master/schema.json"
+              },
+              {
+                "$ref": "https://raw.githubusercontent.com/roadrunner-server/boltdb/refs/heads/master/schema.json"
+              },
+              {
+                "$ref": "https://raw.githubusercontent.com/roadrunner-server/kafka/refs/heads/master/schema.json"
+              },
+              {
+                "$ref": "https://raw.githubusercontent.com/roadrunner-server/memory/refs/heads/master/schema.json"
+              },
+              {
+                "$ref": "https://raw.githubusercontent.com/roadrunner-server/nats/refs/heads/master/schema.json"
+              },
+              {
+                "$ref": "https://raw.githubusercontent.com/roadrunner-server/sqs/refs/heads/master/schema.json"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "PipelineProperties": {
+      "description": "Common configuration options applied to different queues or KV plugins.",
+      "priority": {
+        "description": "Pipeline priority. If the job pushed to the pipeline has priority set to 0, it will inherit the pipeline's priority.",
+        "type": "integer",
+        "minimum": 0,
+        "default": 10
+      },
+      "prefetch": {
+        "description": "Number of jobs to prefetch from the driver.",
+        "type": "integer",
+        "minimum": 0,
+        "default": 100000
+      },
+      "consume_all": {
+        "description": "Normally only jobs with a Jobs structure are consumed. Enable this to consume all jobs on the queue.",
+        "type": "boolean",
+        "default": false
+      },
+      "queue": {
+        "type": "string",
+        "description": "The name of the queue.",
+        "default": "default"
+      }
+    }
+  }
+}
