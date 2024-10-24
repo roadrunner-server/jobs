@@ -43,6 +43,7 @@ func (c *Config) InitDefaults() {
 	if c.Pool == nil {
 		c.Pool = &poolImpl.Config{}
 	}
+	c.Pool.InitDefaults()
 
 	if c.CfgOptions == nil {
 		c.CfgOptions = &CfgOptions{
@@ -67,8 +68,6 @@ func (c *Config) InitDefaults() {
 	if c.Timeout == 0 {
 		c.Timeout = 60
 	}
-
-	c.Pool.InitDefaults()
 
 	// number of pollers should be slightly more than the number of workers
 	// overwrite user value, TODO: deprecate this configuration option

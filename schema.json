@@ -7,13 +7,14 @@
   "additionalProperties": false,
   "properties": {
     "num_pollers": {
-      "description": "Number of threads which will try to obtain jobs from the priority queue. Default is the number of workers in the pool +1.",
+      "description": "Number of threads which will try to obtain jobs from the priority queue. Default is the number of workers in the pool +1. **Deprecated:** This will be removed in a future version.",
       "type": "integer",
       "minimum": 1,
       "examples": [
         10,
         32
-      ]
+      ],
+      "deprecated": true
     },
     "timeout": {
       "description": "Request timeout (in seconds) when attempting to send jobs to the queue. If zero or omitted, this defaults to 60 seconds.",
@@ -21,13 +22,13 @@
       "default": 60
     },
     "pipeline_size": {
-      "description": "Size of the internal priority queue. If the internal priority queue is full, you cannot send (push) additional jobs to the queue. If you set this value to zero, it defaults to 1 million.",
+      "description": "Size of the internal priority queue. If the internal priority queue is full, you cannot send (push) additional jobs to the queue. If you set this value to zero or omit it, it defaults to 1 million.",
       "type": "integer",
       "default": 1000000,
       "minimum": 0
     },
     "consume": {
-      "description": "A list of pipelines to be consumed by the server automatically when starting. You can omit this list if you want to start consuming manually. Each key in this list must be defined under `pipelines`.",
+      "description": "A list of pipelines to be consumed by the server automatically when starting. You can omit this list if you want to start consuming manually. Each item in this list must be defined as a key under `pipelines`.",
       "type": "array",
       "items": {
         "type": "string",
@@ -35,8 +36,7 @@
       }
     },
     "pool": {
-      "description": "Worker pool configuration for jobs.",
-      "$ref": "https://raw.githubusercontent.com/roadrunner-server/roadrunner/refs/heads/master/schemas/config/3.0.schema.json#/definitions/WorkersPool"
+      "$ref": "https://raw.githubusercontent.com/roadrunner-server/pool/refs/heads/master/schema.json"
     },
     "pipelines": {
       "description": "List of broker pipelines associated with the configured drivers. This option is not required since you can declare pipelines at runtime. The selected pipeline `driver` must be configured in the root of your configuration file.",
