@@ -44,31 +44,29 @@
       "patternProperties": {
         "additionalProperties": false,
         "^[a-zA-Z0-9._-]+$": {
-          "properties": {
-            "oneOf": [
-              {
-                "$ref": "https://raw.githubusercontent.com/roadrunner-server/amqp/refs/heads/master/schema.json#/definitions/pipeline"
-              },
-              {
-                "$ref": "https://raw.githubusercontent.com/roadrunner-server/beanstalk/refs/heads/master/schema.json#/definitions/pipeline"
-              },
-              {
-                "$ref": "https://raw.githubusercontent.com/roadrunner-server/boltdb/refs/heads/master/schema.json#/definitions/pipeline"
-              },
-              {
-                "$ref": "https://raw.githubusercontent.com/roadrunner-server/kafka/refs/heads/master/schema.json#/definitions/pipeline"
-              },
-              {
-                "$ref": "https://raw.githubusercontent.com/roadrunner-server/memory/refs/heads/master/schema.json#/definitions/pipeline"
-              },
-              {
-                "$ref": "https://raw.githubusercontent.com/roadrunner-server/nats/refs/heads/master/schema.json#/definitions/pipeline"
-              },
-              {
-                "$ref": "https://raw.githubusercontent.com/roadrunner-server/sqs/refs/heads/master/schema.json#/definitions/pipeline"
-              }
-            ]
-          }
+          "oneOf": [
+            {
+              "$ref": "https://raw.githubusercontent.com/roadrunner-server/amqp/refs/heads/master/schema.json#/definitions/pipeline"
+            },
+            {
+              "$ref": "https://raw.githubusercontent.com/roadrunner-server/beanstalk/refs/heads/master/schema.json#/definitions/pipeline"
+            },
+            {
+              "$ref": "https://raw.githubusercontent.com/roadrunner-server/boltdb/refs/heads/master/schema.json#/definitions/pipeline"
+            },
+            {
+              "$ref": "https://raw.githubusercontent.com/roadrunner-server/kafka/refs/heads/master/schema.json#/definitions/pipeline"
+            },
+            {
+              "$ref": "https://raw.githubusercontent.com/roadrunner-server/memory/refs/heads/master/schema.json#/definitions/pipeline"
+            },
+            {
+              "$ref": "https://raw.githubusercontent.com/roadrunner-server/nats/refs/heads/master/schema.json#/definitions/pipeline"
+            },
+            {
+              "$ref": "https://raw.githubusercontent.com/roadrunner-server/sqs/refs/heads/master/schema.json#/definitions/pipeline"
+            }
+          ]
         }
       }
     }
