@@ -85,11 +85,6 @@
         "type": "integer",
         "minimum": 0
       },
-      "consume_all": {
-        "description": "Normally only jobs with a Jobs structure are consumed. Enable this to consume all jobs on the queue.",
-        "type": "boolean",
-        "default": false
-      },
       "queue": {
         "type": "string",
         "description": "The name of the queue.",
