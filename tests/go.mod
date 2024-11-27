@@ -17,14 +17,14 @@ require (
 	github.com/roadrunner-server/jobs/v5 v5.0.0
 	github.com/roadrunner-server/kafka/v5 v5.0.4
 	github.com/roadrunner-server/logger/v5 v5.0.4
-	github.com/roadrunner-server/memory/v5 v5.0.4
+	github.com/roadrunner-server/memory/v5 v5.1.0
 	github.com/roadrunner-server/metrics/v5 v5.0.4
 	github.com/roadrunner-server/nats/v5 v5.0.4
 	github.com/roadrunner-server/resetter/v5 v5.0.5
 	github.com/roadrunner-server/rpc/v5 v5.0.4
 	github.com/roadrunner-server/server/v5 v5.1.2
 	github.com/roadrunner-server/sqs/v5 v5.0.4
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	go.uber.org/zap v1.27.0
 )
 
@@ -66,7 +66,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/nats-io/nats.go v1.37.0 // indirect
-	github.com/nats-io/nkeys v0.4.7 // indirect
+	github.com/nats-io/nkeys v0.4.8 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
@@ -78,7 +78,7 @@ require (
 	github.com/rabbitmq/amqp091-go v1.10.0 // indirect
 	github.com/roadrunner-server/errors v1.4.1 // indirect
 	github.com/roadrunner-server/events v1.0.1 // indirect
-	github.com/roadrunner-server/pool v1.0.2 // indirect
+	github.com/roadrunner-server/pool v1.0.3 // indirect
 	github.com/roadrunner-server/priority_queue v1.0.2 // indirect
 	github.com/roadrunner-server/tcplisten v1.5.1 // indirect
 	github.com/sagikazarmark/locafero v0.6.0 // indirect
