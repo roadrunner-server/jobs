@@ -42,8 +42,8 @@ github.com/roadrunner-server/events v1.0.1 h1:waCkKhxhzdK3VcI1xG22l+h+0J+Nfdpxjh
 github.com/roadrunner-server/events v1.0.1/go.mod h1:WZRqoEVaFm209t52EuoT7ISUtvX6BrCi6bI/7pjkVC0=
 github.com/roadrunner-server/goridge/v3 v3.8.3 h1:XmjrOFnI6ZbQTPaP39DEk8KwLUNTgjluK3pcZaW6ixQ=
 github.com/roadrunner-server/goridge/v3 v3.8.3/go.mod h1:4TZU8zgkKIZCsH51qwGMpvyXCT59u/8z6q8sCe4ZGAQ=
-github.com/roadrunner-server/pool v1.0.3 h1:aARAk6w3b0XCPZ/va8V1sRgcPJRFDyY5ZOPvNrkINhs=
-github.com/roadrunner-server/pool v1.0.3/go.mod h1:EQNY0EHgG8aX3oeIjoQn6fZW1ttoZs/GL8pnkUhmN/Q=
+github.com/roadrunner-server/pool v1.1.0 h1:65MmexdO+Xhm1tXAhLXLVzagb8AIDDqBVEi9VET0lyQ=
+github.com/roadrunner-server/pool v1.1.0/go.mod h1:x3wyyniz3CAP4jtu0CrJYTmbLyf6TVO2Xi4xMkNOjkA=
 github.com/roadrunner-server/priority_queue v1.0.2 h1:UoseKFpkcWSWJVu0iWqCE+tCWC8z/qCKvilSkAzHHmM=
 github.com/roadrunner-server/priority_queue v1.0.2/go.mod h1:0Kayx9q+JM0Zk9+04eXD4nZPMiMxjTkR76+j1ZkHrD0=
 github.com/shirou/gopsutil v3.21.11+incompatible h1:+1+c1VGhc88SSonWP6foOcLhvnKlUeu/erjjvaPEYiI=
