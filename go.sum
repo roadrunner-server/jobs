@@ -28,8 +28,8 @@ github.com/prometheus/client_golang v1.20.5 h1:cxppBPuYhUnsO6yo/aoRol4L7q7UFfdm+
 github.com/prometheus/client_golang v1.20.5/go.mod h1:PIEt8X02hGcP8JWbeHyeZ53Y/jReSnHgO035n//V5WE=
 github.com/prometheus/client_model v0.6.1 h1:ZKSh/rekM+n3CeS952MLRAdFwIKqeY8b62p8ais2e9E=
 github.com/prometheus/client_model v0.6.1/go.mod h1:OrxVMOVHjw3lKMa8+x6HeMGkHMQyHDk9E3jmP2AmGiY=
-github.com/prometheus/common v0.60.1 h1:FUas6GcOw66yB/73KC+BOZoFJmbo/1pojoILArPAaSc=
-github.com/prometheus/common v0.60.1/go.mod h1:h0LYf1R1deLSKtD4Vdg8gy4RuOvENW2J/h19V5NADQw=
+github.com/prometheus/common v0.61.0 h1:3gv/GThfX0cV2lpO7gkTUwZru38mxevy90Bj8YFSRQQ=
+github.com/prometheus/common v0.61.0/go.mod h1:zr29OCN/2BsJRaFwG8QOBr41D6kkchKbpeNH7pAjb/s=
 github.com/prometheus/procfs v0.15.1 h1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=
 github.com/prometheus/procfs v0.15.1/go.mod h1:fB45yRUv8NstnjriLhBQLuOUt+WW4BsoGhij/e3PBqk=
 github.com/roadrunner-server/api/v4 v4.16.0 h1:UaaKWHelc7bZC4cRdTD802gyIrJFRFTPEk7Bt3U01qI=
@@ -42,8 +42,8 @@ github.com/roadrunner-server/events v1.0.1 h1:waCkKhxhzdK3VcI1xG22l+h+0J+Nfdpxjh
 github.com/roadrunner-server/events v1.0.1/go.mod h1:WZRqoEVaFm209t52EuoT7ISUtvX6BrCi6bI/7pjkVC0=
 github.com/roadrunner-server/goridge/v3 v3.8.3 h1:XmjrOFnI6ZbQTPaP39DEk8KwLUNTgjluK3pcZaW6ixQ=
 github.com/roadrunner-server/goridge/v3 v3.8.3/go.mod h1:4TZU8zgkKIZCsH51qwGMpvyXCT59u/8z6q8sCe4ZGAQ=
-github.com/roadrunner-server/pool v1.1.0 h1:65MmexdO+Xhm1tXAhLXLVzagb8AIDDqBVEi9VET0lyQ=
-github.com/roadrunner-server/pool v1.1.0/go.mod h1:x3wyyniz3CAP4jtu0CrJYTmbLyf6TVO2Xi4xMkNOjkA=
+github.com/roadrunner-server/pool v1.1.1 h1:ThMGASxLV/GvVXk/J80E2yY1nozfPwFlv93fH0xYDMg=
+github.com/roadrunner-server/pool v1.1.1/go.mod h1:p6t1w4hcNgZGTgap+RYqoPIQ9jDXJwsr217+ROsVFro=
 github.com/roadrunner-server/priority_queue v1.0.2 h1:UoseKFpkcWSWJVu0iWqCE+tCWC8z/qCKvilSkAzHHmM=
 github.com/roadrunner-server/priority_queue v1.0.2/go.mod h1:0Kayx9q+JM0Zk9+04eXD4nZPMiMxjTkR76+j1ZkHrD0=
 github.com/shirou/gopsutil v3.21.11+incompatible h1:+1+c1VGhc88SSonWP6foOcLhvnKlUeu/erjjvaPEYiI=
