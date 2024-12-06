@@ -128,6 +128,7 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 	p.log = log.NamedLogger(PluginName)
 	p.jobsProcessor = newPipesProc(p.log, &p.consumers, &p.consume, p.cfg.CfgOptions.Parallelism)
 	p.experimental = cfg.Experimental()
+	p.tracer = sdktrace.NewTracerProvider()
 
 	// collector
 	p.metrics = newStatsExporter(p)
