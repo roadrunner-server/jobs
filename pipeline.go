@@ -2,8 +2,8 @@ package jobs
 
 import (
 	"encoding/json"
-	"strconv"
 	"math"
+	"strconv"
 	"unsafe"
 )
 
