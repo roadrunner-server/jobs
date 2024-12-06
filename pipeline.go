@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"encoding/json"
+	"math"
 	"strconv"
 	"unsafe"
 )
@@ -90,9 +91,14 @@ func (p Pipeline) Int(name string, d int) int {
 		switch v := value.(type) {
 		// the most probable case
 		case string:
-			res, err := strconv.ParseInt(v, 10, 64)
+			res, err := strconv.ParseInt(v, 10, 32)
 			if err != nil {
 				// return default on failure
+				return d
+			}
+
+			if res > math.MaxInt32 || res < math.MinInt32 {
+				// return default if out of bounds
 				return d
 			}
 
