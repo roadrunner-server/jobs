@@ -5,25 +5,25 @@ go 1.23
 toolchain go1.23.4
 
 require (
-	github.com/goccy/go-json v0.10.3
+	github.com/goccy/go-json v0.10.4
 	github.com/google/uuid v1.6.0
-	github.com/roadrunner-server/amqp/v5 v5.0.4
+	github.com/roadrunner-server/amqp/v5 v5.1.0
 	github.com/roadrunner-server/api/v4 v4.16.0
-	github.com/roadrunner-server/beanstalk/v5 v5.0.4
-	github.com/roadrunner-server/config/v5 v5.0.4
+	github.com/roadrunner-server/beanstalk/v5 v5.1.0
+	github.com/roadrunner-server/config/v5 v5.1.0
 	github.com/roadrunner-server/endure/v2 v2.6.1
 	github.com/roadrunner-server/goridge/v3 v3.8.3
-	github.com/roadrunner-server/informer/v5 v5.0.4
+	github.com/roadrunner-server/informer/v5 v5.1.0
 	github.com/roadrunner-server/jobs/v5 v5.0.0
-	github.com/roadrunner-server/kafka/v5 v5.0.4
-	github.com/roadrunner-server/logger/v5 v5.0.4
-	github.com/roadrunner-server/memory/v5 v5.1.0
-	github.com/roadrunner-server/metrics/v5 v5.0.4
-	github.com/roadrunner-server/nats/v5 v5.0.4
-	github.com/roadrunner-server/resetter/v5 v5.0.5
-	github.com/roadrunner-server/rpc/v5 v5.0.4
-	github.com/roadrunner-server/server/v5 v5.1.2
-	github.com/roadrunner-server/sqs/v5 v5.0.4
+	github.com/roadrunner-server/kafka/v5 v5.1.0
+	github.com/roadrunner-server/logger/v5 v5.1.0
+	github.com/roadrunner-server/memory/v5 v5.2.0
+	github.com/roadrunner-server/metrics/v5 v5.1.0
+	github.com/roadrunner-server/nats/v5 v5.1.0
+	github.com/roadrunner-server/resetter/v5 v5.1.0
+	github.com/roadrunner-server/rpc/v5 v5.1.0
+	github.com/roadrunner-server/server/v5 v5.2.0
+	github.com/roadrunner-server/sqs/v5 v5.1.0
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/zap v1.27.0
 )
@@ -60,7 +60,7 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
-	github.com/magiconair/properties v1.8.7 // indirect
+	github.com/magiconair/properties v1.8.9 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
@@ -103,8 +103,8 @@ require (
 	go.opentelemetry.io/otel/sdk v1.32.0 // indirect
 	go.opentelemetry.io/otel/trace v1.32.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.30.0 // indirect
-	golang.org/x/exp v0.0.0-20241204233417-43b7b7cde48d // indirect
+	golang.org/x/crypto v0.31.0 // indirect
+	golang.org/x/exp v0.0.0-20241210194714-1829a127f884 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
