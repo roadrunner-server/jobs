@@ -7,23 +7,23 @@ toolchain go1.23.4
 require (
 	github.com/goccy/go-json v0.10.4
 	github.com/google/uuid v1.6.0
-	github.com/roadrunner-server/amqp/v5 v5.1.0
+	github.com/roadrunner-server/amqp/v5 v5.1.1
 	github.com/roadrunner-server/api/v4 v4.17.0
-	github.com/roadrunner-server/beanstalk/v5 v5.1.0
-	github.com/roadrunner-server/config/v5 v5.1.0
+	github.com/roadrunner-server/beanstalk/v5 v5.1.1
+	github.com/roadrunner-server/config/v5 v5.1.1
 	github.com/roadrunner-server/endure/v2 v2.6.1
 	github.com/roadrunner-server/goridge/v3 v3.8.3
-	github.com/roadrunner-server/informer/v5 v5.1.0
+	github.com/roadrunner-server/informer/v5 v5.1.1
 	github.com/roadrunner-server/jobs/v5 v5.0.0
-	github.com/roadrunner-server/kafka/v5 v5.1.0
-	github.com/roadrunner-server/logger/v5 v5.1.0
-	github.com/roadrunner-server/memory/v5 v5.2.0
-	github.com/roadrunner-server/metrics/v5 v5.1.0
-	github.com/roadrunner-server/nats/v5 v5.1.0
-	github.com/roadrunner-server/resetter/v5 v5.1.0
-	github.com/roadrunner-server/rpc/v5 v5.1.0
-	github.com/roadrunner-server/server/v5 v5.2.1
-	github.com/roadrunner-server/sqs/v5 v5.1.0
+	github.com/roadrunner-server/kafka/v5 v5.1.1
+	github.com/roadrunner-server/logger/v5 v5.1.1
+	github.com/roadrunner-server/memory/v5 v5.2.1
+	github.com/roadrunner-server/metrics/v5 v5.1.1
+	github.com/roadrunner-server/nats/v5 v5.1.1
+	github.com/roadrunner-server/resetter/v5 v5.1.1
+	github.com/roadrunner-server/rpc/v5 v5.1.1
+	github.com/roadrunner-server/server/v5 v5.2.2
+	github.com/roadrunner-server/sqs/v5 v5.1.1
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/zap v1.27.0
 )
@@ -41,7 +41,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.12.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.7 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.37.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.37.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.24.8 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.3 // indirect
@@ -109,7 +109,7 @@ require (
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
-	google.golang.org/protobuf v1.36.0 // indirect
+	google.golang.org/protobuf v1.36.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
