@@ -5,7 +5,6 @@ go 1.23
 toolchain go1.23.4
 
 require (
-	github.com/goccy/go-json v0.10.5
 	github.com/google/uuid v1.6.0
 	github.com/roadrunner-server/amqp/v5 v5.1.2
 	github.com/roadrunner-server/api/v4 v4.18.1
@@ -56,6 +55,7 @@ require (
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
+	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
