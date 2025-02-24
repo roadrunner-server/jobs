@@ -17,7 +17,7 @@ require (
 	github.com/roadrunner-server/kafka/v5 v5.2.1
 	github.com/roadrunner-server/logger/v5 v5.1.5
 	github.com/roadrunner-server/memory/v5 v5.2.5
-	github.com/roadrunner-server/metrics/v5 v5.1.4
+	github.com/roadrunner-server/metrics/v5 v5.1.5
 	github.com/roadrunner-server/nats/v5 v5.1.5
 	github.com/roadrunner-server/resetter/v5 v5.1.5
 	github.com/roadrunner-server/rpc/v5 v5.1.5
@@ -104,7 +104,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.34.0 // indirect
 	go.opentelemetry.io/otel/trace v1.34.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.34.0 // indirect
+	golang.org/x/crypto v0.35.0 // indirect
 	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa // indirect
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
