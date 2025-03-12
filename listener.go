@@ -15,6 +15,11 @@ import (
 func (p *Plugin) listener() {
 	for i := 0; i < p.cfg.NumPollers; i++ {
 		go func() {
+			if p.cfg.PollersGracefulShutdown {
+				p.pollersWg.Add(1)
+				p.log.Debug("poller added to wait group", zap.Int("poller", i))
+				defer p.pollersWg.Done()
+			}
 			for {
 				select {
 				case <-p.stopCh:

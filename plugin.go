@@ -83,6 +83,9 @@ type Plugin struct {
 
 	metrics     *statsExporter
 	respHandler *rh.RespHandler
+
+	// Pollers wait group
+	pollersWg sync.WaitGroup
 }
 
 func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
@@ -121,6 +124,9 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 			p.consume[p.cfg.Consume[i]] = struct{}{}
 		}
 	}
+
+	// initialize pollers wait group
+	p.pollersWg = sync.WaitGroup{}
 
 	// initialize priority queue
 	p.queue = pqImpl.NewBinHeap[jobsApi.Job](p.cfg.PipelineSize)
@@ -221,6 +227,11 @@ func (p *Plugin) Stop(ctx context.Context) error {
 	// drop subscriptions
 	p.eventBus.Unsubscribe(p.id)
 	close(p.eventsCh)
+
+	if p.cfg.PollersGracefulShutdown {
+		p.log.Info("waiting for all pollers will be finished")
+		p.pollersWg.Wait()
+	}
 
 	defer func() {
 		// workers' pool should be stopped

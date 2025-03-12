@@ -32,6 +32,8 @@ type Config struct {
 	Pipelines map[string]Pipeline `mapstructure:"pipelines"`
 	// Consuming specifies names of pipelines to be consumed on service start.
 	Consume []string `mapstructure:"consume"`
+	// PollersGracefulShutdown is the flag for wait current tasks done in each poller
+	PollersGracefulShutdown bool `mapstructure:"pollers_graceful_shutdown"`
 }
 
 type CfgOptions struct {
