@@ -17,7 +17,6 @@ func (p *Plugin) listener() {
 		go func() {
 			if p.cfg.PollersGracefulShutdown {
 				p.pollersWg.Add(1)
-				p.log.Debug("poller added to wait group", zap.Int("poller", i))
 				defer p.pollersWg.Done()
 			}
 			for {
