@@ -85,7 +85,8 @@ type Plugin struct {
 	respHandler *rh.RespHandler
 
 	// Pollers wait group
-	pollersWg sync.WaitGroup
+	pollersWg     sync.WaitGroup
+	pollersWgChan chan struct{}
 }
 
 func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
@@ -127,6 +128,7 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 
 	// initialize pollers wait group
 	p.pollersWg = sync.WaitGroup{}
+	p.pollersWgChan = make(chan struct{})
 
 	// initialize priority queue
 	p.queue = pqImpl.NewBinHeap[jobsApi.Job](p.cfg.PipelineSize)
@@ -228,10 +230,7 @@ func (p *Plugin) Stop(ctx context.Context) error {
 	p.eventBus.Unsubscribe(p.id)
 	close(p.eventsCh)
 
-	if p.cfg.PollersGracefulShutdown {
-		p.log.Info("waiting for all pollers will be finished")
-		p.pollersWg.Wait()
-	}
+	p.waitPollersFinish(ctx)
 
 	defer func() {
 		// workers' pool should be stopped
@@ -756,6 +755,23 @@ func (p *Plugin) putPayload(pld *payload.Payload) {
 	pld.Codec = 0
 	pld.Flags = 0
 	p.pldPool.Put(pld)
+}
+
+func (p *Plugin) waitPollersFinish(ctx context.Context) {
+	p.log.Debug("waiting for pollers to be finished")
+	go func() {
+		p.pollersWg.Wait()
+		p.pollersWgChan <- struct{}{}
+	}()
+	for {
+		select {
+		case <-ctx.Done():
+			close(p.pollersWgChan)
+			return
+		case <-p.pollersWgChan:
+			return
+		}
+	}
 }
 
 func ptrTo[T any](val T) *T {

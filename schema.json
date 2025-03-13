@@ -69,11 +69,6 @@
           ]
         }
       }
-    },
-    "pollers_graceful_shutdown": {
-      "description": "Wait all pollers for handle current tasks.",
-      "type": "boolean",
-      "default": false
     }
   },
   "definitions": {

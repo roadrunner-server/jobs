@@ -13,12 +13,10 @@ import (
 
 // non blocking listener
 func (p *Plugin) listener() {
+	p.pollersWg.Add(p.cfg.NumPollers)
 	for i := 0; i < p.cfg.NumPollers; i++ {
 		go func() {
-			if p.cfg.PollersGracefulShutdown {
-				p.pollersWg.Add(1)
-				defer p.pollersWg.Done()
-			}
+			defer p.pollersWg.Done()
 			for {
 				select {
 				case <-p.stopCh:
