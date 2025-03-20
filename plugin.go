@@ -83,6 +83,10 @@ type Plugin struct {
 
 	metrics     *statsExporter
 	respHandler *rh.RespHandler
+
+	// Pollers wait group
+	pollersWg     sync.WaitGroup
+	pollersWgChan chan struct{}
 }
 
 func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
@@ -121,6 +125,10 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 			p.consume[p.cfg.Consume[i]] = struct{}{}
 		}
 	}
+
+	// initialize pollers wait group
+	p.pollersWg = sync.WaitGroup{}
+	p.pollersWgChan = make(chan struct{})
 
 	// initialize priority queue
 	p.queue = pqImpl.NewBinHeap[jobsApi.Job](p.cfg.PipelineSize)
@@ -282,6 +290,8 @@ func (p *Plugin) Stop(ctx context.Context) error {
 	if p.jobsProcessor != nil {
 		p.jobsProcessor.stop()
 	}
+
+	p.waitPollersFinish(ctx)
 
 	return nil
 }
@@ -745,6 +755,24 @@ func (p *Plugin) putPayload(pld *payload.Payload) {
 	pld.Codec = 0
 	pld.Flags = 0
 	p.pldPool.Put(pld)
+}
+
+func (p *Plugin) waitPollersFinish(ctx context.Context) {
+	p.log.Debug("waiting for pollers to be finished")
+	go func() {
+		p.pollersWg.Wait()
+		close(p.pollersWgChan)
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			close(p.pollersWgChan)
+			return
+		case <-p.pollersWgChan:
+			return
+		}
+	}
 }
 
 func ptrTo[T any](val T) *T {
