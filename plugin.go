@@ -230,8 +230,6 @@ func (p *Plugin) Stop(ctx context.Context) error {
 	p.eventBus.Unsubscribe(p.id)
 	close(p.eventsCh)
 
-	p.waitPollersFinish(ctx)
-
 	defer func() {
 		// workers' pool should be stopped
 		p.mu.Lock()
@@ -292,6 +290,8 @@ func (p *Plugin) Stop(ctx context.Context) error {
 	if p.jobsProcessor != nil {
 		p.jobsProcessor.stop()
 	}
+
+	p.waitPollersFinish(ctx)
 
 	return nil
 }
