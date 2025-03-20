@@ -16,6 +16,7 @@ func (p *Plugin) listener() {
 	p.pollersWg.Add(p.cfg.NumPollers)
 	for i := 0; i < p.cfg.NumPollers; i++ {
 		go func() {
+			// defer the wait group, used to track the number of active pollers
 			defer p.pollersWg.Done()
 			for {
 				select {
@@ -31,7 +32,7 @@ func (p *Plugin) listener() {
 					_, span := p.tracer.Tracer(PluginName).Start(traceCtx, "jobs_listener")
 
 					// parse the context
-					// for each job, context contains:
+					// for each job, the context contains:
 					/*
 						1. Job class
 						2. Job ID provided from the outside
@@ -59,7 +60,6 @@ func (p *Plugin) listener() {
 
 					// protect from the pool reset
 					p.mu.RLock()
-					// TODO(rustatian): context.Background() is not a good idea, we need to pass the context with timeout from the configuration
 					re, err := p.workersPool.Exec(context.Background(), exec, nil)
 					p.mu.RUnlock()
 

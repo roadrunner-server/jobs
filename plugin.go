@@ -761,8 +761,9 @@ func (p *Plugin) waitPollersFinish(ctx context.Context) {
 	p.log.Debug("waiting for pollers to be finished")
 	go func() {
 		p.pollersWg.Wait()
-		p.pollersWgChan <- struct{}{}
+		close(p.pollersWgChan)
 	}()
+
 	for {
 		select {
 		case <-ctx.Done():
