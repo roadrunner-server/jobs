@@ -106,8 +106,8 @@ github.com/rabbitmq/amqp091-go v1.10.0 h1:STpn5XsHlHGcecLmMFCtg7mqq0RnD+zFr4uzuk
 github.com/rabbitmq/amqp091-go v1.10.0/go.mod h1:Hy4jKW5kQART1u+JkDTF9YYOQUHXqMuhrgxOEeS7G4o=
 github.com/roadrunner-server/amqp/v5 v5.1.6 h1:xlktw11WLWhYPsEQHRhfXNmEF+cV6qfG10ajUzOu6LU=
 github.com/roadrunner-server/amqp/v5 v5.1.6/go.mod h1:/ieJXjj9DYvfAAq3gCufPTTVx5pK0W7X43pGM8Z2r00=
-github.com/roadrunner-server/api/v4 v4.18.1 h1:IA01DjK7wPXkSAUc0Bg2d3hmc/XMI0DYn0BKbBju9bI=
-github.com/roadrunner-server/api/v4 v4.18.1/go.mod h1:VdCLIpnjKFHNspqRlu5zfPvrDS9eLR7fYy5K9HYKNkE=
+github.com/roadrunner-server/api/v4 v4.19.0 h1:09c125rZfY6NYwDSnT9KvzjrESRQo/d1pu0DyRgScS0=
+github.com/roadrunner-server/api/v4 v4.19.0/go.mod h1:TJVrTRj7n+hj3SjtJCOwl+BQM+hxBRn8Ad3PUpKrpLI=
 github.com/roadrunner-server/beanstalk/v5 v5.1.6 h1:lvZ+T2fdPVQxfEaor27Obj5eKlV9xEQvpPQI8ON6TLM=
 github.com/roadrunner-server/beanstalk/v5 v5.1.6/go.mod h1:2eeqWUlzfV90VOsue6SZ2hzQtA66MsGX68oPtb0pzNo=
 github.com/roadrunner-server/config/v5 v5.1.6 h1:S0taNW9AyDK8P66/nLVO/jIq7VZmTNfDKkf6UZKdKjs=
