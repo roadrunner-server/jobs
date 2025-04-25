@@ -55,7 +55,7 @@ func newPipesProc(log *zap.Logger, consumers *sync.Map, runners *map[string]stru
 }
 
 func (p *processor) run() {
-	for i := 0; i < p.maxWorkers; i++ {
+	for range p.maxWorkers {
 		go func() {
 			for job := range p.queueCh {
 				p.log.Debug("initializing driver", zap.String("pipeline", job.pipe.Name()), zap.String("driver", job.pipe.Driver()))

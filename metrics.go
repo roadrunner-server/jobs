@@ -156,7 +156,7 @@ func (s *StatsExporter) Collect(ch chan<- prometheus.Metric) {
 	var invalid float64
 
 	// collect the memory
-	for i := 0; i < len(workerStates); i++ {
+	for i := range workerStates {
 		cum += float64(workerStates[i].MemoryUsage)
 
 		ch <- prometheus.MustNewConstMetric(s.StateDesc, prometheus.GaugeValue, 0, workerStates[i].StatusStr, strconv.Itoa(int(workerStates[i].Pid)))

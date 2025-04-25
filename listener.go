@@ -14,7 +14,7 @@ import (
 // non blocking listener
 func (p *Plugin) listener() {
 	p.pollersWg.Add(p.cfg.NumPollers)
-	for i := 0; i < p.cfg.NumPollers; i++ {
+	for range p.cfg.NumPollers {
 		go func() {
 			// defer the wait group, used to track the number of active pollers
 			defer p.pollersWg.Done()

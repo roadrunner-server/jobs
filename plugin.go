@@ -121,7 +121,7 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 	}
 
 	if len(p.cfg.Consume) > 0 {
-		for i := 0; i < len(p.cfg.Consume); i++ {
+		for i := range p.cfg.Consume {
 			p.consume[p.cfg.Consume[i]] = struct{}{}
 		}
 	}
@@ -320,7 +320,7 @@ func (p *Plugin) Workers() []*process.State {
 
 	ps := make([]*process.State, len(wrk))
 
-	for i := 0; i < len(wrk); i++ {
+	for i := range wrk {
 		if wrk[i] == nil {
 			continue
 		}
@@ -438,7 +438,7 @@ func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Message) error {
 	const op = errors.Op("jobs_plugin_push_batch")
 	start := time.Now().UTC()
 
-	for i := 0; i < len(j); i++ {
+	for i := range j {
 		operationStart := time.Now().UTC()
 		// get the pipeline for the job
 		pipe, ok := p.pipelines.Load(j[i].GroupID())

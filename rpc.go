@@ -47,7 +47,7 @@ func (r *rpc) PushBatch(j *jobsProto.PushBatchRequest, _ *jobsProto.Empty) error
 
 	batch := make([]jobs.Message, l)
 
-	for i := 0; i < l; i++ {
+	for i := range l {
 		// convert transport entity into domain
 		// how we can do this quickly
 		batch[i] = from(j.GetJobs()[i])
@@ -66,7 +66,7 @@ func (r *rpc) PushBatch(j *jobsProto.PushBatchRequest, _ *jobsProto.Empty) error
 }
 
 func (r *rpc) Pause(req *jobsProto.Pipelines, _ *jobsProto.Empty) error {
-	for i := 0; i < len(req.GetPipelines()); i++ {
+	for i := range req.GetPipelines() {
 		ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "pause_pipeline", trace.WithSpanKind(trace.SpanKindServer))
 		err := r.p.Pause(ctx, req.GetPipelines()[i])
 		if err != nil {
@@ -87,7 +87,7 @@ func (r *rpc) Pause(req *jobsProto.Pipelines, _ *jobsProto.Empty) error {
 func (r *rpc) Resume(req *jobsProto.Pipelines, _ *jobsProto.Empty) error {
 	ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "resume_pipeline", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
-	for i := 0; i < len(req.GetPipelines()); i++ {
+	for i := range req.GetPipelines() {
 		err := r.p.Resume(ctx, req.GetPipelines()[i])
 		if err != nil {
 			span.SetAttributes(attribute.KeyValue{
@@ -145,7 +145,7 @@ func (r *rpc) Destroy(req *jobsProto.Pipelines, resp *jobsProto.Pipelines) error
 	errg.SetLimit(r.p.cfg.CfgOptions.Parallelism)
 
 	var destroyed []string
-	for i := 0; i < len(req.GetPipelines()); i++ {
+	for i := range req.GetPipelines() {
 		errg.Go(func() error {
 			ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "destroy_pipeline", trace.WithSpanKind(trace.SpanKindServer))
 			err := r.p.Destroy(ctx, req.GetPipelines()[i])
@@ -196,7 +196,7 @@ func (r *rpc) Stat(_ *jobsProto.Empty, resp *jobsProto.Stats) error {
 		return errors.E(op, err)
 	}
 
-	for i := 0; i < len(state); i++ {
+	for i := range state {
 		resp.Stats = append(resp.Stats, &jobsProto.Stat{
 			Pipeline: state[i].Pipeline,
 			Priority: state[i].Priority,
