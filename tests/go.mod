@@ -2,11 +2,11 @@ module tests
 
 go 1.24
 
-toolchain go1.24.0
+toolchain go1.24.2
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/roadrunner-server/amqp/v5 v5.1.6
+	github.com/roadrunner-server/amqp/v5 v5.2.0
 	github.com/roadrunner-server/api/v4 v4.19.0
 	github.com/roadrunner-server/beanstalk/v5 v5.1.6
 	github.com/roadrunner-server/config/v5 v5.1.6
@@ -105,6 +105,7 @@ require (
 	golang.org/x/sync v0.13.0 // indirect
 	golang.org/x/sys v0.32.0 // indirect
 	golang.org/x/text v0.24.0 // indirect
+	google.golang.org/genproto v0.0.0-20250422160041-2d3770c4ea7f // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

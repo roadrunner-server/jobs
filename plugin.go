@@ -156,13 +156,13 @@ func (p *Plugin) Serve() chan error {
 		p.tracer = sdktrace.NewTracerProvider()
 	}
 
-	err := p.eventBus.SubscribeP(p.id, fmt.Sprintf("*.%s", events.EventJOBSDriverCommand.String()), p.eventsCh)
+	err := p.eventBus.SubscribeP(p.id, fmt.Sprintf("*.%s", events.EventJOBSDriverCommand), p.eventsCh)
 	if err != nil {
 		errCh <- errors.E(op, err)
 		return errCh
 	}
 
-	go p.readCommands()
+	go p.readCommands(errCh)
 
 	// register initial pipelines
 	p.pipelines.Range(func(key, value any) bool {
@@ -635,7 +635,7 @@ func (p *Plugin) pipelineExists(pp string) (jobsApi.Driver, jobsApi.Pipeline, er
 	return d.(jobsApi.Driver), ppl, nil
 }
 
-func (p *Plugin) readCommands() {
+func (p *Plugin) readCommands(errCh chan error) {
 	for {
 		select {
 		case ev := <-p.eventsCh:
@@ -712,11 +712,11 @@ func (p *Plugin) readCommands() {
 					})
 
 					p.jobsProcessor.wait()
+					// if we have errors when restarting the pipeline, we should stop RR
 					if p.jobsProcessor.hasErrors() {
-						// TODO(rustatian): pretty print errors
-						p.log.Error("failed to restart the pipeline", zap.Errors("errors", p.jobsProcessor.errors()))
 						span.End()
-						continue
+						errCh <- fmt.Errorf("failed to restart the pipeline, errors: %v", p.jobsProcessor.errors())
+						return
 					}
 
 					// Store the pipeline, consumer would be added by the processor
