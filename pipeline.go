@@ -75,8 +75,20 @@ func (p Pipeline) String(name string, d string) string {
 		// check the config section if exists
 		if val, ok := p[config]; ok {
 			if rv, ok := val.(map[string]any); ok {
-				if rv[name] != "" {
-					return rv[name].(string)
+				if rv[name] == nil {
+					return d
+				}
+
+				switch v := rv[name].(type) {
+				case string:
+					if v != "" {
+						return v
+					}
+					return d
+				case nil:
+					return d
+				default:
+					return d
 				}
 			}
 		}
