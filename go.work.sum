@@ -232,6 +232,8 @@ github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10/go.mod h1
 github.com/prometheus/client_golang v1.20.0/go.mod h1:PIEt8X02hGcP8JWbeHyeZ53Y/jReSnHgO035n//V5WE=
 github.com/prometheus/procfs v0.11.1/go.mod h1:eesXgaPo1q7lBpVMoMy0ZOFTth9hBn4W/y0/p/ScXhY=
 github.com/roadrunner-server/amqp/v4 v4.11.5/go.mod h1:SVUb2tHWHDnWLC8eMpcwxlFq704O0RsIcjfyVuM3RDk=
+github.com/roadrunner-server/amqp/v5 v5.2.0 h1:58FmaUnncAw9bt8mWhDGX8n99Gj5duONjeTsVVGP9+o=
+github.com/roadrunner-server/amqp/v5 v5.2.0/go.mod h1:HVQL/V8qKgZYdpnctHGKj1nwsTiiiRZrntFkngshu8Q=
 github.com/roadrunner-server/beanstalk/v4 v4.8.5 h1:D1Y3zDgnaJDU+C3v9SLP9tAJlWFt0HM/FHHHeiFcdQ4=
 github.com/roadrunner-server/beanstalk/v4 v4.8.5/go.mod h1:Y8Oou8FWKwwBMikt7fpaDfwcz0As74KYS36Eu2YhmKQ=
 github.com/roadrunner-server/config/v4 v4.9.3 h1:YZ2OkNT8OLwG/ulc2+GcQJzCCclGe5sy/onnInAxGY4=
@@ -458,6 +460,8 @@ google.golang.org/genproto v0.0.0-20240213162025-012b6fc9bca9 h1:9+tzLLstTlPTRyJ
 google.golang.org/genproto v0.0.0-20240213162025-012b6fc9bca9/go.mod h1:mqHbVIp48Muh7Ywss/AD6I5kNVKZMmAa/QEW58Gxp2s=
 google.golang.org/genproto v0.0.0-20241118233622-e639e219e697 h1:ToEetK57OidYuqD4Q5w+vfEnPvPpuTwedCNVohYJfNk=
 google.golang.org/genproto v0.0.0-20241118233622-e639e219e697/go.mod h1:JJrvXBWRZaFMxBufik1a4RpFw4HhgVtBBWQeQgUj2cc=
+google.golang.org/genproto v0.0.0-20250422160041-2d3770c4ea7f h1:iZiXS7qm4saaCcdK7S/i1Qx9ZHO2oa16HQqwYc1tPKY=
+google.golang.org/genproto v0.0.0-20250422160041-2d3770c4ea7f/go.mod h1:Cej/8iHf9mPl71o/a+R1rrvSFrAAVCUFX9s/sbNttBc=
 google.golang.org/genproto/googleapis/api v0.0.0-20230822172742-b8732ec3820d h1:DoPTO70H+bcDXcd39vOqb2viZxgqeBeSGtZ55yZU4/Q=
 google.golang.org/genproto/googleapis/api v0.0.0-20230822172742-b8732ec3820d/go.mod h1:KjSP20unUpOx5kyQUFa7k4OJg0qeJ7DEZflGDu2p6Bk=
 google.golang.org/genproto/googleapis/api v0.0.0-20231002182017-d307bd883b97 h1:W18sezcAYs+3tDZX4F80yctqa12jcP1PUS2gQu1zTPU=
