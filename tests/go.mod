@@ -10,7 +10,7 @@ require (
 	github.com/roadrunner-server/api/v4 v4.20.0
 	github.com/roadrunner-server/beanstalk/v5 v5.1.7
 	github.com/roadrunner-server/config/v5 v5.1.7
-	github.com/roadrunner-server/endure/v2 v2.6.1
+	github.com/roadrunner-server/endure/v2 v2.6.2
 	github.com/roadrunner-server/goridge/v3 v3.8.3
 	github.com/roadrunner-server/informer/v5 v5.1.7
 	github.com/roadrunner-server/jobs/v5 v5.0.0
