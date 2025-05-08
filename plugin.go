@@ -220,8 +220,10 @@ func (p *Plugin) Serve() chan error {
 				return errCh
 			}
 		}
+	} else {
+		p.workersPool, err = p.server.NewPool(context.Background(), p.cfg.Pool, map[string]string{RrMode: RrModeJobs}, nil)
 	}
-	p.workersPool, err = p.server.NewPool(context.Background(), p.cfg.Pool, map[string]string{RrMode: RrModeJobs}, nil)
+
 	if err != nil {
 		p.mu.Unlock()
 		errCh <- errors.E(op, err)
