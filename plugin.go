@@ -53,6 +53,7 @@ type Plugin struct {
 	cfg         *Config `mapstructure:"jobs"`
 	log         *zap.Logger
 	workersPool Pool
+	workerPools map[string]Pool
 	server      Server
 	eventBus    events.EventBus
 	eventsCh    chan events.Event
@@ -209,7 +210,17 @@ func (p *Plugin) Serve() chan error {
 	}
 
 	p.mu.Lock()
-
+	if p.cfg.Pools != nil {
+		p.workerPools = make(map[string]Pool, len(p.cfg.Pools))
+		for poolName, poolCfg := range p.cfg.Pools {
+			p.workerPools[poolName], err = p.server.NewPool(context.Background(), poolCfg, map[string]string{RrMode: RrModeJobs}, nil)
+			if err != nil {
+				p.mu.Unlock()
+				errCh <- errors.E(op, err)
+				return errCh
+			}
+		}
+	}
 	p.workersPool, err = p.server.NewPool(context.Background(), p.cfg.Pool, map[string]string{RrMode: RrModeJobs}, nil)
 	if err != nil {
 		p.mu.Unlock()
