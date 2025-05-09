@@ -74,6 +74,7 @@ require (
 	github.com/prometheus/common v0.63.0 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/rabbitmq/amqp091-go v1.10.0 // indirect
+	github.com/roadrunner-server/context v1.1.0 // indirect
 	github.com/roadrunner-server/errors v1.4.1 // indirect
 	github.com/roadrunner-server/events v1.0.1 // indirect
 	github.com/roadrunner-server/pool v1.1.3 // indirect
