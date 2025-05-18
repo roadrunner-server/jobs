@@ -26,6 +26,8 @@ type Config struct {
 	PipelineSize uint64 `mapstructure:"pipeline_size"`
 	// Timeout in seconds is the per-push limit to put the job into the queue
 	Timeout int `mapstructure:"timeout"`
+	// Pools is a map of worker pools, where the key is the name of the pool and the value is the pool configuration
+	Pools map[string]*poolImpl.Config `mapstructure:"pools"`
 	// Pool configures roadrunner workers pool.
 	Pool *poolImpl.Config `mapstructure:"pool"`
 	// Pipelines define mapping between PHP job pipeline and associated job broker.
@@ -40,10 +42,33 @@ type CfgOptions struct {
 }
 
 func (c *Config) InitDefaults() {
-	if c.Pool == nil {
+	switch {
+	// case where pool is nil and should be initialized, no pools option (default, most common case)
+	case c.Pool == nil && len(c.Pools) == 0:
 		c.Pool = &poolImpl.Config{}
+		c.Pool.InitDefaults()
+		c.NumPollers = int(c.Pool.NumWorkers) + 2 //nolint:gosec
+		// pool is initialized, force to use correct number of pollers
+	case c.Pool != nil:
+		c.NumPollers = int(c.Pool.NumWorkers) + 2 //nolint:gosec
+		// we have pools option
+	case len(c.Pools) > 0:
+		// in this case we should invalidate the default pool
+		// and set the number of pollers to the sum of all pools
+
+		if c.Pool != nil {
+			c.Pool = nil
+		}
+
+		var wn uint64
+		for _, p := range c.Pools {
+			p.InitDefaults()
+			wn += p.NumWorkers
+		}
+
+		// update set the number of pollers
+		c.NumPollers = int(wn) + 2 //nolint:gosec
 	}
-	c.Pool.InitDefaults()
 
 	if c.CfgOptions == nil {
 		c.CfgOptions = &CfgOptions{
@@ -68,8 +93,4 @@ func (c *Config) InitDefaults() {
 	if c.Timeout == 0 {
 		c.Timeout = 60
 	}
-
-	// number of pollers should be slightly more than the number of workers
-	// overwrite user value, TODO: deprecate this configuration option
-	c.NumPollers = int(c.Pool.NumWorkers) + 2 //nolint:gosec
 }
