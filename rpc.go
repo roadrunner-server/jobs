@@ -164,6 +164,7 @@ func (r *rpc) Destroy(req *jobsProto.Pipelines, resp *jobsProto.Pipelines) error
 	for i := range req.GetPipelines() {
 		errg.Go(func() error {
 			ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "destroy_pipeline", trace.WithSpanKind(trace.SpanKindServer))
+			// TODO: apply mutex here?
 			err := r.p.Destroy(ctx, req.GetPipelines()[i])
 
 			if err != nil {
