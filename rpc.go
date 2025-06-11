@@ -14,11 +14,14 @@ import (
 )
 
 type rpc struct {
-	p *Plugin
+	p  *Plugin
+	mu *sync.Mutex
 }
 
 func (r *rpc) Push(j *jobsProto.PushRequest, _ *jobsProto.Empty) error {
 	const op = errors.Op("rpc_push")
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	// convert transport entity into domain
 	// how we can do this quickly
