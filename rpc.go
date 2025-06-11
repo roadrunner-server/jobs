@@ -156,12 +156,11 @@ func (r *rpc) Destroy(req *jobsProto.Pipelines, resp *jobsProto.Pipelines) error
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	mu := sync.Mutex{}
-
 	errg := errgroup.Group{}
 	errg.SetLimit(r.p.cfg.CfgOptions.Parallelism)
 
 	var destroyed []string
+	localMu := &sync.Mutex{}
 	for i := range req.GetPipelines() {
 		errg.Go(func() error {
 			ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "destroy_pipeline", trace.WithSpanKind(trace.SpanKindServer))
@@ -175,9 +174,10 @@ func (r *rpc) Destroy(req *jobsProto.Pipelines, resp *jobsProto.Pipelines) error
 				span.End()
 				return errors.E(op, err)
 			}
-			mu.Lock()
+
+			localMu.Lock()
 			destroyed = append(destroyed, req.GetPipelines()[i])
-			mu.Unlock()
+			localMu.Unlock()
 			span.End()
 			return nil
 		})
