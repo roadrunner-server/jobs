@@ -607,7 +607,8 @@ func (p *Plugin) List() []string {
 
 func (p *Plugin) RPC() any {
 	return &rpc{
-		p: p,
+		p:  p,
+		mu: &sync.Mutex{},
 	}
 }
 
