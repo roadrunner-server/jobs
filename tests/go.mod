@@ -6,23 +6,23 @@ toolchain go1.25.1
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/roadrunner-server/amqp/v5 v5.2.2
+	github.com/roadrunner-server/amqp/v5 v5.2.3
 	github.com/roadrunner-server/api/v4 v4.22.1
-	github.com/roadrunner-server/beanstalk/v5 v5.1.8
-	github.com/roadrunner-server/config/v5 v5.1.8
+	github.com/roadrunner-server/beanstalk/v5 v5.1.9
+	github.com/roadrunner-server/config/v5 v5.1.9
 	github.com/roadrunner-server/endure/v2 v2.6.2
 	github.com/roadrunner-server/goridge/v3 v3.8.3
-	github.com/roadrunner-server/informer/v5 v5.1.8
-	github.com/roadrunner-server/jobs/v5 v5.1.8
-	github.com/roadrunner-server/kafka/v5 v5.2.4
-	github.com/roadrunner-server/logger/v5 v5.1.8
-	github.com/roadrunner-server/memory/v5 v5.2.8
-	github.com/roadrunner-server/metrics/v5 v5.1.8
-	github.com/roadrunner-server/nats/v5 v5.1.8
-	github.com/roadrunner-server/resetter/v5 v5.1.8
-	github.com/roadrunner-server/rpc/v5 v5.1.8
-	github.com/roadrunner-server/server/v5 v5.2.9
-	github.com/roadrunner-server/sqs/v5 v5.1.8
+	github.com/roadrunner-server/informer/v5 v5.1.9
+	github.com/roadrunner-server/jobs/v5 v5.1.9
+	github.com/roadrunner-server/kafka/v5 v5.2.5
+	github.com/roadrunner-server/logger/v5 v5.1.9
+	github.com/roadrunner-server/memory/v5 v5.2.9
+	github.com/roadrunner-server/metrics/v5 v5.1.9
+	github.com/roadrunner-server/nats/v5 v5.1.9
+	github.com/roadrunner-server/resetter/v5 v5.1.9
+	github.com/roadrunner-server/rpc/v5 v5.1.9
+	github.com/roadrunner-server/server/v5 v5.2.10
+	github.com/roadrunner-server/sqs/v5 v5.1.9
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.27.0
 )
@@ -30,7 +30,6 @@ require (
 replace github.com/roadrunner-server/jobs/v5 => ../
 
 require (
-	github.com/aws/aws-sdk-go v1.55.8 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.39.0 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.31.8 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.12 // indirect
@@ -57,7 +56,6 @@ require (
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
-	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
@@ -77,7 +75,7 @@ require (
 	github.com/roadrunner-server/errors v1.4.1 // indirect
 	github.com/roadrunner-server/events v1.0.1 // indirect
 	github.com/roadrunner-server/pool v1.1.3 // indirect
-	github.com/roadrunner-server/priority_queue v1.0.5 // indirect
+	github.com/roadrunner-server/priority_queue v1.0.6 // indirect
 	github.com/roadrunner-server/tcplisten v1.5.2 // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect
 	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
@@ -94,7 +92,7 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
-	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
+	go.opentelemetry.io/auto/sdk v1.2.0 // indirect
 	go.opentelemetry.io/contrib/propagators/jaeger v1.38.0 // indirect
 	go.opentelemetry.io/otel v1.38.0 // indirect
 	go.opentelemetry.io/otel/metric v1.38.0 // indirect
