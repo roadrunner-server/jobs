@@ -13,17 +13,12 @@ import (
 
 // non blocking listener
 func (p *Plugin) extractMin() {
-	// the logic is simple, we should convert blocking call to non-blocking
+	// the logic is simple, we should convert blocking call to a bloking but on the channel
 	// so we introduce a channel which will be filled with the minimum job from the queue
 	// in the listener we will read from the channel instead of reading from the queue directly
 	go func() {
 		for {
-			select {
-			case p.minCh <- p.queue.ExtractMin():
-			case <-p.stopCh:
-				close(p.minCh)
-				return
-			}
+			p.minCh <- p.queue.ExtractMin()
 		}
 	}()
 }
@@ -42,11 +37,7 @@ func (p *Plugin) listener() {
 					p.log.Debug("------> job poller was stopped <------")
 					return
 					// get prioritized JOB from the queue
-				case jb, ok := <-p.minCh:
-					if !ok {
-						p.log.Debug("------> job poller was stopped <------")
-						return
-					}
+				case jb := <-p.minCh:
 					start := time.Now().UTC()
 
 					traceCtx := otel.GetTextMapPropagator().Extract(context.Background(), propagation.HeaderCarrier(jb.Headers()))

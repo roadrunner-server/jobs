@@ -128,7 +128,7 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 	}
 
 	// initialize pollers wg channel
-	p.minCh = make(chan jobsApi.Job, 5)
+	p.minCh = make(chan jobsApi.Job, 10)
 	p.pollersWgChan = make(chan struct{})
 
 	// initialize priority queue
