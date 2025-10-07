@@ -2,7 +2,7 @@ module tests
 
 go 1.25
 
-toolchain go1.25.1
+toolchain go1.25.2
 
 require (
 	github.com/google/uuid v1.6.0
@@ -69,7 +69,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
-	github.com/prometheus/common v0.66.1 // indirect
+	github.com/prometheus/common v0.67.1 // indirect
 	github.com/prometheus/procfs v0.17.0 // indirect
 	github.com/rabbitmq/amqp091-go v1.10.0 // indirect
 	github.com/roadrunner-server/errors v1.4.1 // indirect
@@ -104,7 +104,7 @@ require (
 	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/sys v0.36.0 // indirect
 	golang.org/x/text v0.29.0 // indirect
-	google.golang.org/genproto v0.0.0-20251002232023-7c0ddcbb5797 // indirect
+	google.golang.org/genproto v0.0.0-20251006185510-65f7160b3a87 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
