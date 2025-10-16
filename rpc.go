@@ -14,11 +14,15 @@ import (
 )
 
 type rpc struct {
-	p *Plugin
+	p  *Plugin
+	mu *sync.Mutex
 }
 
 func (r *rpc) Push(j *jobsProto.PushRequest, _ *jobsProto.Empty) error {
 	const op = errors.Op("rpc_push")
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	// convert transport entity into domain
 	// how we can do this quickly
@@ -39,6 +43,8 @@ func (r *rpc) Push(j *jobsProto.PushRequest, _ *jobsProto.Empty) error {
 
 func (r *rpc) PushBatch(j *jobsProto.PushBatchRequest, _ *jobsProto.Empty) error {
 	const op = errors.Op("rpc_push_batch")
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "push_batch", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
@@ -66,6 +72,9 @@ func (r *rpc) PushBatch(j *jobsProto.PushBatchRequest, _ *jobsProto.Empty) error
 }
 
 func (r *rpc) Pause(req *jobsProto.Pipelines, _ *jobsProto.Empty) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	for i := range req.GetPipelines() {
 		ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "pause_pipeline", trace.WithSpanKind(trace.SpanKindServer))
 		err := r.p.Pause(ctx, req.GetPipelines()[i])
@@ -85,6 +94,9 @@ func (r *rpc) Pause(req *jobsProto.Pipelines, _ *jobsProto.Empty) error {
 }
 
 func (r *rpc) Resume(req *jobsProto.Pipelines, _ *jobsProto.Empty) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "resume_pipeline", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 	for i := range req.GetPipelines() {
@@ -115,6 +127,9 @@ func (r *rpc) List(_ *jobsProto.Empty, resp *jobsProto.Pipelines) error {
 // 3. Options related to the particular pipeline
 func (r *rpc) Declare(req *jobsProto.DeclareRequest, _ *jobsProto.Empty) error {
 	const op = errors.Op("rpc_declare_pipeline")
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	pipe := Pipeline{}
 
 	ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "declare_pipeline", trace.WithSpanKind(trace.SpanKindServer))
@@ -138,16 +153,18 @@ func (r *rpc) Declare(req *jobsProto.DeclareRequest, _ *jobsProto.Empty) error {
 
 func (r *rpc) Destroy(req *jobsProto.Pipelines, resp *jobsProto.Pipelines) error {
 	const op = errors.Op("rpc_destroy_pipeline")
-
-	mu := sync.Mutex{}
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	errg := errgroup.Group{}
 	errg.SetLimit(r.p.cfg.CfgOptions.Parallelism)
 
 	var destroyed []string
+	localMu := &sync.Mutex{}
 	for i := range req.GetPipelines() {
 		errg.Go(func() error {
 			ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "destroy_pipeline", trace.WithSpanKind(trace.SpanKindServer))
+			// TODO: apply mutex here?
 			err := r.p.Destroy(ctx, req.GetPipelines()[i])
 
 			if err != nil {
@@ -158,9 +175,10 @@ func (r *rpc) Destroy(req *jobsProto.Pipelines, resp *jobsProto.Pipelines) error
 				span.End()
 				return errors.E(op, err)
 			}
-			mu.Lock()
+
+			localMu.Lock()
 			destroyed = append(destroyed, req.GetPipelines()[i])
-			mu.Unlock()
+			localMu.Unlock()
 			span.End()
 			return nil
 		})
@@ -181,6 +199,9 @@ func (r *rpc) Destroy(req *jobsProto.Pipelines, resp *jobsProto.Pipelines) error
 
 func (r *rpc) Stat(_ *jobsProto.Empty, resp *jobsProto.Stats) error {
 	const op = errors.Op("rpc_stats")
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 

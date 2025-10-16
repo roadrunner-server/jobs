@@ -68,6 +68,7 @@ type Plugin struct {
 
 	// priority queue implementation
 	queue jobsApi.Queue
+	minCh chan jobsApi.Job
 
 	// parent config for broken options. keys are pipelines names, values - pointers to the associated pipeline
 	pipelines sync.Map
@@ -127,8 +128,8 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 		}
 	}
 
-	// initialize pollers wait group
-	p.pollersWg = sync.WaitGroup{}
+	// initialize pollers wg channel
+	p.minCh = make(chan jobsApi.Job, 10)
 	p.pollersWgChan = make(chan struct{})
 
 	// initialize priority queue
@@ -620,7 +621,8 @@ func (p *Plugin) List() []string {
 
 func (p *Plugin) RPC() any {
 	return &rpc{
-		p: p,
+		p:  p,
+		mu: &sync.Mutex{},
 	}
 }
 
