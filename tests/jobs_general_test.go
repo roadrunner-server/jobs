@@ -454,10 +454,6 @@ func get() (string, error) {
 		return "", err
 	}
 
-	err = r.Body.Close()
-	if err != nil {
-		return "", err
-	}
 	// unsafe
 	return string(b), err
 }
