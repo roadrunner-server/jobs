@@ -69,14 +69,22 @@ func (p *Plugin) listener() {
 						continue
 					}
 
-					var currPool Pool
 					headers := jb.Headers()
 					// check if the job should be executed on the different pool
 					if len(headers) > 0 && len(headers[pool]) > 0 && headers[pool][0] != "" {
-						currPool = p.workersPools[headers[pool][0]]
+						currPool := p.workersPools[headers[pool][0]]
 						// we actually should also check if the boxed type is not nil
 						if currPool == nil {
-							panic("pool not found")
+							// invalid pool name, nack the job
+							p.metrics.CountJobErr()
+							p.log.Error("invalid worker pool name", zap.String("pool", headers[pool][0]), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
+							errNack := jb.Nack()
+							if errNack != nil {
+								p.log.Error("negatively acknowledge was failed", zap.String("ID", jb.ID()), zap.Error(errNack))
+							}
+							span.End()
+							jb = nil
+							continue
 						}
 
 						p.Execute(ctx, currPool, jb, span, start)
