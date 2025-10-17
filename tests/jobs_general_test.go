@@ -1,6 +1,7 @@
 package general
 
 import (
+	"context"
 	"io"
 	"log/slog"
 	"net"
@@ -340,30 +341,126 @@ func TestJOBSMetrics(t *testing.T) {
 	wg.Wait()
 }
 
+func TestJobsPools(t *testing.T) {
+	cont := endure.New(slog.LevelDebug)
+
+	cfg := &config.Plugin{
+		Version: "2025.2.0",
+		Path:    "configs/.rr-pools.yaml",
+	}
+
+	l, oLogger := mocklogger.ZapTestLogger(zap.DebugLevel)
+	err := cont.RegisterAll(
+		l,
+		cfg,
+		&server.Plugin{},
+		&rpcPlugin.Plugin{},
+		&jobs.Plugin{},
+		&resetter.Plugin{},
+		&informer.Plugin{},
+		&memory.Plugin{},
+	)
+	assert.NoError(t, err)
+
+	err = cont.Init()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ch, err := cont.Serve()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+
+	stopCh := make(chan struct{}, 1)
+
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case e := <-ch:
+				assert.Fail(t, "error", e.Error.Error())
+				err = cont.Stop()
+				if err != nil {
+					assert.FailNow(t, "error", err.Error())
+				}
+			case <-sig:
+				err = cont.Stop()
+				if err != nil {
+					assert.FailNow(t, "error", err.Error())
+				}
+				return
+			case <-stopCh:
+				// timeout
+				err = cont.Stop()
+				if err != nil {
+					assert.FailNow(t, "error", err.Error())
+				}
+				return
+			}
+		}
+	}()
+
+	time.Sleep(time.Second * 5)
+
+	t.Run("memory", helpers.PushToPipe("test-1-memory", false, "127.0.0.1:6001", []byte("memory1")))
+	t.Run("memory", helpers.PushToPipe("test-2-memory", false, "127.0.0.1:6001", []byte("memory2")))
+	t.Run("memory", helpers.PushToPipe("test-3-memory", false, "127.0.0.1:6001", []byte("memory3")))
+
+	time.Sleep(time.Second * 15)
+
+	t.Run("DestroyPipeline", helpers.DestroyPipelines(
+		"127.0.0.1:6001",
+		"test-1-memory",
+		"test-2-memory",
+		"test-3-memory",
+	))
+
+	stopCh <- struct{}{}
+	wg.Wait()
+
+	time.Sleep(time.Second)
+
+	assert.Equal(t, 3, oLogger.FilterMessageSnippet("pipeline was started").Len())
+	assert.Equal(t, 3, oLogger.FilterMessageSnippet("pipeline was stopped").Len())
+	assert.Equal(t, 3, oLogger.FilterMessageSnippet("job processing was started").Len())
+	assert.Equal(t, 3, oLogger.FilterMessageSnippet("job was processed successfully").Len())
+}
+
 const getAddr = "http://127.0.0.1:2112/metrics"
 
 // get request and return body
 func get() (string, error) {
-	r, err := http.Get(getAddr)
+	r, err := http.NewRequestWithContext(context.Background(), http.MethodGet, getAddr, nil)
 	if err != nil {
 		return "", err
 	}
 
-	b, err := io.ReadAll(r.Body)
+	client := http.DefaultClient
+	resp, err := client.Do(r)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
 
-	err = r.Body.Close()
-	if err != nil {
-		return "", err
-	}
 	// unsafe
 	return string(b), err
 }
 
 func declareMemoryPipe(t *testing.T) {
-	conn, err := net.Dial("tcp", "127.0.0.1:6001")
+	d := net.Dialer{}
+	conn, err := d.DialContext(context.Background(), "tcp", "127.0.0.1:6001")
 	assert.NoError(t, err)
 	client := rpc.NewClientWithCodec(goridgeRpc.NewClientCodec(conn))
 

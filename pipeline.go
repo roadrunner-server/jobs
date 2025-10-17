@@ -16,6 +16,7 @@ const (
 	driver          string = "driver"
 	name            string = "name"
 	queue           string = "queue"
+	pool            string = "pool"
 
 	// config
 	config string = "config"
@@ -27,6 +28,10 @@ const (
 // With pipeline value
 func (p Pipeline) With(name string, value any) {
 	p[name] = value
+}
+
+func (p Pipeline) Pool() string {
+	return p.String(pool, "")
 }
 
 // Name returns pipeline name.

@@ -1,6 +1,8 @@
 package jobs
 
 import (
+	"errors"
+
 	poolImpl "github.com/roadrunner-server/pool/pool"
 )
 
@@ -26,6 +28,8 @@ type Config struct {
 	PipelineSize uint64 `mapstructure:"pipeline_size"`
 	// Timeout in seconds is the per-push limit to put the job into the queue
 	Timeout int `mapstructure:"timeout"`
+	// Pools is a map of worker pools, where the key is the name of the pool and the value is the pool configuration
+	Pools map[string]*poolImpl.Config `mapstructure:"pools"`
 	// Pool configures roadrunner workers pool.
 	Pool *poolImpl.Config `mapstructure:"pool"`
 	// Pipelines define mapping between PHP job pipeline and associated job broker.
@@ -39,11 +43,34 @@ type CfgOptions struct {
 	Parallelism int `mapstructure:"parallelism"`
 }
 
-func (c *Config) InitDefaults() {
-	if c.Pool == nil {
-		c.Pool = &poolImpl.Config{}
+func (c *Config) InitDefaults() error {
+	// restrict using pool and pools options at the same time
+	if c.Pool != nil && len(c.Pools) != 0 {
+		return errors.New("both pool and pools options cannot be set at the same time")
 	}
-	c.Pool.InitDefaults()
+
+	switch {
+	// case where pool is nil and should be initialized, no pools option (default, most common case)
+	// we preserve old behavior, if we don't have a Pool and Pools option, we create a default pool
+	case c.Pool == nil && len(c.Pools) == 0:
+		c.Pool = &poolImpl.Config{}
+		c.Pool.InitDefaults()
+		c.NumPollers = int(c.Pool.NumWorkers) + 2 //nolint:gosec
+		// pool is initialized, force to use correct number of pollers
+	case c.Pool != nil:
+		c.NumPollers = int(c.Pool.NumWorkers) + 2 //nolint:gosec
+		c.Pool.InitDefaults()
+		// we have pools option
+	case c.Pool == nil && len(c.Pools) > 0:
+		var wn uint64
+		for _, p := range c.Pools {
+			p.InitDefaults()
+			wn += p.NumWorkers
+		}
+
+		// update set the number of pollers
+		c.NumPollers = int(wn) + 2 //nolint:gosec
+	}
 
 	if c.CfgOptions == nil {
 		c.CfgOptions = &CfgOptions{
@@ -63,13 +90,14 @@ func (c *Config) InitDefaults() {
 		// set the pipeline name
 		c.Pipelines[k].With(pipelineName, k)
 		c.Pipelines[k].With(priorityKey, int64(c.Pipelines[k].Int(priorityKey, 10)))
+		if c.Pipelines[k].Pool() != "" {
+			c.Pipelines[k].With(pool, c.Pipelines[k].Pool())
+		}
 	}
 
 	if c.Timeout == 0 {
 		c.Timeout = 60
 	}
 
-	// number of pollers should be slightly more than the number of workers
-	// overwrite user value, TODO: deprecate this configuration option
-	c.NumPollers = int(c.Pool.NumWorkers) + 2 //nolint:gosec
+	return nil
 }

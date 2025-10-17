@@ -1,0 +1,58 @@
+version: "3"
+
+rpc:
+  listen: tcp://127.0.0.1:6001
+
+server:
+  command: "php php_test_files/jobs/jobs_ok.php"
+  relay: "pipes"
+
+logs:
+  level: debug
+  encoding: console
+  mode: development
+
+jobs:
+  # num logical cores by default
+  num_pollers: 12
+  # 1mi by default
+  pipeline_size: 100000
+  # worker pool configuration
+  pools:
+    default:
+      num_workers: 10
+      allocate_timeout: 60s
+      destroy_timeout: 60s
+    high_priority:
+      num_workers: 5
+      allocate_timeout: 30s
+      destroy_timeout: 30s
+    low_priority:
+      num_workers: 10
+      allocate_timeout: 60s
+      destroy_timeout: 60s
+
+  # list of broker pipelines associated with endpoints
+  pipelines:
+    test-1-memory:
+      driver: memory
+      pool: default
+      config:
+        priority: 10
+        prefetch: 10000
+
+    test-2-memory:
+      driver: memory
+      pool: high_priority
+      config:
+        priority: 1
+        prefetch: 10000
+
+    test-3-memory:
+      driver: memory
+      pool: low_priority
+      config:
+        priority: 2
+        prefetch: 10000
+
+  consume: ["test-1-memory", "test-2-memory", "test-3-memory"]

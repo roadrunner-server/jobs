@@ -10,6 +10,7 @@ import (
 
 	jobsApi "github.com/roadrunner-server/api/v4/plugins/v4/jobs"
 	"github.com/roadrunner-server/pool/pool/static_pool"
+	"github.com/roadrunner-server/pool/worker"
 	jprop "go.opentelemetry.io/contrib/propagators/jaeger"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -53,9 +54,12 @@ type Plugin struct {
 	cfg         *Config `mapstructure:"jobs"`
 	log         *zap.Logger
 	workersPool Pool
-	server      Server
-	eventBus    events.EventBus
-	eventsCh    chan events.Event
+	// workerPools holds multiple pools if configured
+	// writes only in config phase, reads after that
+	workersPools map[string]Pool
+	server       Server
+	eventBus     events.EventBus
+	eventsCh     chan events.Event
 	// bus id
 	id           string
 	experimental bool
@@ -101,7 +105,10 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 		return errors.E(op, err)
 	}
 
-	p.cfg.InitDefaults()
+	err = p.cfg.InitDefaults()
+	if err != nil {
+		return errors.E(op, err)
+	}
 
 	p.server = server
 
@@ -204,14 +211,25 @@ func (p *Plugin) Serve() chan error {
 	p.jobsProcessor.wait()
 	// check for the errors
 	if p.jobsProcessor.hasErrors() {
-		// TODO(rustatian): pretty print errors
 		errCh <- errors.E(op, stderr.Join(p.jobsProcessor.errors()...))
 		return errCh
 	}
 
 	p.mu.Lock()
+	if p.cfg.Pools != nil {
+		p.workersPools = make(map[string]Pool, len(p.cfg.Pools))
+		for poolName, poolCfg := range p.cfg.Pools {
+			p.workersPools[poolName], err = p.server.NewPool(context.Background(), poolCfg, map[string]string{RrMode: RrModeJobs}, nil)
+			if err != nil {
+				p.mu.Unlock()
+				errCh <- errors.E(op, err)
+				return errCh
+			}
+		}
+	} else {
+		p.workersPool, err = p.server.NewPool(context.Background(), p.cfg.Pool, map[string]string{RrMode: RrModeJobs}, nil)
+	}
 
-	p.workersPool, err = p.server.NewPool(context.Background(), p.cfg.Pool, map[string]string{RrMode: RrModeJobs}, nil)
 	if err != nil {
 		p.mu.Unlock()
 		errCh <- errors.E(op, err)
@@ -234,7 +252,19 @@ func (p *Plugin) Stop(ctx context.Context) error {
 	defer func() {
 		// workers' pool should be stopped
 		p.mu.Lock()
-		if p.workersPool != nil {
+
+		if p.workersPools != nil {
+			for _, wp := range p.workersPools {
+				switch pp := wp.(type) {
+				case *static_pool.Pool:
+					if pp != nil {
+						pp.Destroy(ctx)
+					}
+				default:
+					// pool is nil, nothing to do
+				}
+			}
+		} else if p.workersPool != nil {
 			switch pp := p.workersPool.(type) {
 			case *static_pool.Pool:
 				if pp != nil {
@@ -244,6 +274,7 @@ func (p *Plugin) Stop(ctx context.Context) error {
 				// pool is nil, nothing to do
 			}
 		}
+
 		p.mu.Unlock()
 	}()
 
@@ -313,19 +344,35 @@ func (p *Plugin) Workers() []*process.State {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
-	if p.workersPool == nil {
+	if p.workersPool == nil && p.workersPools == nil {
+		p.log.Warn("pool and pools are nil, can't get workers")
 		return nil
 	}
 
-	wrk := p.workersPool.Workers()
+	if len(p.workersPools) > 0 {
+		var allStates []*process.State
+		for _, wp := range p.workersPools {
+			allStates = append(allStates, p.processState(wp.Workers())...)
+		}
 
-	ps := make([]*process.State, len(wrk))
+		return allStates
+	}
 
-	for i := range wrk {
-		if wrk[i] == nil {
+	if p.workersPool != nil {
+		wrk := p.workersPool.Workers()
+		return p.processState(wrk)
+	}
+
+	return nil
+}
+
+func (p *Plugin) processState(workers []*worker.Process) []*process.State {
+	ps := make([]*process.State, len(workers))
+	for i := range workers {
+		if workers[i] == nil {
 			continue
 		}
-		st, err := process.WorkerProcessState(wrk[i])
+		st, err := process.WorkerProcessState(workers[i])
 		if err != nil {
 			p.log.Error("jobs workers state", zap.Error(err))
 			return nil
@@ -403,7 +450,6 @@ func (p *Plugin) Push(ctx context.Context, j jobsApi.Message) error {
 
 	// type conversion
 	ppl := pipe.(jobsApi.Pipeline)
-
 	d, ok := p.consumers.Load(ppl.Name())
 	if !ok {
 		return errors.E(op, errors.Errorf("consumer not registered for the requested driver: %s", ppl.Driver()))
@@ -418,6 +464,11 @@ func (p *Plugin) Push(ctx context.Context, j jobsApi.Message) error {
 
 	ctx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(p.cfg.Timeout))
 	defer cancel()
+	if val := ppl.Get(pool); val != nil {
+		if valStr, ok := val.(string); ok && valStr != "" {
+			j.Headers()[pool] = []string{valStr}
+		}
+	}
 
 	err := d.(jobsApi.Driver).Push(ctx, j)
 	if err != nil {
@@ -459,6 +510,12 @@ func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Message) error {
 		// if a job has no priority, inherit it from the pipeline
 		if j[i].Priority() == 0 {
 			j[i].UpdatePriority(ppl.Priority())
+		}
+
+		if val := ppl.Get(pool); val != nil {
+			if valStr, ok := val.(string); ok && valStr != "" {
+				j[i].Headers()[pool] = []string{valStr}
+			}
 		}
 
 		ctxPush, cancel := context.WithTimeout(ctx, time.Second*time.Duration(p.cfg.Timeout))
