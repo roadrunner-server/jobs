@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/roadrunner-server/api/v4/plugins/v4/jobs"
-	rrctx "github.com/roadrunner-server/context"
 	"github.com/roadrunner-server/goridge/v3/pkg/frame"
 	"github.com/roadrunner-server/pool/payload"
 	"go.opentelemetry.io/otel"
@@ -70,17 +69,17 @@ func (p *Plugin) listener() {
 						continue
 					}
 
-					var pool Pool
+					var currPool Pool
 					headers := jb.Headers()
 					// check if the job should be executed on the different pool
-					if len(headers) > 0 && len(headers[string(rrctx.PoolName)]) > 0 && headers[string(rrctx.PoolName)][0] != "" {
-						pool = p.workerPools[headers[string(rrctx.PoolName)][0]]
+					if len(headers) > 0 && len(headers[pool]) > 0 && headers[pool][0] != "" {
+						currPool = p.workersPools[headers[pool][0]]
 						// we actually should also check if the boxed type is not nil
-						if pool == nil {
+						if currPool == nil {
 							panic("pool not found")
 						}
 
-						p.Execute(ctx, pool, jb, span, start)
+						p.Execute(ctx, currPool, jb, span, start)
 					} else {
 						p.Execute(ctx, p.workersPool, jb, span, start)
 					}

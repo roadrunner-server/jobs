@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/roadrunner-server/pool/payload"
-	"github.com/roadrunner-server/pool/pool"
+	poolConfig "github.com/roadrunner-server/pool/pool"
 	staticPool "github.com/roadrunner-server/pool/pool/static_pool"
 	"github.com/roadrunner-server/pool/state/process"
 	"github.com/roadrunner-server/pool/worker"
@@ -50,5 +50,5 @@ type Configurer interface {
 
 // Server creates workers for the application.
 type Server interface {
-	NewPool(ctx context.Context, cfg *pool.Config, env map[string]string, _ *zap.Logger) (*staticPool.Pool, error)
+	NewPool(ctx context.Context, cfg *poolConfig.Config, env map[string]string, _ *zap.Logger) (*staticPool.Pool, error)
 }

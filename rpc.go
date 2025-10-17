@@ -24,7 +24,7 @@ func (r *rpc) Push(j *jobsProto.PushRequest, _ *jobsProto.Empty) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// convert transport entity into domain
+	// convert transport entity into a domain
 	// how we can do this quickly
 
 	if j.GetJob().GetId() == "" {

@@ -1,6 +1,8 @@
 package jobs
 
 import (
+	"errors"
+
 	poolImpl "github.com/roadrunner-server/pool/pool"
 )
 
@@ -41,9 +43,15 @@ type CfgOptions struct {
 	Parallelism int `mapstructure:"parallelism"`
 }
 
-func (c *Config) InitDefaults() {
+func (c *Config) InitDefaults() error {
+	// restrict using pool and pools options at the same time
+	if c.Pool != nil && len(c.Pools) != 0 {
+		return errors.New("both pool and pools options cannot be set at the same time")
+	}
+
 	switch {
 	// case where pool is nil and should be initialized, no pools option (default, most common case)
+	// we preserve old behavior, if we don't have a Pool and Pools option, we create a default pool
 	case c.Pool == nil && len(c.Pools) == 0:
 		c.Pool = &poolImpl.Config{}
 		c.Pool.InitDefaults()
@@ -51,15 +59,9 @@ func (c *Config) InitDefaults() {
 		// pool is initialized, force to use correct number of pollers
 	case c.Pool != nil:
 		c.NumPollers = int(c.Pool.NumWorkers) + 2 //nolint:gosec
+		c.Pool.InitDefaults()
 		// we have pools option
-	case len(c.Pools) > 0:
-		// in this case we should invalidate the default pool
-		// and set the number of pollers to the sum of all pools
-
-		if c.Pool != nil {
-			c.Pool = nil
-		}
-
+	case c.Pool == nil && len(c.Pools) > 0:
 		var wn uint64
 		for _, p := range c.Pools {
 			p.InitDefaults()
@@ -88,9 +90,14 @@ func (c *Config) InitDefaults() {
 		// set the pipeline name
 		c.Pipelines[k].With(pipelineName, k)
 		c.Pipelines[k].With(priorityKey, int64(c.Pipelines[k].Int(priorityKey, 10)))
+		if c.Pipelines[k].Pool() != "" {
+			c.Pipelines[k].With(pool, c.Pipelines[k].Pool())
+		}
 	}
 
 	if c.Timeout == 0 {
 		c.Timeout = 60
 	}
+
+	return nil
 }
