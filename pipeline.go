@@ -31,7 +31,7 @@ func (p Pipeline) With(name string, value any) {
 }
 
 func (p Pipeline) Pool() string {
-	return p.String(pool, "default")
+	return p.String(pool, "")
 }
 
 // Name returns pipeline name.

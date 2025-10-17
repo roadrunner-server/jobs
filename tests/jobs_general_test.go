@@ -1,6 +1,7 @@
 package general
 
 import (
+	"context"
 	"io"
 	"log/slog"
 	"net"
@@ -436,12 +437,19 @@ const getAddr = "http://127.0.0.1:2112/metrics"
 
 // get request and return body
 func get() (string, error) {
-	r, err := http.Get(getAddr)
+	r, err := http.NewRequestWithContext(context.Background(), http.MethodGet, getAddr, nil)
 	if err != nil {
 		return "", err
 	}
 
-	b, err := io.ReadAll(r.Body)
+	client := http.DefaultClient
+	resp, err := client.Do(r)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
@@ -455,7 +463,8 @@ func get() (string, error) {
 }
 
 func declareMemoryPipe(t *testing.T) {
-	conn, err := net.Dial("tcp", "127.0.0.1:6001")
+	d := net.Dialer{}
+	conn, err := d.DialContext(context.Background(), "tcp", "127.0.0.1:6001")
 	assert.NoError(t, err)
 	client := rpc.NewClientWithCodec(goridgeRpc.NewClientCodec(conn))
 
