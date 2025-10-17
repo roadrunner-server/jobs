@@ -158,8 +158,8 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 
 		// assign the payload
 		resp = pld.Payload()
-	default:
-		// should never happen
+	case <-time.After(time.Second):
+		// timeout
 		p.metrics.CountJobErr()
 		p.log.Error("worker null response, this is not expected")
 		errNack := jb.Nack()
