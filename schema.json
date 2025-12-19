@@ -1,5 +1,5 @@
 {
-  "$id": "https://raw.githubusercontent.com/roadrunner-server/jobs/refs/heads/master/schema.json",
+  "$id": "https://raw.githubusercontent.com/roadrunner-plugins/jobs/refs/heads/master/schema.json",
   "$schema": "https://json-schema.org/draft/2019-09/schema",
   "description": "All the valid configuration parameters for the jobs plugin for RoadRunner.",
   "title": "roadrunner-jobs",
