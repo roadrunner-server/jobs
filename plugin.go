@@ -719,7 +719,19 @@ func (p *Plugin) pipelineExists(pp string) (jobsApi.Driver, jobsApi.Pipeline, er
 func (p *Plugin) readCommands(errCh chan error) {
 	for {
 		select {
-		case ev := <-p.eventsCh:
+		case ev, ok := <-p.eventsCh:
+			// Check if channel is closed
+			if !ok {
+				p.log.Debug("events channel closed, stopping readCommands goroutine")
+				return
+			}
+
+			// Check for nil event
+			if ev == nil {
+				p.log.Warn("received nil event, ignoring")
+				continue
+			}
+
 			ctx, span := p.tracer.Tracer(spanName).Start(context.Background(), "read_command", trace.WithSpanKind(trace.SpanKindServer))
 			p.log.Debug("received JOBS event", zap.String("message", ev.Message()), zap.String("pipeline", ev.Plugin()))
 			// message can be 'restart', 'stop'.
