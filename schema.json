@@ -27,6 +27,11 @@
       "default": 1000000,
       "minimum": 0
     },
+    "producer_only": {
+      "description": "When set to true, runs the plugin in producer-only mode. No worker pools or pollers will be started, only RPC publishing will be available. Useful for services that only publish jobs but don't consume them.",
+      "type": "boolean",
+      "default": false
+    },
     "consume": {
       "description": "A list of pipelines to be consumed by the server automatically when starting. You can omit this list if you want to start consuming manually. Each item in this list must be defined as a key under `pipelines`.",
       "type": "array",

@@ -215,36 +215,45 @@ func (p *Plugin) Serve() chan error {
 		return errCh
 	}
 
-	p.mu.Lock()
-	if p.cfg.Pools != nil {
-		p.workersPools = make(map[string]Pool, len(p.cfg.Pools))
-		for poolName, poolCfg := range p.cfg.Pools {
-			p.workersPools[poolName], err = p.server.NewPool(context.Background(), poolCfg, map[string]string{RrMode: RrModeJobs}, nil)
-			if err != nil {
-				p.mu.Unlock()
-				errCh <- errors.E(op, err)
-				return errCh
+	// Check if we're in producer-only mode
+	if !p.isProducerOnly() {
+		// Initialize worker pools only when consuming
+		p.mu.Lock()
+		if p.cfg.Pools != nil {
+			p.workersPools = make(map[string]Pool, len(p.cfg.Pools))
+			for poolName, poolCfg := range p.cfg.Pools {
+				p.workersPools[poolName], err = p.server.NewPool(context.Background(), poolCfg, map[string]string{RrMode: RrModeJobs}, nil)
+				if err != nil {
+					p.mu.Unlock()
+					errCh <- errors.E(op, err)
+					return errCh
+				}
 			}
+		} else {
+			p.workersPool, err = p.server.NewPool(context.Background(), p.cfg.Pool, map[string]string{RrMode: RrModeJobs}, nil)
 		}
-	} else {
-		p.workersPool, err = p.server.NewPool(context.Background(), p.cfg.Pool, map[string]string{RrMode: RrModeJobs}, nil)
-	}
 
-	if err != nil {
+		if err != nil {
+			p.mu.Unlock()
+			errCh <- errors.E(op, err)
+			return errCh
+		}
+
+		// start listening (pollers) only when consuming
+		p.listener()
 		p.mu.Unlock()
-		errCh <- errors.E(op, err)
-		return errCh
+	} else {
+		p.log.Info("running in producer-only mode - no worker pools or consumers will be started")
 	}
 
-	// start listening
-	p.listener()
-	p.mu.Unlock()
 	return errCh
 }
 
 func (p *Plugin) Stop(ctx context.Context) error {
-	// Broadcast stop signal to all pollers
-	close(p.stopCh)
+	// Broadcast stop signal to all pollers (only if they were started)
+	if !p.isProducerOnly() {
+		close(p.stopCh)
+	}
 	// drop subscriptions
 	p.eventBus.Unsubscribe(p.id)
 	close(p.eventsCh)
@@ -323,7 +332,10 @@ func (p *Plugin) Stop(ctx context.Context) error {
 		p.jobsProcessor.stop()
 	}
 
-	p.waitPollersFinish(ctx)
+	// Wait for pollers only if they were started
+	if !p.isProducerOnly() {
+		p.waitPollersFinish(ctx)
+	}
 
 	return nil
 }
@@ -343,6 +355,11 @@ func (p *Plugin) Collects() []*dep.In {
 func (p *Plugin) Workers() []*process.State {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
+
+	// In producer-only mode, there are no workers
+	if p.isProducerOnly() {
+		return nil
+	}
 
 	if p.workersPool == nil && p.workersPools == nil {
 		p.log.Warn("pool and pools are nil, can't get workers")
@@ -421,6 +438,11 @@ func (p *Plugin) JobsState(ctx context.Context) ([]*jobsApi.State, error) {
 
 func (p *Plugin) Name() string {
 	return PluginName
+}
+
+// isProducerOnly returns true if the plugin is configured for producer-only mode
+func (p *Plugin) isProducerOnly() bool {
+	return p.cfg.ProducerOnly
 }
 
 func (p *Plugin) Reset() error {
