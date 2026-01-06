@@ -36,6 +36,9 @@ type Config struct {
 	Pipelines map[string]Pipeline `mapstructure:"pipelines"`
 	// Consuming specifies names of pipelines to be consumed on service start.
 	Consume []string `mapstructure:"consume"`
+	// ProducerOnly when set to true, runs the plugin in producer-only mode
+	// No worker pools or pollers will be started, only RPC publishing will be available
+	ProducerOnly bool `mapstructure:"producer_only"`
 }
 
 type CfgOptions struct {
