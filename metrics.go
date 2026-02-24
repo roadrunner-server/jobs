@@ -64,10 +64,10 @@ func newStatsExporter(stats Informer) *statsExporter {
 			Workers: stats,
 		},
 
-		jobsOk:  toPtr(uint64(0)),
-		pushOk:  toPtr(uint64(0)),
-		jobsErr: toPtr(uint64(0)),
-		pushErr: toPtr(uint64(0)),
+		jobsOk:  new(uint64(0)),
+		pushOk:  new(uint64(0)),
+		jobsErr: new(uint64(0)),
+		pushErr: new(uint64(0)),
 
 		pushOkDesc:  prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "push_ok"), "Number of job push", nil, nil),
 		pushErrDesc: prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "push_err"), "Number of jobs push which was failed", nil, nil),
@@ -111,10 +111,6 @@ func (se *statsExporter) Collect(ch chan<- prometheus.Metric) {
 
 	se.pushJobLatencyHistogram.Collect(ch)
 	se.pushJobRequestCounter.Collect(ch)
-}
-
-func toPtr[T any](v T) *T {
-	return &v
 }
 
 // ---- Default exporter ----

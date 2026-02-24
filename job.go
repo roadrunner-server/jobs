@@ -93,7 +93,8 @@ func (j *Job) AutoAck() bool {
 	return j.Options.AutoAck
 }
 
-// Kafka Options ---------------------------------
+// Offset returns the Kafka offset of the job. If Options is nil, it returns 0.
+// Kafka Options
 func (j *Job) Offset() int64 {
 	if j.Options == nil {
 		return 0

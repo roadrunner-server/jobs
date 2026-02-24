@@ -69,7 +69,7 @@ func (c *Config) InitDefaults() error {
 		}
 
 		// update set the number of pollers
-		c.NumPollers = int(wn) + 2 //nolint:gosec
+		c.NumPollers = int(wn) + 2
 	}
 
 	if c.CfgOptions == nil {
