@@ -17,6 +17,7 @@ import (
 	"tests/helpers"
 	mocklogger "tests/mock"
 
+	"github.com/google/uuid"
 	"github.com/roadrunner-server/amqp/v5"
 	jobsProto "github.com/roadrunner-server/api/v4/build/jobs/v1"
 	"github.com/roadrunner-server/beanstalk/v5"
@@ -486,4 +487,106 @@ func consumeMemoryPipe(t *testing.T) {
 	er := &jobsProto.Empty{}
 	err = client.Call("jobs.Resume", pipe, er)
 	assert.NoError(t, err)
+}
+
+func TestTracePropagation(t *testing.T) {
+	cont := endure.New(slog.LevelDebug)
+
+	cfg := &config.Plugin{
+		Version: "2024.2.0",
+		Path:    "configs/.rr-trace-propagation.yaml",
+	}
+
+	l, oLogger := mocklogger.ZapTestLogger(zap.DebugLevel)
+	err := cont.RegisterAll(
+		l,
+		cfg,
+		&server.Plugin{},
+		&rpcPlugin.Plugin{},
+		&jobs.Plugin{},
+		&memory.Plugin{},
+	)
+	assert.NoError(t, err)
+
+	err = cont.Init()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ch, err := cont.Serve()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+
+	stopCh := make(chan struct{}, 1)
+
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case e := <-ch:
+				assert.Fail(t, "error", e.Error.Error())
+				err = cont.Stop()
+				if err != nil {
+					assert.FailNow(t, "error", err.Error())
+				}
+			case <-sig:
+				err = cont.Stop()
+				if err != nil {
+					assert.FailNow(t, "error", err.Error())
+				}
+				return
+			case <-stopCh:
+				// timeout
+				err = cont.Stop()
+				if err != nil {
+					assert.FailNow(t, "error", err.Error())
+				}
+				return
+			}
+		}
+	}()
+
+	time.Sleep(time.Second * 3)
+
+	// Push a job with a known W3C traceparent header
+	conn, err := net.Dial("tcp", "127.0.0.1:6001")
+	require.NoError(t, err)
+	client := rpc.NewClientWithCodec(goridgeRpc.NewClientCodec(conn))
+
+	req := &jobsProto.PushRequest{Job: &jobsProto.Job{
+		Job:     "test/trace",
+		Id:      uuid.NewString(),
+		Payload: []byte(`{"traceparent":"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"}`),
+		Headers: map[string]*jobsProto.HeaderValue{
+			"traceparent": {Value: []string{"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"}},
+		},
+		Options: &jobsProto.Options{
+			Priority: 1,
+			Pipeline: "test-trace",
+		},
+	}}
+
+	er := &jobsProto.Empty{}
+	err = client.Call("jobs.Push", req, er)
+	require.NoError(t, err)
+	_ = conn.Close()
+
+	// Wait for PHP worker to process the job
+	time.Sleep(time.Second * 3)
+
+	// If traceparent was missing, PHP worker would have errored the task
+	require.GreaterOrEqual(t, oLogger.FilterMessageSnippet("job was processed successfully").Len(), 1)
+	require.Equal(t, 0, oLogger.FilterMessageSnippet("jobs protocol error").Len())
+
+	t.Run("DestroyPipeline", helpers.DestroyPipelines("127.0.0.1:6001", "test-trace"))
+
+	stopCh <- struct{}{}
+	wg.Wait()
 }

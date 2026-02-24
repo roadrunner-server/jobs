@@ -2,13 +2,16 @@ package jobs
 
 import (
 	"context"
+	"net/textproto"
 	"sync"
 	"time"
 
 	jobsProto "github.com/roadrunner-server/api/v4/build/jobs/v1"
 	"github.com/roadrunner-server/api/v4/plugins/v4/jobs"
 	"github.com/roadrunner-server/errors"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/errgroup"
 )
@@ -30,11 +33,15 @@ func (r *rpc) Push(j *jobsProto.PushRequest, _ *jobsProto.Empty) error {
 	if j.GetJob().GetId() == "" {
 		return errors.E(op, errors.Str("empty ID field not allowed"))
 	}
-	ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "push", trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := r.p.tracer.Tracer(spanName).Start(rpcContextFromJob(j.GetJob()), "push", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
 	err := r.p.Push(ctx, from(j.GetJob()))
 	if err != nil {
+		span.SetAttributes(attribute.KeyValue{
+			Key:   "error",
+			Value: attribute.StringValue(err.Error()),
+		})
 		return errors.E(op, err)
 	}
 
@@ -46,7 +53,7 @@ func (r *rpc) PushBatch(j *jobsProto.PushBatchRequest, _ *jobsProto.Empty) error
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "push_batch", trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := r.p.tracer.Tracer(spanName).Start(rpcContextFromJobs(j.GetJobs()), "push_batch", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
 	l := len(j.GetJobs())
@@ -259,4 +266,51 @@ func from(j *jobsProto.Job) *Job {
 	}
 
 	return jb
+}
+
+func rpcContextFromJobs(batch []*jobsProto.Job) context.Context {
+	for i := range batch {
+		ctx := rpcContextFromJob(batch[i])
+		if trace.SpanContextFromContext(ctx).IsValid() {
+			return ctx
+		}
+	}
+
+	return context.Background()
+}
+
+func rpcContextFromJob(job *jobsProto.Job) context.Context {
+	if job == nil {
+		return context.Background()
+	}
+
+	return rpcContextFromHeaders(job.GetHeaders())
+}
+
+func rpcContextFromHeaders(headers map[string]*jobsProto.HeaderValue) context.Context {
+	if len(headers) == 0 {
+		return context.Background()
+	}
+
+	carrier := make(propagation.HeaderCarrier, len(headers))
+
+	for k, v := range headers {
+		if v == nil {
+			continue
+		}
+
+		values := v.GetValue()
+		if len(values) == 0 {
+			continue
+		}
+
+		canonical := textproto.CanonicalMIMEHeaderKey(k)
+		if canonical == "" {
+			continue
+		}
+
+		carrier[canonical] = append(carrier[canonical], values...)
+	}
+
+	return otel.GetTextMapPropagator().Extract(context.Background(), carrier)
 }
