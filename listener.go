@@ -86,6 +86,20 @@ func (p *Plugin) listener() {
 
 						p.Execute(ctx, currPool, jb, span, start)
 					} else {
+						if p.workersPool == nil {
+							p.metrics.CountJobErr()
+							p.log.Error("no default worker pool configured; job requires a 'pool' header in multi-pool mode",
+								zap.String("ID", jb.ID()),
+								zap.Time("start", start),
+								zap.Int64("elapsed", time.Since(start).Milliseconds()))
+							errNack := jb.Nack()
+							if errNack != nil {
+								p.log.Error("negatively acknowledge was failed", zap.String("ID", jb.ID()), zap.Error(errNack))
+							}
+							span.End()
+							jb = nil
+							continue
+						}
 						p.Execute(ctx, p.workersPool, jb, span, start)
 					}
 				}
@@ -176,6 +190,7 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 		p.putPayload(exec)
 		jb = nil
 		span.End()
+		return
 	}
 
 	// if the response is nil or body is nil, acknowledge the job
