@@ -3,7 +3,7 @@ package jobs
 import (
 	"testing"
 
-	jobsProto "github.com/roadrunner-server/api/v4/build/jobs/v1"
+	jobsProto "github.com/roadrunner-server/api-go/v6/jobs/v2"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
@@ -12,7 +12,7 @@ import (
 func TestRPCContextFromHeadersLowercaseTraceparent(t *testing.T) {
 	withTraceContextPropagator(t)
 
-	ctx := rpcContextFromHeaders(map[string]*jobsProto.HeaderValue{
+	ctx := rpcContextFromHeaders(map[string]*jobsProto.JobHeaderValue{
 		"traceparent": headerValue("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"),
 	})
 
@@ -37,7 +37,7 @@ func TestRPCContextFromHeadersLowercaseTraceparent(t *testing.T) {
 func TestRPCContextFromHeadersCanonicalTraceparent(t *testing.T) {
 	withTraceContextPropagator(t)
 
-	ctx := rpcContextFromHeaders(map[string]*jobsProto.HeaderValue{
+	ctx := rpcContextFromHeaders(map[string]*jobsProto.JobHeaderValue{
 		"Traceparent": headerValue("00-11111111111111111111111111111111-2222222222222222-01"),
 	})
 
@@ -56,7 +56,7 @@ func TestRPCContextFromHeadersFallbackOnInvalidTraceparent(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		headers map[string]*jobsProto.HeaderValue
+		headers map[string]*jobsProto.JobHeaderValue
 	}{
 		{
 			name:    "nil headers",
@@ -64,23 +64,23 @@ func TestRPCContextFromHeadersFallbackOnInvalidTraceparent(t *testing.T) {
 		},
 		{
 			name:    "empty headers",
-			headers: map[string]*jobsProto.HeaderValue{},
+			headers: map[string]*jobsProto.JobHeaderValue{},
 		},
 		{
 			name: "invalid traceparent",
-			headers: map[string]*jobsProto.HeaderValue{
+			headers: map[string]*jobsProto.JobHeaderValue{
 				"traceparent": headerValue("invalid"),
 			},
 		},
 		{
 			name: "empty traceparent",
-			headers: map[string]*jobsProto.HeaderValue{
+			headers: map[string]*jobsProto.JobHeaderValue{
 				"traceparent": headerValue(),
 			},
 		},
 		{
 			name: "nil header value",
-			headers: map[string]*jobsProto.HeaderValue{
+			headers: map[string]*jobsProto.JobHeaderValue{
 				"traceparent": nil,
 			},
 		},
@@ -102,17 +102,17 @@ func TestRPCContextFromJobsUsesFirstValidContext(t *testing.T) {
 	ctx := rpcContextFromJobs([]*jobsProto.Job{
 		nil,
 		{
-			Headers: map[string]*jobsProto.HeaderValue{
+			Headers: map[string]*jobsProto.JobHeaderValue{
 				"traceparent": headerValue("invalid"),
 			},
 		},
 		{
-			Headers: map[string]*jobsProto.HeaderValue{
+			Headers: map[string]*jobsProto.JobHeaderValue{
 				"traceparent": headerValue("00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01"),
 			},
 		},
 		{
-			Headers: map[string]*jobsProto.HeaderValue{
+			Headers: map[string]*jobsProto.JobHeaderValue{
 				"traceparent": headerValue("00-cccccccccccccccccccccccccccccccc-dddddddddddddddd-01"),
 			},
 		},
@@ -134,7 +134,7 @@ func TestRPCContextFromJobsFallbackWhenNoValidContext(t *testing.T) {
 	ctx := rpcContextFromJobs([]*jobsProto.Job{
 		{},
 		{
-			Headers: map[string]*jobsProto.HeaderValue{
+			Headers: map[string]*jobsProto.JobHeaderValue{
 				"traceparent": headerValue("invalid"),
 			},
 		},
@@ -157,6 +157,6 @@ func withTraceContextPropagator(t *testing.T) {
 	})
 }
 
-func headerValue(v ...string) *jobsProto.HeaderValue {
-	return &jobsProto.HeaderValue{Value: v}
+func headerValue(v ...string) *jobsProto.JobHeaderValue {
+	return &jobsProto.JobHeaderValue{Values: v}
 }

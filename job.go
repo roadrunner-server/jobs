@@ -23,9 +23,9 @@ type Options struct {
 	// pointer to distinguish 0 as a priority and nil as priority not set
 	Priority int64 `json:"priority"`
 	// Pipeline manually specified pipeline.
-	Pipeline string `json:"pipeline,omitempty"`
+	Pipeline string `json:"pipeline,omitzero"`
 	// Delay defines time duration to delay execution for. Defaults to none.
-	Delay int64 `json:"delay,omitempty"`
+	Delay int64 `json:"delay,omitzero"`
 	// AutoAck use to ack a job right after it arrived from the driver
 	AutoAck bool `json:"auto_ack"`
 
@@ -126,5 +126,3 @@ func (j *Job) Metadata() string {
 
 	return j.Options.Metadata
 }
-
-// Kafka Options ---------------------------------

@@ -7,10 +7,6 @@ import (
 )
 
 const (
-	// name used to set pipeline name
-	pipelineName string = "name"
-	priorityKey  string = "priority"
-
 	// createdWithConfig and createdWithDeclare are used to determine how the pipeline was created
 	createdWithConfig  string = "created_with_config"
 	createdWithDeclare string = "created_with_declare"
@@ -88,8 +84,8 @@ func (c *Config) InitDefaults() error {
 
 	for k := range c.Pipelines {
 		// set the pipeline name
-		c.Pipelines[k].With(pipelineName, k)
-		c.Pipelines[k].With(priorityKey, int64(c.Pipelines[k].Int(priorityKey, 10)))
+		c.Pipelines[k].With(name, k)
+		c.Pipelines[k].With(priority, int64(c.Pipelines[k].Int(priority, 10)))
 		if c.Pipelines[k].Pool() != "" {
 			c.Pipelines[k].With(pool, c.Pipelines[k].Pool())
 		}

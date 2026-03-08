@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	jobsProto "github.com/roadrunner-server/api/v4/build/jobs/v1"
-	"github.com/roadrunner-server/api/v4/plugins/v4/jobs"
+	jobsProto "github.com/roadrunner-server/api-go/v6/jobs/v2"
+	"github.com/roadrunner-server/api-plugins/v6/jobs"
 	"github.com/roadrunner-server/errors"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -21,7 +21,11 @@ type rpc struct {
 	mu *sync.Mutex
 }
 
-func (r *rpc) Push(j *jobsProto.PushRequest, _ *jobsProto.Empty) error {
+func spanError(span trace.Span, err error) {
+	span.SetAttributes(attribute.String("error", err.Error()))
+}
+
+func (r *rpc) Push(j *jobsProto.PushRequest, _ *jobsProto.JobResponse) error {
 	const op = errors.Op("rpc_push")
 
 	r.mu.Lock()
@@ -33,27 +37,24 @@ func (r *rpc) Push(j *jobsProto.PushRequest, _ *jobsProto.Empty) error {
 	if j.GetJob().GetId() == "" {
 		return errors.E(op, errors.Str("empty ID field not allowed"))
 	}
-	ctx, span := r.p.tracer.Tracer(spanName).Start(rpcContextFromJob(j.GetJob()), "push", trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := r.p.tracer.Tracer(PluginName).Start(rpcContextFromJob(j.GetJob()), "push", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
 	err := r.p.Push(ctx, from(j.GetJob()))
 	if err != nil {
-		span.SetAttributes(attribute.KeyValue{
-			Key:   "error",
-			Value: attribute.StringValue(err.Error()),
-		})
+		spanError(span, err)
 		return errors.E(op, err)
 	}
 
 	return nil
 }
 
-func (r *rpc) PushBatch(j *jobsProto.PushBatchRequest, _ *jobsProto.Empty) error {
+func (r *rpc) PushBatch(j *jobsProto.PushBatchRequest, _ *jobsProto.JobResponse) error {
 	const op = errors.Op("rpc_push_batch")
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	ctx, span := r.p.tracer.Tracer(spanName).Start(rpcContextFromJobs(j.GetJobs()), "push_batch", trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := r.p.tracer.Tracer(PluginName).Start(rpcContextFromJobs(j.GetJobs()), "push_batch", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
 	l := len(j.GetJobs())
@@ -68,29 +69,22 @@ func (r *rpc) PushBatch(j *jobsProto.PushBatchRequest, _ *jobsProto.Empty) error
 
 	err := r.p.PushBatch(ctx, batch)
 	if err != nil {
-		span.SetAttributes(attribute.KeyValue{
-			Key:   "error",
-			Value: attribute.StringValue(err.Error()),
-		})
+		spanError(span, err)
 		return errors.E(op, err)
 	}
 
 	return nil
 }
 
-func (r *rpc) Pause(req *jobsProto.Pipelines, _ *jobsProto.Empty) error {
+func (r *rpc) Pause(req *jobsProto.Pipelines, _ *jobsProto.JobResponse) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	for i := range req.GetPipelines() {
-		ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "pause_pipeline", trace.WithSpanKind(trace.SpanKindServer))
+		ctx, span := r.p.tracer.Tracer(PluginName).Start(context.Background(), "pause_pipeline", trace.WithSpanKind(trace.SpanKindServer))
 		err := r.p.Pause(ctx, req.GetPipelines()[i])
 		if err != nil {
-			span.SetAttributes(attribute.KeyValue{
-				Key:   "error",
-				Value: attribute.StringValue(err.Error()),
-			})
-
+			spanError(span, err)
 			span.End()
 			return err
 		}
@@ -100,19 +94,16 @@ func (r *rpc) Pause(req *jobsProto.Pipelines, _ *jobsProto.Empty) error {
 	return nil
 }
 
-func (r *rpc) Resume(req *jobsProto.Pipelines, _ *jobsProto.Empty) error {
+func (r *rpc) Resume(req *jobsProto.Pipelines, _ *jobsProto.JobResponse) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "resume_pipeline", trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := r.p.tracer.Tracer(PluginName).Start(context.Background(), "resume_pipeline", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 	for i := range req.GetPipelines() {
 		err := r.p.Resume(ctx, req.GetPipelines()[i])
 		if err != nil {
-			span.SetAttributes(attribute.KeyValue{
-				Key:   "error",
-				Value: attribute.StringValue(err.Error()),
-			})
+			spanError(span, err)
 			return err
 		}
 	}
@@ -120,8 +111,8 @@ func (r *rpc) Resume(req *jobsProto.Pipelines, _ *jobsProto.Empty) error {
 	return nil
 }
 
-func (r *rpc) List(_ *jobsProto.Empty, resp *jobsProto.Pipelines) error {
-	_, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "list_pipelines", trace.WithSpanKind(trace.SpanKindServer))
+func (r *rpc) List(_ *jobsProto.JobResponse, resp *jobsProto.Pipelines) error {
+	_, span := r.p.tracer.Tracer(PluginName).Start(context.Background(), "list_pipelines", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 	resp.Pipelines = r.p.List()
 	return nil
@@ -132,14 +123,14 @@ func (r *rpc) List(_ *jobsProto.Empty, resp *jobsProto.Pipelines) error {
 // 1. Driver
 // 2. Pipeline name
 // 3. Options related to the particular pipeline
-func (r *rpc) Declare(req *jobsProto.DeclareRequest, _ *jobsProto.Empty) error {
+func (r *rpc) Declare(req *jobsProto.DeclareRequest, _ *jobsProto.JobResponse) error {
 	const op = errors.Op("rpc_declare_pipeline")
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	pipe := Pipeline{}
 
-	ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "declare_pipeline", trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := r.p.tracer.Tracer(PluginName).Start(context.Background(), "declare_pipeline", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
 	for i := range req.GetPipeline() {
@@ -148,10 +139,7 @@ func (r *rpc) Declare(req *jobsProto.DeclareRequest, _ *jobsProto.Empty) error {
 
 	err := r.p.Declare(ctx, pipe)
 	if err != nil {
-		span.SetAttributes(attribute.KeyValue{
-			Key:   "error",
-			Value: attribute.StringValue(err.Error()),
-		})
+		spanError(span, err)
 		return errors.E(op, err)
 	}
 
@@ -170,15 +158,12 @@ func (r *rpc) Destroy(req *jobsProto.Pipelines, resp *jobsProto.Pipelines) error
 	localMu := &sync.Mutex{}
 	for i := range req.GetPipelines() {
 		errg.Go(func() error {
-			ctx, span := r.p.tracer.Tracer(spanName).Start(context.Background(), "destroy_pipeline", trace.WithSpanKind(trace.SpanKindServer))
+			ctx, span := r.p.tracer.Tracer(PluginName).Start(context.Background(), "destroy_pipeline", trace.WithSpanKind(trace.SpanKindServer))
 			// TODO: apply mutex here?
 			err := r.p.Destroy(ctx, req.GetPipelines()[i])
 
 			if err != nil {
-				span.SetAttributes(attribute.KeyValue{
-					Key:   "error",
-					Value: attribute.StringValue(err.Error()),
-				})
+				spanError(span, err)
 				span.End()
 				return errors.E(op, err)
 			}
@@ -204,7 +189,7 @@ func (r *rpc) Destroy(req *jobsProto.Pipelines, resp *jobsProto.Pipelines) error
 	return nil
 }
 
-func (r *rpc) Stat(_ *jobsProto.Empty, resp *jobsProto.Stats) error {
+func (r *rpc) Stat(_ *jobsProto.JobResponse, resp *jobsProto.Stats) error {
 	const op = errors.Op("rpc_stats")
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -212,15 +197,12 @@ func (r *rpc) Stat(_ *jobsProto.Empty, resp *jobsProto.Stats) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
-	ctx, span := r.p.tracer.Tracer(spanName).Start(ctx, "stat", trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := r.p.tracer.Tracer(PluginName).Start(ctx, "stat", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
 	state, err := r.p.JobsState(ctx)
 	if err != nil {
-		span.SetAttributes(attribute.KeyValue{
-			Key:   "error",
-			Value: attribute.StringValue(err.Error()),
-		})
+		spanError(span, err)
 		return errors.E(op, err)
 	}
 
@@ -245,7 +227,7 @@ func from(j *jobsProto.Job) *Job {
 	headers := make(map[string][]string, len(j.GetHeaders()))
 
 	for k, v := range j.GetHeaders() {
-		headers[k] = v.GetValue()
+		headers[k] = v.GetValues()
 	}
 
 	jb := &Job{
@@ -287,7 +269,7 @@ func rpcContextFromJob(job *jobsProto.Job) context.Context {
 	return rpcContextFromHeaders(job.GetHeaders())
 }
 
-func rpcContextFromHeaders(headers map[string]*jobsProto.HeaderValue) context.Context {
+func rpcContextFromHeaders(headers map[string]*jobsProto.JobHeaderValue) context.Context {
 	if len(headers) == 0 {
 		return context.Background()
 	}
@@ -299,7 +281,7 @@ func rpcContextFromHeaders(headers map[string]*jobsProto.HeaderValue) context.Co
 			continue
 		}
 
-		values := v.GetValue()
+		values := v.GetValues()
 		if len(values) == 0 {
 			continue
 		}

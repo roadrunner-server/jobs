@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	jobsApi "github.com/roadrunner-server/api/v4/plugins/v4/jobs"
+	jobsApi "github.com/roadrunner-server/api-plugins/v6/jobs"
 	"github.com/roadrunner-server/pool/pool/static_pool"
 	"github.com/roadrunner-server/pool/worker"
 	jprop "go.opentelemetry.io/contrib/propagators/jaeger"
@@ -37,11 +37,6 @@ const (
 	PluginName string = "jobs"
 	pipelines  string = "pipelines"
 
-	// v2.7 and newer config key
-	cfgKey string = "config"
-
-	// v2023.1.0 OTEL
-	spanName string = "jobs"
 	// pipeline messages
 	restartSrt string = "restart"
 	stopStr    string = "stop"
@@ -90,8 +85,7 @@ type Plugin struct {
 	respHandler *rh.RespHandler
 
 	// Pollers wait group
-	pollersWg     sync.WaitGroup
-	pollersWgChan chan struct{}
+	pollersWg sync.WaitGroup
 }
 
 func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
@@ -136,11 +130,8 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 
 	// initialize pollers wg channel
 	p.minCh = make(chan jobsApi.Job, 10)
-	p.pollersWgChan = make(chan struct{})
-
 	// initialize priority queue
 	p.queue = pqImpl.NewBinHeap[jobsApi.Job](p.cfg.PipelineSize)
-	p.log = new(zap.Logger)
 	p.log = log.NamedLogger(PluginName)
 	p.jobsProcessor = newPipesProc(p.log, &p.consumers, &p.consume, p.cfg.CfgOptions.Parallelism)
 	p.experimental = cfg.Experimental()
@@ -192,7 +183,7 @@ func (p *Plugin) Serve() chan error {
 		}
 
 		// configuration key for the config
-		configKey := fmt.Sprintf("%s.%s.%s.%s", PluginName, pipelines, pipeName, cfgKey)
+		configKey := fmt.Sprintf("%s.%s.%s.%s", PluginName, pipelines, pipeName, config)
 		// save on how the pipeline was created
 		pipe.With(createdWithConfig, configKey)
 
@@ -202,6 +193,7 @@ func (p *Plugin) Serve() chan error {
 			p.queue,
 			configKey,
 			p.cfg.Timeout,
+			context.Background(),
 		})
 
 		return true
@@ -308,15 +300,8 @@ func (p *Plugin) Stop(ctx context.Context) error {
 		return err
 	}
 
-	p.pipelines.Range(func(key, _ any) bool {
-		p.pipelines.Delete(key)
-		return true
-	})
-
-	p.consumers.Range(func(key, _ any) bool {
-		p.consumers.Delete(key)
-		return true
-	})
+	p.pipelines.Clear()
+	p.consumers.Clear()
 
 	// just to be sure
 	if p.jobsProcessor != nil {
@@ -429,12 +414,23 @@ func (p *Plugin) Reset() error {
 
 	const op = errors.Op("jobs_plugin_reset")
 	p.log.Info("reset signal was received")
-	err := p.workersPool.Reset(context.Background())
-	if err != nil {
-		return errors.E(op, err)
-	}
-	p.log.Info("plugin was successfully reset")
 
+	switch {
+	case len(p.workersPools) > 0:
+		for poolName, wp := range p.workersPools {
+			if err := wp.Reset(context.Background()); err != nil {
+				return errors.E(op, errors.Errorf("failed to reset pool %s: %s", poolName, err))
+			}
+		}
+	case p.workersPool != nil:
+		if err := p.workersPool.Reset(context.Background()); err != nil {
+			return errors.E(op, err)
+		}
+	default:
+		return errors.E(op, errors.Str("no worker pools configured"))
+	}
+
+	p.log.Info("plugin was successfully reset")
 	return nil
 }
 
@@ -577,20 +573,20 @@ func (p *Plugin) Declare(ctx context.Context, pipeline jobsApi.Pipeline) error {
 	}
 
 	// save priority as int64
-	pr := pipeline.String(priorityKey, "10")
+	pr := pipeline.String(priority, "10")
 	prInt, err := strconv.Atoi(pr)
 	if err != nil {
 		// we can continue with a default priority
-		p.log.Error(priorityKey, zap.Error(err))
+		p.log.Error(priority, zap.Error(err))
 	}
 
-	pipeline.With(priorityKey, int64(prInt))
+	pipeline.With(priority, int64(prInt))
 
 	// jobConstructors contains constructors for the drivers
 	// we need here to initialize these drivers for the pipelines
 	if _, ok := p.jobConstructors[dr]; ok {
 		// init the driver from a pipeline
-		initializedDriver, err := p.jobConstructors[dr].DriverFromPipeline(pipeline, p.queue)
+		initializedDriver, err := p.jobConstructors[dr].DriverFromPipeline(ctx, pipeline, p.queue)
 		if err != nil {
 			return errors.E(op, err)
 		}
@@ -607,7 +603,7 @@ func (p *Plugin) Declare(ctx context.Context, pipeline jobsApi.Pipeline) error {
 		}
 
 		// set how the pipeline was created
-		pipeline.With(createdWithDeclare, "true")
+		pipeline.With(createdWithDeclare, trueStr)
 		// add a driver to the set of the consumers (name - pipeline name, value - associated driver)
 		p.consumers.Store(pipeline.Name(), initializedDriver)
 		// save the pipeline
@@ -625,11 +621,11 @@ func (p *Plugin) Destroy(ctx context.Context, pp string) error {
 		return errors.E(op, errors.Errorf("no such pipeline, requested: %s", pp))
 	}
 
-	// type conversion
-	ppl := pipe.(jobsApi.Pipeline)
 	if pipe == nil {
 		return errors.Str("no pipe registered, value is nil")
 	}
+	// type conversion
+	ppl := pipe.(jobsApi.Pipeline)
 
 	// delete consumer
 	d, ok := p.consumers.LoadAndDelete(ppl.Name())
@@ -698,7 +694,7 @@ func (p *Plugin) readCommands(errCh chan error) {
 	for {
 		select {
 		case ev := <-p.eventsCh:
-			ctx, span := p.tracer.Tracer(spanName).Start(context.Background(), "read_command", trace.WithSpanKind(trace.SpanKindServer))
+			_, span := p.tracer.Tracer(PluginName).Start(context.Background(), "read_command", trace.WithSpanKind(trace.SpanKindServer))
 			p.log.Debug("received JOBS event", zap.String("message", ev.Message()), zap.String("pipeline", ev.Plugin()))
 			// message can be 'restart', 'stop'.
 			switch ev.Message() {
@@ -719,6 +715,8 @@ func (p *Plugin) readCommands(errCh chan error) {
 				}
 
 				p.log.Info("pipeline was stopped", zap.String("pipeline", pipeline))
+				span.End()
+				continue
 			case restartSrt:
 				// Algorithm:
 				// 1. Stop the pipeline.
@@ -768,6 +766,7 @@ func (p *Plugin) readCommands(errCh chan error) {
 						p.queue,
 						pipe.String(createdWithConfig, ""),
 						p.cfg.Timeout,
+						ctx,
 					})
 
 					p.jobsProcessor.wait()
@@ -785,14 +784,12 @@ func (p *Plugin) readCommands(errCh chan error) {
 				}
 
 				span.End()
+				continue
 			default:
 				p.log.Warn("unknown command", zap.String("command", ev.Message()))
+				span.End()
+				continue
 			}
-			err := p.Destroy(ctx, ev.Plugin())
-			if err != nil {
-				p.log.Error("failed to destroy the pipeline", zap.Error(err), zap.String("pipeline", ev.Plugin()))
-			}
-			span.End()
 
 		case <-p.stopCh:
 			return
@@ -818,22 +815,16 @@ func (p *Plugin) putPayload(pld *payload.Payload) {
 
 func (p *Plugin) waitPollersFinish(ctx context.Context) {
 	p.log.Debug("waiting for pollers to be finished")
+	done := make(chan struct{})
 	go func() {
 		p.pollersWg.Wait()
-		close(p.pollersWgChan)
+		close(done)
 	}()
 
-	for {
-		select {
-		case <-ctx.Done():
-			close(p.pollersWgChan)
-			return
-		case <-p.pollersWgChan:
-			return
-		}
+	select {
+	case <-ctx.Done():
+		return
+	case <-done:
+		return
 	}
-}
-
-func ptrTo[T any](val T) *T {
-	return &val
 }

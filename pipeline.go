@@ -39,8 +39,8 @@ func (p Pipeline) Name() string {
 	// https://github.com/spiral/roadrunner-jobs/blob/master/src/Queue/CreateInfo.php#L81
 	// In the PHP client library used the wrong key name
 	// should be "name" instead of "queue"
-	if p.String(name, "") != "" {
-		return p.String(name, "")
+	if n := p.String(name, ""); n != "" {
+		return n
 	}
 
 	return p.String(queue, "")
@@ -174,7 +174,7 @@ func (p Pipeline) Bool(name string, d bool) bool {
 		if val, ok := p[config]; ok {
 			if rv, ok := val.(map[string]any); ok {
 				if rv[name] != nil {
-					if i, ok := value.(string); ok {
+					if i, ok := rv[name].(string); ok {
 						switch i {
 						case trueStr:
 							return true

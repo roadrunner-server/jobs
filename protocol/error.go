@@ -3,7 +3,7 @@ package protocol
 import (
 	"encoding/json"
 
-	"github.com/roadrunner-server/api/v4/plugins/v4/jobs"
+	"github.com/roadrunner-server/api-plugins/v6/jobs"
 	"github.com/roadrunner-server/errors"
 	"go.uber.org/zap"
 )
@@ -45,14 +45,14 @@ func (rh *RespHandler) handleNackResponse(data []byte, jb jobs.Job) error {
 	er := rh.getErrResp()
 	defer rh.putErrResp(er)
 
-	// we have an error message
-	if er.Msg != "" {
-		rh.log.Error("jobs nack request", zap.Error(errors.E(er.Msg)), zap.Int("delay", er.Delay), zap.Bool("requeue", er.Requeue))
-	}
-
 	err := json.Unmarshal(data, er)
 	if err != nil {
 		return err
+	}
+
+	// we have an error message
+	if er.Msg != "" {
+		rh.log.Error("jobs nack request", zap.Error(errors.E(er.Msg)), zap.Int("delay", er.Delay), zap.Bool("requeue", er.Requeue))
 	}
 
 	err = jb.NackWithOptions(er.Requeue, er.Delay)

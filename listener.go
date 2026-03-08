@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/roadrunner-server/api/v4/plugins/v4/jobs"
+	"github.com/roadrunner-server/api-plugins/v6/jobs"
 	"github.com/roadrunner-server/goridge/v3/pkg/frame"
 	"github.com/roadrunner-server/pool/payload"
 	"go.opentelemetry.io/otel"
@@ -26,13 +26,10 @@ func (p *Plugin) extractMin() {
 }
 
 func (p *Plugin) listener() {
-	p.pollersWg.Add(p.cfg.NumPollers)
 	// start the converter from blocking to non-blocking
 	p.extractMin()
 	for range p.cfg.NumPollers {
-		go func() {
-			// defer the wait group, used to track the number of active pollers
-			defer p.pollersWg.Done()
+		p.pollersWg.Go(func() {
 			for {
 				select {
 				case <-p.stopCh:
@@ -93,7 +90,7 @@ func (p *Plugin) listener() {
 					}
 				}
 			}
-		}()
+		})
 	}
 }
 
@@ -124,6 +121,9 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 	}
 
 	var resp *payload.Payload
+
+	timer := time.NewTimer(time.Second)
+	defer timer.Stop()
 
 	select {
 	case pld := <-re:
@@ -166,7 +166,7 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 
 		// assign the payload
 		resp = pld.Payload()
-	case <-time.After(time.Second):
+	case <-timer.C:
 		// timeout
 		p.metrics.CountJobErr()
 		p.log.Error("worker null response, this is not expected")

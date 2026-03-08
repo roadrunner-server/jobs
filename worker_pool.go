@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	jobsApi "github.com/roadrunner-server/api/v4/plugins/v4/jobs"
+	jobsApi "github.com/roadrunner-server/api-plugins/v6/jobs"
 	"go.uber.org/zap"
 )
 
@@ -28,6 +28,7 @@ type pjob struct {
 	queue     jobsApi.Queue
 	configKey string
 	timeout   int
+	context   context.Context
 }
 
 // args:
@@ -45,7 +46,7 @@ func newPipesProc(log *zap.Logger, consumers *sync.Map, runners *map[string]stru
 		wg:         sync.WaitGroup{},
 		mu:         sync.Mutex{},
 		errs:       make([]error, 0, 1),
-		stopped:    ptrTo(int64(0)),
+		stopped:    new(int64),
 	}
 
 	// start the processor
@@ -60,7 +61,7 @@ func (p *processor) run() {
 			for job := range p.queueCh {
 				p.log.Debug("initializing driver", zap.String("pipeline", job.pipe.Name()), zap.String("driver", job.pipe.Driver()))
 				t := time.Now().UTC()
-				initializedDriver, err := job.jc.DriverFromConfig(job.configKey, job.queue, job.pipe)
+				initializedDriver, err := job.jc.DriverFromConfig(job.context, job.configKey, job.queue, job.pipe)
 				if err != nil {
 					p.mu.Lock()
 					p.errs = append(p.errs, err)

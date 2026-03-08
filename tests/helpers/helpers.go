@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"bytes"
+	"fmt"
 	"net"
 	"net/http"
 	"net/rpc"
@@ -9,8 +10,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	jobsProto "github.com/roadrunner-server/api/v4/build/jobs/v1"
-	jobState "github.com/roadrunner-server/api/v4/plugins/v1/jobs"
+	jobsProto "github.com/roadrunner-server/api-go/v6/jobs/v2"
+	jobState "github.com/roadrunner-server/api-plugins/v6/jobs"
 	goridgeRpc "github.com/roadrunner-server/goridge/v3/pkg/rpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,41 +26,45 @@ const (
 	stat      string = "jobs.Stat"
 )
 
-func ResumePipes(address string, pipes ...string) func(t *testing.T) {
+// newRPCClient creates a goridge RPC client connected to the given address.
+// The connection is automatically closed when the test finishes.
+func newRPCClient(t *testing.T, address string) *rpc.Client {
+	t.Helper()
+	d := net.Dialer{}
+	conn, err := d.DialContext(t.Context(), "tcp", address)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = conn.Close() })
+	return rpc.NewClientWithCodec(goridgeRpc.NewClientCodec(conn))
+}
+
+func callPipelineMethod(address, method string, pipes []string) func(t *testing.T) {
 	return func(t *testing.T) {
-		conn, err := net.Dial("tcp", address)
-		require.NoError(t, err)
-		defer func() {
-			_ = conn.Close()
-		}()
-		client := rpc.NewClientWithCodec(goridgeRpc.NewClientCodec(conn))
+		client := newRPCClient(t, address)
 
 		pipe := &jobsProto.Pipelines{Pipelines: make([]string, len(pipes))}
-
-		for i := 0; i < len(pipes); i++ {
+		for i := range pipes {
 			pipe.GetPipelines()[i] = pipes[i]
 		}
 
-		er := &jobsProto.Empty{}
-		err = client.Call(resume, pipe, er)
+		er := &jobsProto.JobResponse{}
+		err := client.Call(method, pipe, er)
 		require.NoError(t, err)
 	}
 }
 
+func ResumePipes(address string, pipes ...string) func(t *testing.T) {
+	return callPipelineMethod(address, resume, pipes)
+}
+
 func PushToPipeDelayed(address string, pipeline string, delay int64) func(t *testing.T) {
 	return func(t *testing.T) {
-		conn, err := net.Dial("tcp", address)
-		require.NoError(t, err)
-		defer func() {
-			_ = conn.Close()
-		}()
-		client := rpc.NewClientWithCodec(goridgeRpc.NewClientCodec(conn))
+		client := newRPCClient(t, address)
 
 		req := &jobsProto.PushRequest{Job: &jobsProto.Job{
 			Job:     "some/php/namespace",
 			Id:      uuid.NewString(),
 			Payload: []byte(`{"hello":"world"}`),
-			Headers: map[string]*jobsProto.HeaderValue{"test": {Value: []string{"test2"}}},
+			Headers: map[string]*jobsProto.JobHeaderValue{"test": {Values: []string{"test2"}}},
 			Options: &jobsProto.Options{
 				Priority: 1,
 				Pipeline: pipeline,
@@ -67,24 +72,18 @@ func PushToPipeDelayed(address string, pipeline string, delay int64) func(t *tes
 			},
 		}}
 
-		er := &jobsProto.Empty{}
-		err = client.Call(push, req, er)
+		er := &jobsProto.JobResponse{}
+		err := client.Call(push, req, er)
 		assert.NoError(t, err)
 	}
 }
 
 func PushToPipeBatch(address string, pipeline string, count int, autoAck bool, payload []byte) func(t *testing.T) {
 	return func(t *testing.T) {
-		conn, err := net.Dial("tcp", address)
-		require.NoError(t, err)
-		defer func() {
-			_ = conn.Close()
-		}()
-		client := rpc.NewClientWithCodec(goridgeRpc.NewClientCodec(conn))
+		client := newRPCClient(t, address)
 
 		jobs := make([]*jobsProto.Job, count)
-
-		for i := 0; i < count; i++ {
+		for i := range count {
 			jobs[i] = createDummyJob(pipeline, autoAck, payload)
 		}
 
@@ -92,68 +91,40 @@ func PushToPipeBatch(address string, pipeline string, count int, autoAck bool, p
 			Jobs: jobs,
 		}
 
-		er := &jobsProto.Empty{}
-		err = client.Call(pushBatch, req, er)
+		er := &jobsProto.JobResponse{}
+		err := client.Call(pushBatch, req, er)
 		assert.NoError(t, err)
 	}
 }
 
 func PushToPipe(pipeline string, autoAck bool, address string, payload []byte) func(t *testing.T) {
 	return func(t *testing.T) {
-		conn, err := net.Dial("tcp", address)
-		require.NoError(t, err)
-		defer func() {
-			_ = conn.Close()
-		}()
-		client := rpc.NewClientWithCodec(goridgeRpc.NewClientCodec(conn))
+		client := newRPCClient(t, address)
 
 		req := &jobsProto.PushRequest{Job: createDummyJob(pipeline, autoAck, payload)}
 
-		er := &jobsProto.Empty{}
-		err = client.Call(push, req, er)
+		er := &jobsProto.JobResponse{}
+		err := client.Call(push, req, er)
 		require.NoError(t, err)
 	}
 }
 
 func PausePipelines(address string, pipes ...string) func(t *testing.T) {
-	return func(t *testing.T) {
-		conn, err := net.Dial("tcp", address)
-		require.NoError(t, err)
-		defer func() {
-			_ = conn.Close()
-		}()
-		client := rpc.NewClientWithCodec(goridgeRpc.NewClientCodec(conn))
-
-		pipe := &jobsProto.Pipelines{Pipelines: make([]string, len(pipes))}
-
-		for i := 0; i < len(pipes); i++ {
-			pipe.GetPipelines()[i] = pipes[i]
-		}
-
-		er := &jobsProto.Empty{}
-		err = client.Call(pause, pipe, er)
-		assert.NoError(t, err)
-	}
+	return callPipelineMethod(address, pause, pipes)
 }
 
 func DestroyPipelines(address string, pipes ...string) func(t *testing.T) {
 	return func(t *testing.T) {
-		conn, err := net.Dial("tcp", address)
-		require.NoError(t, err)
-		defer func() {
-			_ = conn.Close()
-		}()
-		client := rpc.NewClientWithCodec(goridgeRpc.NewClientCodec(conn))
+		client := newRPCClient(t, address)
 
 		pipe := &jobsProto.Pipelines{Pipelines: make([]string, len(pipes))}
-
-		for i := 0; i < len(pipes); i++ {
+		for i := range pipes {
 			pipe.GetPipelines()[i] = pipes[i]
 		}
 
-		for i := 0; i < 10; i++ {
-			er := &jobsProto.Empty{}
-			err = client.Call(destroy, pipe, er)
+		for range 10 {
+			er := &jobsProto.JobResponse{}
+			err := client.Call(destroy, pipe, er)
 			if err != nil {
 				time.Sleep(time.Second)
 				continue
@@ -166,17 +137,12 @@ func DestroyPipelines(address string, pipes ...string) func(t *testing.T) {
 
 func Stats(address string, state *jobState.State) func(t *testing.T) {
 	return func(t *testing.T) {
-		conn, err := net.Dial("tcp", address)
-		require.NoError(t, err)
-		defer func() {
-			_ = conn.Close()
-		}()
-		client := rpc.NewClientWithCodec(goridgeRpc.NewClientCodec(conn))
+		client := newRPCClient(t, address)
 
 		st := &jobsProto.Stats{}
-		er := &jobsProto.Empty{}
+		er := &jobsProto.JobResponse{}
 
-		err = client.Call(stat, er, st)
+		err := client.Call(stat, er, st)
 		require.NoError(t, err)
 		require.NotNil(t, st)
 
@@ -191,9 +157,10 @@ func Stats(address string, state *jobState.State) func(t *testing.T) {
 	}
 }
 
-func EnableProxy(name string, t *testing.T) {
+func setProxy(name string, enabled bool, t *testing.T) {
+	t.Helper()
 	buf := new(bytes.Buffer)
-	buf.WriteString(`{"enabled":true}`)
+	fmt.Fprintf(buf, `{"enabled":%t}`, enabled)
 
 	resp, err := http.Post("http://127.0.0.1:8474/proxies/"+name, "application/json", buf) //nolint:noctx
 	require.NoError(t, err)
@@ -203,16 +170,12 @@ func EnableProxy(name string, t *testing.T) {
 	}
 }
 
-func DisableProxy(name string, t *testing.T) {
-	buf := new(bytes.Buffer)
-	buf.WriteString(`{"enabled":false}`)
+func EnableProxy(name string, t *testing.T) {
+	setProxy(name, true, t)
+}
 
-	resp, err := http.Post("http://127.0.0.1:8474/proxies/"+name, "application/json", buf) //nolint:noctx
-	require.NoError(t, err)
-	require.Equal(t, 200, resp.StatusCode)
-	if resp.Body != nil {
-		_ = resp.Body.Close()
-	}
+func DisableProxy(name string, t *testing.T) {
+	setProxy(name, false, t)
 }
 
 func DeleteProxy(name string, t *testing.T) {
@@ -236,7 +199,7 @@ func createDummyJob(pipeline string, autoAck bool, payload []byte) *jobsProto.Jo
 		Job:     "some/php/namespace",
 		Id:      uuid.NewString(),
 		Payload: payload,
-		Headers: map[string]*jobsProto.HeaderValue{"test": {Value: []string{"test2"}}},
+		Headers: map[string]*jobsProto.JobHeaderValue{"test": {Values: []string{"test2"}}},
 		Options: &jobsProto.Options{
 			AutoAck:  autoAck,
 			Priority: 1,

@@ -1,7 +1,6 @@
 package general
 
 import (
-	"context"
 	"io"
 	"log/slog"
 	"net"
@@ -18,8 +17,8 @@ import (
 	mocklogger "tests/mock"
 
 	"github.com/google/uuid"
-	"github.com/roadrunner-server/amqp/v5"
-	jobsProto "github.com/roadrunner-server/api/v4/build/jobs/v1"
+	"github.com/roadrunner-server/amqp/v6"
+	jobsProto "github.com/roadrunner-server/api-go/v6/jobs/v2"
 	"github.com/roadrunner-server/beanstalk/v5"
 	"github.com/roadrunner-server/config/v5"
 	"github.com/roadrunner-server/endure/v2"
@@ -80,12 +79,10 @@ func TestJobsInit(t *testing.T) {
 	signal.Notify(sig, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	wg := &sync.WaitGroup{}
-	wg.Add(1)
 
 	stopCh := make(chan struct{}, 1)
 
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		for {
 			select {
 			case e := <-ch:
@@ -109,7 +106,7 @@ func TestJobsInit(t *testing.T) {
 				return
 			}
 		}
-	}()
+	})
 
 	time.Sleep(time.Second * 5)
 
@@ -183,12 +180,10 @@ func TestIssue2085(t *testing.T) {
 	signal.Notify(sig, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	wg := &sync.WaitGroup{}
-	wg.Add(1)
 
 	stopCh := make(chan struct{}, 1)
 
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		for {
 			select {
 			case e := <-ch:
@@ -212,7 +207,7 @@ func TestIssue2085(t *testing.T) {
 				return
 			}
 		}
-	}()
+	})
 
 	time.Sleep(time.Second * 5)
 
@@ -254,11 +249,9 @@ func TestJOBSMetrics(t *testing.T) {
 
 	tt := time.NewTimer(time.Minute * 3)
 	wg := &sync.WaitGroup{}
-	wg.Add(1)
 
-	go func() {
+	wg.Go(func() {
 		defer tt.Stop()
-		defer wg.Done()
 		for {
 			select {
 			case e := <-ch:
@@ -282,14 +275,14 @@ func TestJOBSMetrics(t *testing.T) {
 				return
 			}
 		}
-	}()
+	})
 
 	time.Sleep(time.Second * 2)
 
 	t.Run("DeclareEphemeralPipeline", declareMemoryPipe)
 	t.Run("ConsumeEphemeralPipeline", consumeMemoryPipe)
 
-	genericOut, err := get()
+	genericOut, err := get(t)
 	assert.NoError(t, err)
 
 	assert.Contains(t, genericOut, `rr_jobs_jobs_err 0`)
@@ -310,7 +303,7 @@ func TestJOBSMetrics(t *testing.T) {
 	t.Run("PushInMemoryPipeline", helpers.PushToPipe("test-3", false, "127.0.0.1:6001", []byte("foo")))
 	time.Sleep(time.Second * 5)
 
-	genericOut, err = get()
+	genericOut, err = get(t)
 	assert.NoError(t, err)
 
 	assert.Contains(t, genericOut, `rr_jobs_jobs_err 0`)
@@ -325,7 +318,7 @@ func TestJOBSMetrics(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	genericOut, err = get()
+	genericOut, err = get(t)
 	assert.NoError(t, err)
 
 	assert.Contains(t, genericOut, `rr_jobs_jobs_err 0`)
@@ -377,12 +370,10 @@ func TestJobsPools(t *testing.T) {
 	signal.Notify(sig, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	wg := &sync.WaitGroup{}
-	wg.Add(1)
 
 	stopCh := make(chan struct{}, 1)
 
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		for {
 			select {
 			case e := <-ch:
@@ -406,7 +397,7 @@ func TestJobsPools(t *testing.T) {
 				return
 			}
 		}
-	}()
+	})
 
 	time.Sleep(time.Second * 5)
 
@@ -437,8 +428,8 @@ func TestJobsPools(t *testing.T) {
 const getAddr = "http://127.0.0.1:2112/metrics"
 
 // get request and return body
-func get() (string, error) {
-	r, err := http.NewRequestWithContext(context.Background(), http.MethodGet, getAddr, nil)
+func get(t *testing.T) (string, error) {
+	r, err := http.NewRequestWithContext(t.Context(), http.MethodGet, getAddr, nil)
 	if err != nil {
 		return "", err
 	}
@@ -448,7 +439,9 @@ func get() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -461,7 +454,7 @@ func get() (string, error) {
 
 func declareMemoryPipe(t *testing.T) {
 	d := net.Dialer{}
-	conn, err := d.DialContext(context.Background(), "tcp", "127.0.0.1:6001")
+	conn, err := d.DialContext(t.Context(), "tcp", "127.0.0.1:6001")
 	assert.NoError(t, err)
 	client := rpc.NewClientWithCodec(goridgeRpc.NewClientCodec(conn))
 
@@ -471,20 +464,21 @@ func declareMemoryPipe(t *testing.T) {
 		"prefetch": "10000",
 	}}
 
-	er := &jobsProto.Empty{}
+	er := &jobsProto.JobResponse{}
 	err = client.Call("jobs.Declare", pipe, er)
 	assert.NoError(t, err)
 }
 
 func consumeMemoryPipe(t *testing.T) {
-	conn, err := net.Dial("tcp", "127.0.0.1:6001")
+	d := net.Dialer{}
+	conn, err := d.DialContext(t.Context(), "tcp", "127.0.0.1:6001")
 	assert.NoError(t, err)
 	client := rpc.NewClientWithCodec(goridgeRpc.NewClientCodec(conn))
 
 	pipe := &jobsProto.Pipelines{Pipelines: make([]string, 1)}
 	pipe.GetPipelines()[0] = "test-3"
 
-	er := &jobsProto.Empty{}
+	er := &jobsProto.JobResponse{}
 	err = client.Call("jobs.Resume", pipe, er)
 	assert.NoError(t, err)
 }
@@ -522,12 +516,10 @@ func TestTracePropagation(t *testing.T) {
 	signal.Notify(sig, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	wg := &sync.WaitGroup{}
-	wg.Add(1)
 
 	stopCh := make(chan struct{}, 1)
 
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		for {
 			select {
 			case e := <-ch:
@@ -551,12 +543,13 @@ func TestTracePropagation(t *testing.T) {
 				return
 			}
 		}
-	}()
+	})
 
 	time.Sleep(time.Second * 3)
 
 	// Push a job with a known W3C traceparent header
-	conn, err := net.Dial("tcp", "127.0.0.1:6001")
+	d := net.Dialer{}
+	conn, err := d.DialContext(t.Context(), "tcp", "127.0.0.1:6001")
 	require.NoError(t, err)
 	client := rpc.NewClientWithCodec(goridgeRpc.NewClientCodec(conn))
 
@@ -564,8 +557,8 @@ func TestTracePropagation(t *testing.T) {
 		Job:     "test/trace",
 		Id:      uuid.NewString(),
 		Payload: []byte(`{"traceparent":"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"}`),
-		Headers: map[string]*jobsProto.HeaderValue{
-			"traceparent": {Value: []string{"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"}},
+		Headers: map[string]*jobsProto.JobHeaderValue{
+			"traceparent": {Values: []string{"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"}},
 		},
 		Options: &jobsProto.Options{
 			Priority: 1,
@@ -573,7 +566,7 @@ func TestTracePropagation(t *testing.T) {
 		},
 	}}
 
-	er := &jobsProto.Empty{}
+	er := &jobsProto.JobResponse{}
 	err = client.Call("jobs.Push", req, er)
 	require.NoError(t, err)
 	_ = conn.Close()
