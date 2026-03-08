@@ -9,7 +9,7 @@ require (
 	github.com/roadrunner-server/amqp/v6 v6.0.0-beta.2
 	github.com/roadrunner-server/api-go/v6 v6.0.0-beta.1
 	github.com/roadrunner-server/api-plugins/v6 v6.0.0-beta.1
-	github.com/roadrunner-server/beanstalk/v5 v5.1.9
+	github.com/roadrunner-server/beanstalk/v6 v6.0.0-beta.1
 	github.com/roadrunner-server/config/v5 v5.1.9
 	github.com/roadrunner-server/endure/v2 v2.6.2
 	github.com/roadrunner-server/goridge/v3 v3.8.3

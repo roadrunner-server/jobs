@@ -106,8 +106,8 @@ github.com/roadrunner-server/api-plugins/v6 v6.0.0-beta.1 h1:IypW4r2Z3flZ2QnhYBf
 github.com/roadrunner-server/api-plugins/v6 v6.0.0-beta.1/go.mod h1:U3Cm4fS+etjtxRgUFINh33FJB/du1d2VEhIKgg43/tc=
 github.com/roadrunner-server/api/v4 v4.23.0 h1:lrVXgP4ozD/H5DrIdT181ldVhD1R9QT5qsi8qWUTDF4=
 github.com/roadrunner-server/api/v4 v4.23.0/go.mod h1:AlHuVVOklb7XF33Cf7IfmwOn3j4gGg37on9Xi6j08Bg=
-github.com/roadrunner-server/beanstalk/v5 v5.1.9 h1:PHY/K1oQVxFBswTu0B3KIj8xy4nEYbkumcrmvhv6orI=
-github.com/roadrunner-server/beanstalk/v5 v5.1.9/go.mod h1:w0ghg+tAnR/eowGPej35GMkyYnCa82L9qy504DltK+w=
+github.com/roadrunner-server/beanstalk/v6 v6.0.0-beta.1 h1:HZ2wF8zJAESYINOvWF2MBX0prSNndgJyW8AecFFX9Lk=
+github.com/roadrunner-server/beanstalk/v6 v6.0.0-beta.1/go.mod h1:sJPWtjnfI3oDPYzBMo4a/2GDXOwzfqdB+AgjDfqzFqs=
 github.com/roadrunner-server/config/v5 v5.1.9 h1:ReWwts/prEvuC4yVJ0BRDmY5sxw/1c+hGTSdJ71hIQU=
 github.com/roadrunner-server/config/v5 v5.1.9/go.mod h1:R6YyTWahW61tWHOI2BfdkQU/0Zc/2d6/JbJ/KEvq8F8=
 github.com/roadrunner-server/endure/v2 v2.6.2 h1:sIB4kTyE7gtT3fDhuYWUYn6Vt/dcPtiA6FoNS1eS+84=

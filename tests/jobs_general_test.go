@@ -19,7 +19,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/roadrunner-server/amqp/v6"
 	jobsProto "github.com/roadrunner-server/api-go/v6/jobs/v2"
-	"github.com/roadrunner-server/beanstalk/v5"
+	"github.com/roadrunner-server/beanstalk/v6"
 	"github.com/roadrunner-server/config/v5"
 	"github.com/roadrunner-server/endure/v2"
 	goridgeRpc "github.com/roadrunner-server/goridge/v3/pkg/rpc"
