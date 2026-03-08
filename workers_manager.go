@@ -25,7 +25,7 @@ func (p *Plugin) AddWorker() error {
 		}
 	}
 
-	return p.workersPool.AddWorker()
+	return nil
 }
 
 func (p *Plugin) RemoveWorker(ctx context.Context) error {
@@ -47,5 +47,5 @@ func (p *Plugin) RemoveWorker(ctx context.Context) error {
 		}
 	}
 
-	return p.workersPool.RemoveWorker(ctx)
+	return nil
 }

@@ -17,7 +17,9 @@ func (rh *RespHandler) handleErrResp(data []byte, jb jobs.Job) error {
 		return err
 	}
 
-	rh.log.Error("jobs protocol error", zap.Error(errors.E(er.Msg)), zap.Int("delay", er.Delay), zap.Bool("requeue", er.Requeue))
+	if er.Msg != "" {
+		rh.log.Error("jobs protocol error", zap.Error(errors.E(er.Msg)), zap.Int("delay", er.Delay), zap.Bool("requeue", er.Requeue))
+	}
 
 	// requeue the job
 	if er.Requeue {

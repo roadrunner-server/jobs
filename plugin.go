@@ -712,9 +712,11 @@ func (p *Plugin) readCommands(errCh chan error) {
 				err = p.Destroy(context.Background(), pipeline)
 				if err != nil {
 					p.log.Error("failed to stop the pipeline", zap.Error(err), zap.String("pipeline", pipeline))
+					span.RecordError(err)
+				} else {
+					p.log.Info("pipeline was stopped", zap.String("pipeline", pipeline))
 				}
 
-				p.log.Info("pipeline was stopped", zap.String("pipeline", pipeline))
 				span.End()
 				continue
 			case restartSrt:
@@ -735,28 +737,33 @@ func (p *Plugin) readCommands(errCh chan error) {
 					continue
 				}
 
-				ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+				stopCtx, stopCancel := context.WithTimeout(context.Background(), time.Second*30)
 				// 1. Stop the pipeline
-				err = drv.Stop(ctx)
+				err = drv.Stop(stopCtx)
 				if err != nil {
 					p.log.Error("failed to stop the pipeline", zap.Error(err), zap.String("pipeline", pipeline))
 				}
-				cancel()
+				stopCancel()
 
 				// 2+3. Delete the pipeline from the pipeline list
 				p.pipelines.Delete(pipeline)
 				p.consumers.Delete(pipeline)
 
+				// fresh context for restart operations (the stop context was already canceled)
+				restartCtx, restartCancel := context.WithTimeout(context.Background(), time.Second*30)
+
 				// 4. Check how the pipeline was created
 				if pipe.String(createdWithDeclare, "") == trueStr { //nolint:gocritic
 					// 5. If the pipeline was created via Declare
-					err = p.Declare(ctx, pipe)
+					err = p.Declare(restartCtx, pipe)
 					if err != nil {
+						restartCancel()
 						p.log.Error("failed to restart the pipeline", zap.Error(err), zap.String("pipeline", pipeline))
 						span.RecordError(err)
 						span.End()
 						continue
 					}
+					restartCancel()
 					// TIP: Do not need to store the pipeline and consumer, as it was done in the Declare
 				} else if pipe.String(createdWithConfig, "") != "" {
 					// 5a. If the pipeline was created via config
@@ -766,10 +773,11 @@ func (p *Plugin) readCommands(errCh chan error) {
 						p.queue,
 						pipe.String(createdWithConfig, ""),
 						p.cfg.Timeout,
-						ctx,
+						restartCtx,
 					})
 
 					p.jobsProcessor.wait()
+					restartCancel()
 					// if we have errors when restarting the pipeline, we should stop RR
 					if p.jobsProcessor.hasErrors() {
 						span.End()
@@ -780,6 +788,7 @@ func (p *Plugin) readCommands(errCh chan error) {
 					// Store the pipeline, consumer would be added by the processor
 					p.pipelines.Store(pipeline, pipe)
 				} else {
+					restartCancel()
 					p.log.Warn("unknown pipeline creation method", zap.String("pipeline", pipeline))
 				}
 

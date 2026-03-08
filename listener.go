@@ -130,7 +130,7 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 		if pld.Error() != nil {
 			p.metrics.CountJobErr()
 
-			p.log.Error("job processed with errors", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
+			p.log.Error("job processed with errors", zap.Error(pld.Error()), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
 			// RR protocol level error, Nack the job
 			errNack := jb.Nack()
 			if errNack != nil {
@@ -157,7 +157,6 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 				p.log.Error("negatively acknowledge failed", zap.String("ID", jb.ID()), zap.Error(errNack))
 			}
 
-			p.log.Error("job execute failed", zap.Error(err))
 			p.putPayload(exec)
 			jb = nil
 			span.End()
