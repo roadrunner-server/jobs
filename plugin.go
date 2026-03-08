@@ -22,7 +22,7 @@ import (
 	"github.com/roadrunner-server/errors"
 	"github.com/roadrunner-server/events"
 	"github.com/roadrunner-server/goridge/v3/pkg/frame"
-	rh "github.com/roadrunner-server/jobs/v5/protocol"
+	rh "github.com/roadrunner-server/jobs/v6/protocol"
 	"github.com/roadrunner-server/pool/payload"
 	"github.com/roadrunner-server/pool/state/process"
 	pqImpl "github.com/roadrunner-server/priority_queue"

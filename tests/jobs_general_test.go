@@ -24,7 +24,7 @@ import (
 	"github.com/roadrunner-server/endure/v2"
 	goridgeRpc "github.com/roadrunner-server/goridge/v3/pkg/rpc"
 	"github.com/roadrunner-server/informer/v5"
-	"github.com/roadrunner-server/jobs/v5"
+	"github.com/roadrunner-server/jobs/v6"
 	"github.com/roadrunner-server/kafka/v5"
 	"github.com/roadrunner-server/logger/v5"
 	"github.com/roadrunner-server/memory/v5"

@@ -89,8 +89,8 @@ jobs:
           tail -q -n +2 coverage/*.out >> summary.txt
           awk '
             NR == 1 { print; next }
-            /^github\.com\/roadrunner-server\/jobs\/v5\// {
-              sub(/^github\.com\/roadrunner-server\/jobs\/v5\//, "", $0)
+            /^github\.com\/roadrunner-server\/jobs\/v6\// {
+              sub(/^github\.com\/roadrunner-server\/jobs\/v6\//, "", $0)
               print
             }
           ' summary.txt > summary.filtered.txt
