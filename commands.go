@@ -12,7 +12,11 @@ import (
 func (p *Plugin) readCommands(errCh chan error) {
 	for {
 		select {
-		case ev := <-p.eventsCh:
+		case ev, ok := <-p.eventsCh:
+			if !ok {
+				p.log.Warn("events channel was closed")
+				return
+			}
 			ctx, span := p.tracer.Tracer(PluginName).Start(context.Background(), "read_command", trace.WithSpanKind(trace.SpanKindServer))
 			p.log.Debug("received JOBS event", zap.String("message", ev.Message()), zap.String("pipeline", ev.Plugin()))
 			// message can be 'restart', 'stop'.

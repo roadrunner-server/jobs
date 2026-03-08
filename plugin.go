@@ -10,7 +10,6 @@ import (
 
 	jobsApi "github.com/roadrunner-server/api-plugins/v6/jobs"
 	"github.com/roadrunner-server/pool/pool/static_pool"
-	"github.com/roadrunner-server/pool/worker"
 	jprop "go.opentelemetry.io/contrib/propagators/jaeger"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -20,7 +19,6 @@ import (
 	"github.com/roadrunner-server/endure/v2/dep"
 	"github.com/roadrunner-server/errors"
 	"github.com/roadrunner-server/events"
-	"github.com/roadrunner-server/goridge/v4/pkg/frame"
 	rh "github.com/roadrunner-server/jobs/v6/protocol"
 	"github.com/roadrunner-server/pool/payload"
 	"github.com/roadrunner-server/pool/state/process"
@@ -87,6 +85,8 @@ type Plugin struct {
 	pollersWg sync.WaitGroup
 }
 
+// Init configures the jobs plugin from the application config, sets up the priority queue,
+// pipeline registry, and metrics collector. Returns errors.Disabled if the plugin section is not present.
 func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 	const op = errors.Op("jobs_plugin_init")
 	if !cfg.Has(PluginName) {
@@ -145,6 +145,8 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 	return nil
 }
 
+// Serve initializes all configured pipelines via their driver constructors, creates worker pool(s),
+// starts the queue pollers, and begins processing jobs. Returns an error channel for async errors.
 func (p *Plugin) Serve() chan error {
 	errCh := make(chan error, 1)
 	const op = errors.Op("jobs_plugin_serve")
@@ -233,6 +235,8 @@ func (p *Plugin) Serve() chan error {
 	return errCh
 }
 
+// Stop gracefully shuts down the plugin by signaling pollers to stop, waiting for in-flight jobs
+// to complete, stopping all pipeline drivers, and destroying the worker pool(s).
 func (p *Plugin) Stop(ctx context.Context) error {
 	// Broadcast stop signal to all pollers
 	close(p.stopCh)
@@ -312,6 +316,7 @@ func (p *Plugin) Stop(ctx context.Context) error {
 	return nil
 }
 
+// Collects declares the plugin's dependencies: job driver constructors and an optional tracer provider.
 func (p *Plugin) Collects() []*dep.In {
 	return []*dep.In{
 		dep.Fits(func(pp any) {
@@ -324,6 +329,7 @@ func (p *Plugin) Collects() []*dep.In {
 	}
 }
 
+// Workers returns the state of all worker processes across all configured pools.
 func (p *Plugin) Workers() []*process.State {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
@@ -350,24 +356,7 @@ func (p *Plugin) Workers() []*process.State {
 	return nil
 }
 
-func (p *Plugin) processState(workers []*worker.Process) []*process.State {
-	ps := make([]*process.State, len(workers))
-	for i := range workers {
-		if workers[i] == nil {
-			continue
-		}
-		st, err := process.WorkerProcessState(workers[i])
-		if err != nil {
-			p.log.Error("jobs workers state", zap.Error(err))
-			return nil
-		}
-
-		ps[i] = st
-	}
-
-	return ps
-}
-
+// JobsState queries each registered pipeline driver for its current state (active, delayed, reserved job counts).
 func (p *Plugin) JobsState(ctx context.Context) ([]*jobsApi.State, error) {
 	const op = errors.Op("jobs_plugin_drivers_state")
 	p.mu.RLock()
@@ -403,10 +392,12 @@ func (p *Plugin) JobsState(ctx context.Context) ([]*jobsApi.State, error) {
 	return jst, nil
 }
 
+// Name returns the plugin identifier used for config lookup and dependency resolution.
 func (p *Plugin) Name() string {
 	return PluginName
 }
 
+// Reset restarts all worker pool(s) by destroying existing workers and spawning fresh ones.
 func (p *Plugin) Reset() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -433,6 +424,7 @@ func (p *Plugin) Reset() error {
 	return nil
 }
 
+// Push sends a single job to the pipeline specified by the job's GroupID.
 func (p *Plugin) Push(ctx context.Context, j jobsApi.Message) error {
 	const op = errors.Op("jobs_plugin_push")
 
@@ -481,6 +473,8 @@ func (p *Plugin) Push(ctx context.Context, j jobsApi.Message) error {
 	return nil
 }
 
+// PushBatch sends multiple jobs to their respective pipelines. Each job is pushed individually
+// and the operation stops on the first error.
 func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Message) error {
 	const op = errors.Op("jobs_plugin_push_batch")
 	start := time.Now().UTC()
@@ -534,6 +528,7 @@ func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Message) error {
 	return nil
 }
 
+// Pause suspends job consumption for the specified pipeline.
 func (p *Plugin) Pause(ctx context.Context, pp string) error {
 	d, ppl, err := p.pipelineExists(pp)
 	if err != nil {
@@ -546,6 +541,7 @@ func (p *Plugin) Pause(ctx context.Context, pp string) error {
 	return d.Pause(ctx, ppl.Name())
 }
 
+// Resume restarts job consumption for a previously paused pipeline.
 func (p *Plugin) Resume(ctx context.Context, pp string) error {
 	d, ppl, err := p.pipelineExists(pp)
 	if err != nil {
@@ -558,7 +554,7 @@ func (p *Plugin) Resume(ctx context.Context, pp string) error {
 	return d.Resume(ctx, ppl.Name())
 }
 
-// Declare a pipeline.
+// Declare dynamically registers a new pipeline at runtime, initializing its driver and starting consumption.
 func (p *Plugin) Declare(ctx context.Context, pipeline jobsApi.Pipeline) error {
 	const op = errors.Op("jobs_plugin_declare")
 	// driver for the pipeline (ie amqp, ephemeral, etc)
@@ -612,7 +608,7 @@ func (p *Plugin) Declare(ctx context.Context, pipeline jobsApi.Pipeline) error {
 	return nil
 }
 
-// Destroy the pipeline and release all associated resources.
+// Destroy stops the pipeline driver and removes it from the plugin's registry.
 func (p *Plugin) Destroy(ctx context.Context, pp string) error {
 	const op = errors.Op("jobs_plugin_destroy")
 	pipe, ok := p.pipelines.Load(pp)
@@ -646,6 +642,7 @@ func (p *Plugin) Destroy(ctx context.Context, pp string) error {
 	return nil
 }
 
+// List returns the names of all registered pipelines.
 func (p *Plugin) List() []string {
 	out := make([]string, 0, 10)
 
@@ -658,65 +655,10 @@ func (p *Plugin) List() []string {
 	return out
 }
 
+// RPC returns the RPC service handler that exposes jobs operations over goridge.
 func (p *Plugin) RPC() any {
 	return &rpc{
 		p:  p,
 		mu: &sync.Mutex{},
-	}
-}
-
-// pipelineExists used to check if the pipeline exists and return the underlying driver and pipeline or error if not exists
-func (p *Plugin) pipelineExists(pp string) (jobsApi.Driver, jobsApi.Pipeline, error) {
-	pipe, ok := p.pipelines.Load(pp)
-	if !ok {
-		p.log.Error("no such pipeline", zap.String("requested", pp))
-		return nil, nil, fmt.Errorf("no such pipeline, requested: %s", pp)
-	}
-
-	if pipe == nil {
-		p.log.Error("no pipe registered, value is nil")
-		return nil, nil, fmt.Errorf("no pipe registered, value is nil")
-	}
-
-	ppl := pipe.(jobsApi.Pipeline)
-
-	d, ok := p.consumers.Load(ppl.Name())
-	if !ok {
-		p.log.Warn("driver for the pipeline not found", zap.String("pipeline", pp))
-		return nil, nil, fmt.Errorf("driver for the pipeline not found, pipeline: %s", pp)
-	}
-
-	return d.(jobsApi.Driver), ppl, nil
-}
-
-func (p *Plugin) payload(body, context []byte) *payload.Payload {
-	pld := p.pldPool.Get().(*payload.Payload)
-	pld.Body = body
-	pld.Context = context
-	pld.Codec = frame.CodecRaw
-	return pld
-}
-
-func (p *Plugin) putPayload(pld *payload.Payload) {
-	pld.Body = nil
-	pld.Context = nil
-	pld.Codec = 0
-	pld.Flags = 0
-	p.pldPool.Put(pld)
-}
-
-func (p *Plugin) waitPollersFinish(ctx context.Context) {
-	p.log.Debug("waiting for pollers to be finished")
-	done := make(chan struct{})
-	go func() {
-		p.pollersWg.Wait()
-		close(done)
-	}()
-
-	select {
-	case <-ctx.Done():
-		return
-	case <-done:
-		return
 	}
 }

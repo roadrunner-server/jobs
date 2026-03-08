@@ -6,6 +6,7 @@ import (
 	"github.com/roadrunner-server/errors"
 )
 
+// AddWorker dynamically adds a worker to all configured pool(s).
 func (p *Plugin) AddWorker() error {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
@@ -28,6 +29,7 @@ func (p *Plugin) AddWorker() error {
 	return nil
 }
 
+// RemoveWorker removes one worker from all configured pool(s).
 func (p *Plugin) RemoveWorker(ctx context.Context) error {
 	p.mu.RLock()
 	defer p.mu.RUnlock()

@@ -108,6 +108,8 @@ func (p *Plugin) listener() {
 	}
 }
 
+// Execute dispatches a job to the given worker pool, waits for the response, and handles the result
+// according to the RoadRunner jobs protocol (ack, nack, requeue, or delay).
 func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span, start time.Time) {
 	// get payload from the sync.Pool
 	exec := p.payload(jb.Body(), pldCtx)

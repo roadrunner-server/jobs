@@ -28,6 +28,7 @@ type statsExporter struct {
 	defaultExporter *StatsExporter
 }
 
+// MetricsCollector returns Prometheus collectors for jobs processing and push metrics.
 func (p *Plugin) MetricsCollector() []prometheus.Collector {
 	// p - implements Exporter interface (workers)
 	return []prometheus.Collector{p.metrics}
