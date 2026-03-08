@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/roadrunner-server/api-plugins/v6/jobs"
-	"github.com/roadrunner-server/goridge/v3/pkg/frame"
+	"github.com/roadrunner-server/goridge/v4/pkg/frame"
 	"github.com/roadrunner-server/pool/payload"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"

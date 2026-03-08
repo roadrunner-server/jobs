@@ -118,6 +118,7 @@ github.com/roadrunner-server/events v1.0.1 h1:waCkKhxhzdK3VcI1xG22l+h+0J+Nfdpxjh
 github.com/roadrunner-server/events v1.0.1/go.mod h1:WZRqoEVaFm209t52EuoT7ISUtvX6BrCi6bI/7pjkVC0=
 github.com/roadrunner-server/goridge/v3 v3.8.3 h1:XmjrOFnI6ZbQTPaP39DEk8KwLUNTgjluK3pcZaW6ixQ=
 github.com/roadrunner-server/goridge/v3 v3.8.3/go.mod h1:4TZU8zgkKIZCsH51qwGMpvyXCT59u/8z6q8sCe4ZGAQ=
+github.com/roadrunner-server/goridge/v4 v4.0.0-beta.1 h1:dO1wKnuMr4xMmH6DY2ZaZ6FWS+Vo50+C7fuAcyO/xBk=
 github.com/roadrunner-server/informer/v5 v5.1.9 h1:yl334LMqUoWXfeP4299HgY9G7mq6kX6FVCSwT+cYdfQ=
 github.com/roadrunner-server/informer/v5 v5.1.9/go.mod h1:JPzSsDjLHExdQ9SbT9e8H/oB7pajgCScL/G70saQzSA=
 github.com/roadrunner-server/kafka/v5 v5.2.5 h1:Abqb9AnFsx5VYsJqP5YwloWHaBbdbGrhX8NkWJk6s74=
