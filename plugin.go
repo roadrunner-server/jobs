@@ -694,7 +694,7 @@ func (p *Plugin) readCommands(errCh chan error) {
 	for {
 		select {
 		case ev := <-p.eventsCh:
-			_, span := p.tracer.Tracer(PluginName).Start(context.Background(), "read_command", trace.WithSpanKind(trace.SpanKindServer))
+			ctx, span := p.tracer.Tracer(PluginName).Start(context.Background(), "read_command", trace.WithSpanKind(trace.SpanKindServer))
 			p.log.Debug("received JOBS event", zap.String("message", ev.Message()), zap.String("pipeline", ev.Plugin()))
 			// message can be 'restart', 'stop'.
 			switch ev.Message() {
@@ -709,7 +709,7 @@ func (p *Plugin) readCommands(errCh chan error) {
 				}
 
 				// Destroy operation has its own timeout
-				err = p.Destroy(context.Background(), pipeline)
+				err = p.Destroy(ctx, pipeline)
 				if err != nil {
 					p.log.Error("failed to stop the pipeline", zap.Error(err), zap.String("pipeline", pipeline))
 					span.RecordError(err)
