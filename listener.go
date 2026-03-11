@@ -15,7 +15,7 @@ import (
 
 // non blocking listener
 func (p *Plugin) extractMin() {
-	// the logic is simple, we should convert blocking call to a bloking but on the channel
+	// the logic is simple, we should convert blocking call to a blocking but on the channel
 	// so we introduce a channel which will be filled with the minimum job from the queue
 	// in the listener we will read from the channel instead of reading from the queue directly
 	go func() {
@@ -23,6 +23,12 @@ func (p *Plugin) extractMin() {
 			p.minCh <- p.queue.ExtractMin()
 		}
 	}()
+}
+
+func (p *Plugin) nackJob(jb jobs.Job) {
+	if err := jb.Nack(); err != nil {
+		p.log.Error("negatively acknowledge failed", zap.String("ID", jb.ID()), zap.Error(err))
+	}
 }
 
 func (p *Plugin) listener() {
@@ -58,10 +64,7 @@ func (p *Plugin) listener() {
 					if err != nil {
 						p.metrics.CountJobErr()
 						p.log.Error("job marshal error", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
-						errNack := jb.Nack()
-						if errNack != nil {
-							p.log.Error("negatively acknowledge was failed", zap.String("ID", jb.ID()), zap.Error(errNack))
-						}
+						p.nackJob(jb)
 						span.End()
 						continue
 					}
@@ -75,10 +78,7 @@ func (p *Plugin) listener() {
 							// invalid pool name, nack the job
 							p.metrics.CountJobErr()
 							p.log.Error("invalid worker pool name", zap.String("pool", headers[pool][0]), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
-							errNack := jb.Nack()
-							if errNack != nil {
-								p.log.Error("negatively acknowledge was failed", zap.String("ID", jb.ID()), zap.Error(errNack))
-							}
+							p.nackJob(jb)
 							span.End()
 							jb = nil
 							continue
@@ -92,10 +92,7 @@ func (p *Plugin) listener() {
 								zap.String("ID", jb.ID()),
 								zap.Time("start", start),
 								zap.Int64("elapsed", time.Since(start).Milliseconds()))
-							errNack := jb.Nack()
-							if errNack != nil {
-								p.log.Error("negatively acknowledge was failed", zap.String("ID", jb.ID()), zap.Error(errNack))
-							}
+							p.nackJob(jb)
 							span.End()
 							jb = nil
 							continue
@@ -125,11 +122,7 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 
 		p.log.Error("job processed with errors", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
 		// RR protocol level error, Nack the job
-		errNack := jb.Nack()
-		if errNack != nil {
-			p.log.Error("negatively acknowledge failed", zap.String("ID", jb.ID()), zap.Error(errNack))
-		}
-
+		p.nackJob(jb)
 		p.putPayload(exec)
 		jb = nil
 		span.End()
@@ -148,10 +141,7 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 
 			p.log.Error("job processed with errors", zap.Error(pld.Error()), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
 			// RR protocol level error, Nack the job
-			errNack := jb.Nack()
-			if errNack != nil {
-				p.log.Error("negatively acknowledge failed", zap.String("ID", jb.ID()), zap.Error(errNack))
-			}
+			p.nackJob(jb)
 
 			p.putPayload(exec)
 			jb = nil
@@ -168,10 +158,7 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 				zap.Time("start", start),
 				zap.Int64("elapsed", time.Since(start).Milliseconds()))
 
-			errNack := jb.Nack()
-			if errNack != nil {
-				p.log.Error("negatively acknowledge failed", zap.String("ID", jb.ID()), zap.Error(errNack))
-			}
+			p.nackJob(jb)
 
 			p.putPayload(exec)
 			jb = nil
@@ -185,10 +172,7 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 		// timeout
 		p.metrics.CountJobErr()
 		p.log.Error("worker null response, this is not expected")
-		errNack := jb.Nack()
-		if errNack != nil {
-			p.log.Error("negatively acknowledge failed", zap.String("ID", jb.ID()), zap.Error(errNack))
-		}
+		p.nackJob(jb)
 		p.putPayload(exec)
 		jb = nil
 		span.End()

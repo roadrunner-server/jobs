@@ -14,12 +14,12 @@ type processor struct {
 	wg         sync.WaitGroup
 	mu         sync.Mutex
 	consumers  *sync.Map
-	runners    *map[string]struct{}
+	runners    map[string]struct{}
 	log        *zap.Logger
 	queueCh    chan *pjob
 	maxWorkers int
 	errs       []error
-	stopped    *int64
+	stopped    atomic.Bool
 }
 
 type pjob struct {
@@ -36,17 +36,14 @@ type pjob struct {
 // consumers - sync.Map with all drivers (consumers) for pipelines
 // runners - map with all pipelines that should be consumed (started immediately)
 // maxWorkers - number of parallel workers which will start pipelines
-func newPipesProc(log *zap.Logger, consumers *sync.Map, runners *map[string]struct{}, maxWorkers int) *processor {
+func newPipesProc(log *zap.Logger, consumers *sync.Map, runners map[string]struct{}, maxWorkers int) *processor {
 	p := &processor{
 		log:        log,
 		queueCh:    make(chan *pjob, 100),
 		maxWorkers: maxWorkers,
 		consumers:  consumers,
 		runners:    runners,
-		wg:         sync.WaitGroup{},
-		mu:         sync.Mutex{},
 		errs:       make([]error, 0, 1),
-		stopped:    new(int64),
 	}
 
 	// start the processor
@@ -79,7 +76,7 @@ func (p *processor) run() {
 
 				p.log.Debug("driver ready", zap.String("pipeline", job.pipe.Name()), zap.String("driver", job.pipe.Driver()), zap.Time("start", t), zap.Int64("elapsed", time.Since(t).Milliseconds()))
 				// if a pipeline initialized to be consumed, call Run on it
-				if _, ok := (*p.runners)[job.pipe.Name()]; ok {
+				if _, ok := p.runners[job.pipe.Name()]; ok {
 					ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(job.timeout))
 					err = initializedDriver.Run(ctx, job.pipe)
 					if err != nil {
@@ -98,7 +95,7 @@ func (p *processor) run() {
 }
 
 func (p *processor) add(pjob *pjob) {
-	if atomic.LoadInt64(p.stopped) == 1 {
+	if p.stopped.Load() {
 		p.log.Warn("processor was stopped, can't add a new job")
 		return
 	}
@@ -127,6 +124,6 @@ func (p *processor) wait() {
 }
 
 func (p *processor) stop() {
-	atomic.StoreInt64(p.stopped, 1)
+	p.stopped.Store(true)
 	close(p.queueCh)
 }

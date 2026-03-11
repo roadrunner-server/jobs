@@ -10,7 +10,7 @@ import (
 	"github.com/roadrunner-server/api-plugins/v6/jobs"
 	"github.com/roadrunner-server/errors"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/errgroup"
@@ -18,11 +18,12 @@ import (
 
 type rpc struct {
 	p  *Plugin
-	mu *sync.Mutex
+	mu sync.RWMutex
 }
 
 func spanError(span trace.Span, err error) {
-	span.SetAttributes(attribute.String("error", err.Error()))
+	span.RecordError(err)
+	span.SetStatus(codes.Error, err.Error())
 }
 
 func (r *rpc) Push(j *jobsProto.PushRequest, _ *jobsProto.JobResponse) error {
@@ -112,6 +113,9 @@ func (r *rpc) Resume(req *jobsProto.Pipelines, _ *jobsProto.JobResponse) error {
 }
 
 func (r *rpc) List(_ *jobsProto.JobResponse, resp *jobsProto.Pipelines) error {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
 	_, span := r.p.tracer.Tracer(PluginName).Start(context.Background(), "list_pipelines", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 	resp.Pipelines = r.p.List()
@@ -191,8 +195,8 @@ func (r *rpc) Destroy(req *jobsProto.Pipelines, resp *jobsProto.Pipelines) error
 
 func (r *rpc) Stat(_ *jobsProto.JobResponse, resp *jobsProto.Stats) error {
 	const op = errors.Op("rpc_stats")
-	r.mu.Lock()
-	defer r.mu.Unlock()
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()

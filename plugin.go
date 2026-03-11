@@ -9,7 +9,6 @@ import (
 	"time"
 
 	jobsApi "github.com/roadrunner-server/api-plugins/v6/jobs"
-	"github.com/roadrunner-server/pool/pool/static_pool"
 	jprop "go.opentelemetry.io/contrib/propagators/jaeger"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -132,7 +131,7 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 	// initialize priority queue
 	p.queue = pqImpl.NewBinHeap[jobsApi.Job](p.cfg.PipelineSize)
 	p.log = log.NamedLogger(PluginName)
-	p.jobsProcessor = newPipesProc(p.log, &p.consumers, &p.consume, p.cfg.CfgOptions.Parallelism)
+	p.jobsProcessor = newPipesProc(p.log, &p.consumers, p.consume, p.cfg.CfgOptions.Parallelism)
 	p.experimental = cfg.Experimental()
 	p.tracer = sdktrace.NewTracerProvider()
 
@@ -150,6 +149,14 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 func (p *Plugin) Serve() chan error {
 	errCh := make(chan error, 1)
 	const op = errors.Op("jobs_plugin_serve")
+
+	// guard: if Serve() returns early, stop processor goroutines to prevent leaks
+	started := false
+	defer func() {
+		if !started {
+			p.jobsProcessor.stop()
+		}
+	}()
 
 	if p.tracer == nil {
 		// noop tracer
@@ -230,6 +237,7 @@ func (p *Plugin) Serve() chan error {
 	}
 
 	// start listening
+	started = true
 	p.listener()
 	p.mu.Unlock()
 	return errCh
@@ -250,24 +258,12 @@ func (p *Plugin) Stop(ctx context.Context) error {
 
 		if p.workersPools != nil {
 			for _, wp := range p.workersPools {
-				switch pp := wp.(type) {
-				case *static_pool.Pool:
-					if pp != nil {
-						pp.Destroy(ctx)
-					}
-				default:
-					// pool is nil, nothing to do
+				if wp != nil {
+					wp.Destroy(ctx)
 				}
 			}
 		} else if p.workersPool != nil {
-			switch pp := p.workersPool.(type) {
-			case *static_pool.Pool:
-				if pp != nil {
-					pp.Destroy(ctx)
-				}
-			default:
-				// pool is nil, nothing to do
-			}
+			p.workersPool.Destroy(ctx)
 		}
 
 		p.mu.Unlock()
@@ -284,7 +280,7 @@ func (p *Plugin) Stop(ctx context.Context) error {
 
 		go func() {
 			consumer := value.(jobsApi.Driver)
-			ctxT, cancel := context.WithTimeout(ctx, time.Second*time.Duration(p.cfg.Timeout))
+			ctxT, cancel := context.WithTimeout(ctx, p.cfg.TimeoutDuration())
 			err := consumer.Stop(ctxT)
 			if err != nil {
 				p.log.Error("stop job driver", zap.Any("driver", key), zap.Error(err))
@@ -303,15 +299,15 @@ func (p *Plugin) Stop(ctx context.Context) error {
 		return err
 	}
 
-	p.pipelines.Clear()
-	p.consumers.Clear()
-
 	// just to be sure
 	if p.jobsProcessor != nil {
 		p.jobsProcessor.stop()
 	}
 
 	p.waitPollersFinish(ctx)
+
+	p.pipelines.Clear()
+	p.consumers.Clear()
 
 	return nil
 }
@@ -369,7 +365,7 @@ func (p *Plugin) JobsState(ctx context.Context) ([]*jobsApi.State, error) {
 		if consumer == nil {
 			return true
 		}
-		newCtx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(p.cfg.Timeout))
+		newCtx, cancel := context.WithTimeout(ctx, p.cfg.TimeoutDuration())
 
 		var state *jobsApi.State
 		state, err = consumer.State(newCtx)
@@ -405,19 +401,24 @@ func (p *Plugin) Reset() error {
 	const op = errors.Op("jobs_plugin_reset")
 	p.log.Info("reset signal was received")
 
+	var errs []error
 	switch {
 	case len(p.workersPools) > 0:
 		for poolName, wp := range p.workersPools {
 			if err := wp.Reset(context.Background()); err != nil {
-				return errors.E(op, errors.Errorf("failed to reset pool %s: %s", poolName, err))
+				errs = append(errs, errors.E(op, errors.Errorf("failed to reset pool %s: %s", poolName, err)))
 			}
 		}
 	case p.workersPool != nil:
 		if err := p.workersPool.Reset(context.Background()); err != nil {
-			return errors.E(op, err)
+			errs = append(errs, errors.E(op, err))
 		}
 	default:
 		return errors.E(op, errors.Str("no worker pools configured"))
+	}
+
+	if len(errs) > 0 {
+		return errors.E(op, stderr.Join(errs...))
 	}
 
 	p.log.Info("plugin was successfully reset")
@@ -429,17 +430,10 @@ func (p *Plugin) Push(ctx context.Context, j jobsApi.Message) error {
 	const op = errors.Op("jobs_plugin_push")
 
 	start := time.Now().UTC()
-	// get the pipeline for the job
-	pipe, ok := p.pipelines.Load(j.GroupID())
-	if !ok {
-		return errors.E(op, errors.Errorf("no such pipeline, requested: %s", j.GroupID()))
-	}
 
-	// type conversion
-	ppl := pipe.(jobsApi.Pipeline)
-	d, ok := p.consumers.Load(ppl.Name())
-	if !ok {
-		return errors.E(op, errors.Errorf("consumer not registered for the requested driver: %s", ppl.Driver()))
+	d, ppl, err := p.pipelineExists(j.GroupID())
+	if err != nil {
+		return errors.E(op, err)
 	}
 
 	p.metrics.pushJobRequestCounter.WithLabelValues(ppl.Name(), ppl.Driver(), "single").Inc()
@@ -449,7 +443,7 @@ func (p *Plugin) Push(ctx context.Context, j jobsApi.Message) error {
 		j.UpdatePriority(ppl.Priority())
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(p.cfg.Timeout))
+	ctx, cancel := context.WithTimeout(ctx, p.cfg.TimeoutDuration())
 	defer cancel()
 	if val := ppl.Get(pool); val != nil {
 		if valStr, ok := val.(string); ok && valStr != "" {
@@ -457,7 +451,7 @@ func (p *Plugin) Push(ctx context.Context, j jobsApi.Message) error {
 		}
 	}
 
-	err := d.(jobsApi.Driver).Push(ctx, j)
+	err = d.Push(ctx, j)
 	if err != nil {
 		p.metrics.CountPushErr()
 		p.log.Error("job push error", zap.String("ID", j.ID()), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()), zap.Error(err))
@@ -481,17 +475,10 @@ func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Message) error {
 
 	for i := range j {
 		operationStart := time.Now().UTC()
-		// get the pipeline for the job
-		pipe, ok := p.pipelines.Load(j[i].GroupID())
-		if !ok {
-			return errors.E(op, errors.Errorf("no such pipeline, requested: %s", j[i].GroupID()))
-		}
 
-		ppl := pipe.(jobsApi.Pipeline)
-
-		d, ok := p.consumers.Load(ppl.Name())
-		if !ok {
-			return errors.E(op, errors.Errorf("consumer not registered for the requested driver: %s", ppl.Driver()))
+		d, ppl, err := p.pipelineExists(j[i].GroupID())
+		if err != nil {
+			return errors.E(op, err)
 		}
 
 		p.metrics.pushJobRequestCounter.WithLabelValues(ppl.Name(), ppl.Driver(), "batch").Inc()
@@ -507,8 +494,8 @@ func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Message) error {
 			}
 		}
 
-		ctxPush, cancel := context.WithTimeout(ctx, time.Second*time.Duration(p.cfg.Timeout))
-		err := d.(jobsApi.Driver).Push(ctxPush, j[i])
+		ctxPush, cancel := context.WithTimeout(ctx, p.cfg.TimeoutDuration())
+		err = d.Push(ctxPush, j[i])
 		if err != nil {
 			cancel()
 			p.metrics.CountPushErr()
@@ -535,7 +522,7 @@ func (p *Plugin) Pause(ctx context.Context, pp string) error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(p.cfg.Timeout))
+	ctx, cancel := context.WithTimeout(ctx, p.cfg.TimeoutDuration())
 	defer cancel()
 	// redirect call to the underlying driver
 	return d.Pause(ctx, ppl.Name())
@@ -548,7 +535,7 @@ func (p *Plugin) Resume(ctx context.Context, pp string) error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(p.cfg.Timeout))
+	ctx, cancel := context.WithTimeout(ctx, p.cfg.TimeoutDuration())
 	defer cancel()
 	// redirect call to the underlying driver
 	return d.Resume(ctx, ppl.Name())
@@ -589,7 +576,7 @@ func (p *Plugin) Declare(ctx context.Context, pipeline jobsApi.Pipeline) error {
 		// if a pipeline initialized to be consumed, call Run on it,
 		// but likely for the dynamic pipelines it should be started manually
 		if _, ok := p.consume[pipeline.Name()]; ok {
-			ctxDeclare, cancel := context.WithTimeout(ctx, time.Second*time.Duration(p.cfg.Timeout))
+			ctxDeclare, cancel := context.WithTimeout(ctx, p.cfg.TimeoutDuration())
 			defer cancel()
 			err = initializedDriver.Run(ctxDeclare, pipeline)
 			if err != nil {
@@ -631,7 +618,7 @@ func (p *Plugin) Destroy(ctx context.Context, pp string) error {
 	// delete old pipeline
 	p.pipelines.Delete(pp)
 
-	ctx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(p.cfg.Timeout))
+	ctx, cancel := context.WithTimeout(ctx, p.cfg.TimeoutDuration())
 	err := d.(jobsApi.Driver).Stop(ctx)
 	if err != nil {
 		cancel()
@@ -658,7 +645,6 @@ func (p *Plugin) List() []string {
 // RPC returns the RPC service handler that exposes jobs operations over goridge.
 func (p *Plugin) RPC() any {
 	return &rpc{
-		p:  p,
-		mu: &sync.Mutex{},
+		p: p,
 	}
 }

@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"errors"
+	"time"
 
 	poolImpl "github.com/roadrunner-server/pool/pool"
 )
@@ -96,4 +97,8 @@ func (c *Config) InitDefaults() error {
 	}
 
 	return nil
+}
+
+func (c *Config) TimeoutDuration() time.Duration {
+	return time.Second * time.Duration(c.Timeout)
 }

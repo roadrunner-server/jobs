@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	jobsApi "github.com/roadrunner-server/api-plugins/v6/jobs"
-	"github.com/roadrunner-server/goridge/v3/pkg/frame"
+	"github.com/roadrunner-server/goridge/v4/pkg/frame"
 	"github.com/roadrunner-server/pool/payload"
 	"github.com/roadrunner-server/pool/state/process"
 	"github.com/roadrunner-server/pool/worker"
