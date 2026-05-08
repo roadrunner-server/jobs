@@ -553,7 +553,7 @@ func TestTracePropagation(t *testing.T) {
 	require.NoError(t, err)
 	client := rpc.NewClientWithCodec(goridgeRpc.NewClientCodec(conn))
 
-	req := &jobsProto.PushRequest{Job: &jobsProto.Job{
+	req := &jobsProto.PushBatchRequest{Jobs: []*jobsProto.Job{{
 		Job:     "test/trace",
 		Id:      uuid.NewString(),
 		Payload: []byte(`{"traceparent":"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"}`),
@@ -564,9 +564,9 @@ func TestTracePropagation(t *testing.T) {
 			Priority: 1,
 			Pipeline: "test-trace",
 		},
-	}}
+	}}}
 
-	er := &jobsProto.JobResponse{}
+	er := &jobsProto.JobsHandlerResponse{}
 	err = client.Call("jobs.Push", req, er)
 	require.NoError(t, err)
 	_ = conn.Close()
