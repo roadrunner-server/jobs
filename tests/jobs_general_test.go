@@ -464,7 +464,7 @@ func declareMemoryPipe(t *testing.T) {
 		"prefetch": "10000",
 	}}
 
-	er := &jobsProto.JobResponse{}
+	er := &jobsProto.JobsHandlerResponse{}
 	err = client.Call("jobs.Declare", pipe, er)
 	assert.NoError(t, err)
 }
@@ -478,7 +478,7 @@ func consumeMemoryPipe(t *testing.T) {
 	pipe := &jobsProto.Pipelines{Pipelines: make([]string, 1)}
 	pipe.GetPipelines()[0] = "test-3"
 
-	er := &jobsProto.JobResponse{}
+	er := &jobsProto.JobsHandlerResponse{}
 	err = client.Call("jobs.Resume", pipe, er)
 	assert.NoError(t, err)
 }
