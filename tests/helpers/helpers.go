@@ -46,7 +46,7 @@ func callPipelineMethod(address, method string, pipes []string) func(t *testing.
 			pipe.GetPipelines()[i] = pipes[i]
 		}
 
-		er := &jobsProto.JobResponse{}
+		er := &jobsProto.JobsHandlerResponse{}
 		err := client.Call(method, pipe, er)
 		require.NoError(t, err)
 	}
@@ -60,19 +60,19 @@ func PushToPipeDelayed(address string, pipeline string, delay int64) func(t *tes
 	return func(t *testing.T) {
 		client := newRPCClient(t, address)
 
-		req := &jobsProto.PushRequest{Job: &jobsProto.Job{
+		req := &jobsProto.PushBatchRequest{Jobs: []*jobsProto.Job{{
 			Job:     "some/php/namespace",
 			Id:      uuid.NewString(),
-			Payload: []byte(`{"hello":"world"}`),
+			Payload: []byte(`{"hello":"world"}}`),
 			Headers: map[string]*jobsProto.JobHeaderValue{"test": {Values: []string{"test2"}}},
 			Options: &jobsProto.Options{
 				Priority: 1,
 				Pipeline: pipeline,
 				Delay:    delay,
 			},
-		}}
+		}}}
 
-		er := &jobsProto.JobResponse{}
+		er := &jobsProto.JobsHandlerResponse{}
 		err := client.Call(push, req, er)
 		assert.NoError(t, err)
 	}
@@ -91,7 +91,7 @@ func PushToPipeBatch(address string, pipeline string, count int, autoAck bool, p
 			Jobs: jobs,
 		}
 
-		er := &jobsProto.JobResponse{}
+		er := &jobsProto.JobsHandlerResponse{}
 		err := client.Call(pushBatch, req, er)
 		assert.NoError(t, err)
 	}
@@ -101,9 +101,9 @@ func PushToPipe(pipeline string, autoAck bool, address string, payload []byte) f
 	return func(t *testing.T) {
 		client := newRPCClient(t, address)
 
-		req := &jobsProto.PushRequest{Job: createDummyJob(pipeline, autoAck, payload)}
+		req := &jobsProto.PushBatchRequest{Jobs: []*jobsProto.Job{createDummyJob(pipeline, autoAck, payload)}}
 
-		er := &jobsProto.JobResponse{}
+		er := &jobsProto.JobsHandlerResponse{}
 		err := client.Call(push, req, er)
 		require.NoError(t, err)
 	}
@@ -123,7 +123,7 @@ func DestroyPipelines(address string, pipes ...string) func(t *testing.T) {
 		}
 
 		for range 10 {
-			er := &jobsProto.JobResponse{}
+			er := &jobsProto.JobsHandlerResponse{}
 			err := client.Call(destroy, pipe, er)
 			if err != nil {
 				time.Sleep(time.Second)
@@ -140,7 +140,7 @@ func Stats(address string, state *jobState.State) func(t *testing.T) {
 		client := newRPCClient(t, address)
 
 		st := &jobsProto.Stats{}
-		er := &jobsProto.JobResponse{}
+		er := &jobsProto.JobsHandlerResponse{}
 
 		err := client.Call(stat, er, st)
 		require.NoError(t, err)

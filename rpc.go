@@ -26,22 +26,25 @@ func spanError(span trace.Span, err error) {
 	span.SetStatus(codes.Error, err.Error())
 }
 
-func (r *rpc) Push(j *jobsProto.PushRequest, _ *jobsProto.JobResponse) error {
+// Push accepts a PushBatchRequest containing exactly one Job for compatibility
+// with the legacy single-push RPC method. Use PushBatch for multi-job pushes.
+func (r *rpc) Push(j *jobsProto.PushBatchRequest, _ *jobsProto.JobsHandlerResponse) error {
 	const op = errors.Op("rpc_push")
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// convert transport entity into a domain
-	// how we can do this quickly
-
-	if j.GetJob().GetId() == "" {
+	jobs := j.GetJobs()
+	if len(jobs) != 1 {
+		return errors.E(op, errors.Str("Push expects exactly one job, use PushBatch for multiple"))
+	}
+	if jobs[0].GetId() == "" {
 		return errors.E(op, errors.Str("empty ID field not allowed"))
 	}
-	ctx, span := r.p.tracer.Tracer(PluginName).Start(rpcContextFromJob(j.GetJob()), "push", trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := r.p.tracer.Tracer(PluginName).Start(rpcContextFromJob(jobs[0]), "push", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
-	err := r.p.Push(ctx, from(j.GetJob()))
+	err := r.p.Push(ctx, from(jobs[0]))
 	if err != nil {
 		spanError(span, err)
 		return errors.E(op, err)
@@ -50,7 +53,7 @@ func (r *rpc) Push(j *jobsProto.PushRequest, _ *jobsProto.JobResponse) error {
 	return nil
 }
 
-func (r *rpc) PushBatch(j *jobsProto.PushBatchRequest, _ *jobsProto.JobResponse) error {
+func (r *rpc) PushBatch(j *jobsProto.PushBatchRequest, _ *jobsProto.JobsHandlerResponse) error {
 	const op = errors.Op("rpc_push_batch")
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -77,7 +80,7 @@ func (r *rpc) PushBatch(j *jobsProto.PushBatchRequest, _ *jobsProto.JobResponse)
 	return nil
 }
 
-func (r *rpc) Pause(req *jobsProto.Pipelines, _ *jobsProto.JobResponse) error {
+func (r *rpc) Pause(req *jobsProto.Pipelines, _ *jobsProto.JobsHandlerResponse) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -95,7 +98,7 @@ func (r *rpc) Pause(req *jobsProto.Pipelines, _ *jobsProto.JobResponse) error {
 	return nil
 }
 
-func (r *rpc) Resume(req *jobsProto.Pipelines, _ *jobsProto.JobResponse) error {
+func (r *rpc) Resume(req *jobsProto.Pipelines, _ *jobsProto.JobsHandlerResponse) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -112,7 +115,7 @@ func (r *rpc) Resume(req *jobsProto.Pipelines, _ *jobsProto.JobResponse) error {
 	return nil
 }
 
-func (r *rpc) List(_ *jobsProto.JobResponse, resp *jobsProto.Pipelines) error {
+func (r *rpc) List(_ *jobsProto.JobsHandlerResponse, resp *jobsProto.Pipelines) error {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -127,7 +130,7 @@ func (r *rpc) List(_ *jobsProto.JobResponse, resp *jobsProto.Pipelines) error {
 // 1. Driver
 // 2. Pipeline name
 // 3. Options related to the particular pipeline
-func (r *rpc) Declare(req *jobsProto.DeclareRequest, _ *jobsProto.JobResponse) error {
+func (r *rpc) Declare(req *jobsProto.DeclareRequest, _ *jobsProto.JobsHandlerResponse) error {
 	const op = errors.Op("rpc_declare_pipeline")
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -193,7 +196,7 @@ func (r *rpc) Destroy(req *jobsProto.Pipelines, resp *jobsProto.Pipelines) error
 	return nil
 }
 
-func (r *rpc) Stat(_ *jobsProto.JobResponse, resp *jobsProto.Stats) error {
+func (r *rpc) Stat(_ *jobsProto.JobsHandlerResponse, resp *jobsProto.Stats) error {
 	const op = errors.Op("rpc_stats")
 	r.mu.RLock()
 	defer r.mu.RUnlock()

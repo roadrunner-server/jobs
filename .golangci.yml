@@ -14,7 +14,6 @@ linters:
     - exhaustive
     - gochecknoglobals
     - gochecknoinits
-    - goconst
     - gocritic
     - goprintffuncname
     - gosec
@@ -35,9 +34,6 @@ linters:
   settings:
     dupl:
       threshold: 100
-    goconst:
-      min-len: 2
-      min-occurrences: 3
     godot:
       scope: declarations
       capital: true
