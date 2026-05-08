@@ -2,12 +2,12 @@ package jobs
 
 import (
 	"context"
+	"log/slog"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	jobsApi "github.com/roadrunner-server/api-plugins/v6/jobs"
-	"go.uber.org/zap"
 )
 
 type processor struct {
@@ -15,7 +15,7 @@ type processor struct {
 	mu         sync.Mutex
 	consumers  *sync.Map
 	runners    map[string]struct{}
-	log        *zap.Logger
+	log        *slog.Logger
 	queueCh    chan *pjob
 	maxWorkers int
 	errs       []error
@@ -36,7 +36,7 @@ type pjob struct {
 // consumers - sync.Map with all drivers (consumers) for pipelines
 // runners - map with all pipelines that should be consumed (started immediately)
 // maxWorkers - number of parallel workers which will start pipelines
-func newPipesProc(log *zap.Logger, consumers *sync.Map, runners map[string]struct{}, maxWorkers int) *processor {
+func newPipesProc(log *slog.Logger, consumers *sync.Map, runners map[string]struct{}, maxWorkers int) *processor {
 	p := &processor{
 		log:        log,
 		queueCh:    make(chan *pjob, 100),
@@ -56,7 +56,7 @@ func (p *processor) run() {
 	for range p.maxWorkers {
 		go func() {
 			for job := range p.queueCh {
-				p.log.Debug("initializing driver", zap.String("pipeline", job.pipe.Name()), zap.String("driver", job.pipe.Driver()))
+				p.log.Debug("initializing driver", "pipeline", job.pipe.Name(), "driver", job.pipe.Driver())
 				t := time.Now().UTC()
 				initializedDriver, err := job.jc.DriverFromConfig(job.context, job.configKey, job.queue, job.pipe)
 				if err != nil {
@@ -65,16 +65,16 @@ func (p *processor) run() {
 					p.mu.Unlock()
 					p.wg.Done()
 					p.log.Error("failed to initialize driver",
-						zap.String("pipeline", job.pipe.Name()),
-						zap.String("driver", job.pipe.Driver()),
-						zap.Error(err))
+						"pipeline", job.pipe.Name(),
+						"driver", job.pipe.Driver(),
+						"error", err)
 					continue
 				}
 
 				// add a driver to the set of the consumers (name - pipeline name, value - associated driver)
 				p.consumers.Store(job.pipe.Name(), initializedDriver)
 
-				p.log.Debug("driver ready", zap.String("pipeline", job.pipe.Name()), zap.String("driver", job.pipe.Driver()), zap.Time("start", t), zap.Int64("elapsed", time.Since(t).Milliseconds()))
+				p.log.Debug("driver ready", "pipeline", job.pipe.Name(), "driver", job.pipe.Driver(), "start", t, "elapsed", time.Since(t).Milliseconds())
 				// if a pipeline initialized to be consumed, call Run on it
 				if _, ok := p.runners[job.pipe.Name()]; ok {
 					ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(job.timeout))

@@ -5,7 +5,6 @@ import (
 
 	"github.com/roadrunner-server/api-plugins/v6/jobs"
 	"github.com/roadrunner-server/errors"
-	"go.uber.org/zap"
 )
 
 func (rh *RespHandler) handleErrResp(data []byte, jb jobs.Job) error {
@@ -18,7 +17,7 @@ func (rh *RespHandler) handleErrResp(data []byte, jb jobs.Job) error {
 	}
 
 	if er.Msg != "" {
-		rh.log.Error("jobs protocol error", zap.Error(errors.E(er.Msg)), zap.Int("delay", er.Delay), zap.Bool("requeue", er.Requeue))
+		rh.log.Error("jobs protocol error", "error", errors.E(er.Msg), "delay", er.Delay, "requeue", er.Requeue)
 	}
 
 	// requeue the job
@@ -27,18 +26,18 @@ func (rh *RespHandler) handleErrResp(data []byte, jb jobs.Job) error {
 		if err != nil {
 			return err
 		}
-		rh.log.Info("job was re-queued", zap.Error(errors.E(er.Msg)), zap.Int("delay", er.Delay), zap.Bool("requeue", er.Requeue))
+		rh.log.Info("job was re-queued", "error", errors.E(er.Msg), "delay", er.Delay, "requeue", er.Requeue)
 		return nil
 	}
 
 	// the user doesn't want to requeue the job - silently ACK and return nil
 	errAck := jb.Ack()
 	if errAck != nil {
-		rh.log.Error("job acknowledge was failed", zap.Error(errors.E(er.Msg)), zap.Error(errAck))
+		rh.log.Error("job acknowledge was failed", "error", errors.E(er.Msg), "error", errAck)
 		// do not return any error
 	}
 
-	rh.log.Debug("requeue was not set, acknowledging the job", zap.Error(errors.E(er.Msg)))
+	rh.log.Debug("requeue was not set, acknowledging the job", "error", errors.E(er.Msg))
 
 	return nil
 }
@@ -54,7 +53,7 @@ func (rh *RespHandler) handleNackResponse(data []byte, jb jobs.Job) error {
 
 	// we have an error message
 	if er.Msg != "" {
-		rh.log.Error("jobs nack request", zap.Error(errors.E(er.Msg)), zap.Int("delay", er.Delay), zap.Bool("requeue", er.Requeue))
+		rh.log.Error("jobs nack request", "error", errors.E(er.Msg), "delay", er.Delay, "requeue", er.Requeue)
 	}
 
 	err = jb.NackWithOptions(er.Requeue, er.Delay)
@@ -80,9 +79,9 @@ func (rh *RespHandler) requeue(data []byte, jb jobs.Job) error {
 	}
 
 	rh.log.Info("job was re-queued",
-		zap.String("message", er.Msg),
-		zap.Int("delay", er.Delay),
-		zap.Bool("requeue", er.Requeue),
+		"message", er.Msg,
+		"delay", er.Delay,
+		"requeue", er.Requeue,
 	)
 
 	return nil

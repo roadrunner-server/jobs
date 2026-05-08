@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/trace"
-	"go.uber.org/zap"
 )
 
 func (p *Plugin) readCommands(errCh chan error) {
@@ -18,7 +17,7 @@ func (p *Plugin) readCommands(errCh chan error) {
 				return
 			}
 			ctx, span := p.tracer.Tracer(PluginName).Start(context.Background(), "read_command", trace.WithSpanKind(trace.SpanKindServer))
-			p.log.Debug("received JOBS event", zap.String("message", ev.Message()), zap.String("pipeline", ev.Plugin()))
+			p.log.Debug("received JOBS event", "message", ev.Message(), "pipeline", ev.Plugin())
 			// message can be 'restart', 'stop'.
 			switch ev.Message() {
 			case stopStr:
@@ -26,7 +25,7 @@ func (p *Plugin) readCommands(errCh chan error) {
 				pipeline := ev.Plugin()
 				_, _, err := p.pipelineExists(pipeline)
 				if err != nil {
-					p.log.Warn("failed to restart the pipeline", zap.Error(err), zap.String("pipeline", pipeline))
+					p.log.Warn("failed to restart the pipeline", "error", err, "pipeline", pipeline)
 					span.End()
 					continue
 				}
@@ -34,10 +33,10 @@ func (p *Plugin) readCommands(errCh chan error) {
 				// Destroy operation has its own timeout
 				err = p.Destroy(ctx, pipeline)
 				if err != nil {
-					p.log.Error("failed to stop the pipeline", zap.Error(err), zap.String("pipeline", pipeline))
+					p.log.Error("failed to stop the pipeline", "error", err, "pipeline", pipeline)
 					span.RecordError(err)
 				} else {
-					p.log.Info("pipeline was stopped", zap.String("pipeline", pipeline))
+					p.log.Info("pipeline was stopped", "pipeline", pipeline)
 				}
 
 				span.End()
@@ -54,7 +53,7 @@ func (p *Plugin) readCommands(errCh chan error) {
 				pipeline := ev.Plugin()
 				drv, pipe, err := p.pipelineExists(pipeline)
 				if err != nil {
-					p.log.Warn("failed to restart the pipeline", zap.Error(err), zap.String("pipeline", pipeline))
+					p.log.Warn("failed to restart the pipeline", "error", err, "pipeline", pipeline)
 					span.RecordError(err)
 					span.End()
 					continue
@@ -64,7 +63,7 @@ func (p *Plugin) readCommands(errCh chan error) {
 				// 1. Stop the pipeline
 				err = drv.Stop(stopCtx)
 				if err != nil {
-					p.log.Error("failed to stop the pipeline", zap.Error(err), zap.String("pipeline", pipeline))
+					p.log.Error("failed to stop the pipeline", "error", err, "pipeline", pipeline)
 				}
 				stopCancel()
 
@@ -81,7 +80,7 @@ func (p *Plugin) readCommands(errCh chan error) {
 					err = p.Declare(restartCtx, pipe)
 					if err != nil {
 						restartCancel()
-						p.log.Error("failed to restart the pipeline", zap.Error(err), zap.String("pipeline", pipeline))
+						p.log.Error("failed to restart the pipeline", "error", err, "pipeline", pipeline)
 						span.RecordError(err)
 						span.End()
 						continue
@@ -112,13 +111,13 @@ func (p *Plugin) readCommands(errCh chan error) {
 					p.pipelines.Store(pipeline, pipe)
 				} else {
 					restartCancel()
-					p.log.Warn("unknown pipeline creation method", zap.String("pipeline", pipeline))
+					p.log.Warn("unknown pipeline creation method", "pipeline", pipeline)
 				}
 
 				span.End()
 				continue
 			default:
-				p.log.Warn("unknown command", zap.String("command", ev.Message()))
+				p.log.Warn("unknown command", "command", ev.Message())
 				span.End()
 				continue
 			}

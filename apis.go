@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/roadrunner-server/pool/payload"
 	poolConfig "github.com/roadrunner-server/pool/pool"
@@ -9,11 +10,10 @@ import (
 	"github.com/roadrunner-server/pool/state/process"
 	"github.com/roadrunner-server/pool/worker"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	"go.uber.org/zap"
 )
 
 type Logger interface {
-	NamedLogger(name string) *zap.Logger
+	NamedLogger(name string) *slog.Logger
 }
 
 type Informer interface {
@@ -50,5 +50,5 @@ type Configurer interface {
 
 // Server creates workers for the application.
 type Server interface {
-	NewPool(ctx context.Context, cfg *poolConfig.Config, env map[string]string, _ *zap.Logger) (*staticPool.Pool, error)
+	NewPool(ctx context.Context, cfg *poolConfig.Config, env map[string]string, _ *slog.Logger) (*staticPool.Pool, error)
 }

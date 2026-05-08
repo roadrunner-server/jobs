@@ -10,7 +10,6 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
-	"go.uber.org/zap"
 )
 
 // non blocking listener
@@ -27,7 +26,7 @@ func (p *Plugin) extractMin() {
 
 func (p *Plugin) nackJob(jb jobs.Job) {
 	if err := jb.Nack(); err != nil {
-		p.log.Error("negatively acknowledge failed", zap.String("ID", jb.ID()), zap.Error(err))
+		p.log.Error("negatively acknowledge failed", "ID", jb.ID(), "error", err)
 	}
 }
 
@@ -58,12 +57,12 @@ func (p *Plugin) listener() {
 						5. Pipeline name
 					*/
 
-					p.log.Debug("job processing was started", zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
+					p.log.Debug("job processing was started", "ID", jb.ID(), "start", start, "elapsed", time.Since(start).Milliseconds())
 
 					ctx, err := jb.Context()
 					if err != nil {
 						p.metrics.CountJobErr()
-						p.log.Error("job marshal error", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
+						p.log.Error("job marshal error", "error", err, "ID", jb.ID(), "start", start, "elapsed", time.Since(start).Milliseconds())
 						p.nackJob(jb)
 						span.End()
 						continue
@@ -77,7 +76,7 @@ func (p *Plugin) listener() {
 						if currPool == nil {
 							// invalid pool name, nack the job
 							p.metrics.CountJobErr()
-							p.log.Error("invalid worker pool name", zap.String("pool", headers[pool][0]), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
+							p.log.Error("invalid worker pool name", "pool", headers[pool][0], "ID", jb.ID(), "start", start, "elapsed", time.Since(start).Milliseconds())
 							p.nackJob(jb)
 							span.End()
 							jb = nil
@@ -89,9 +88,9 @@ func (p *Plugin) listener() {
 						if p.workersPool == nil {
 							p.metrics.CountJobErr()
 							p.log.Error("no default worker pool configured; job requires a 'pool' header in multi-pool mode",
-								zap.String("ID", jb.ID()),
-								zap.Time("start", start),
-								zap.Int64("elapsed", time.Since(start).Milliseconds()))
+								"ID", jb.ID(),
+								"start", start,
+								"elapsed", time.Since(start).Milliseconds())
 							p.nackJob(jb)
 							span.End()
 							jb = nil
@@ -120,7 +119,7 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 	if err != nil {
 		p.metrics.CountJobErr()
 
-		p.log.Error("job processed with errors", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
+		p.log.Error("job processed with errors", "error", err, "ID", jb.ID(), "start", start, "elapsed", time.Since(start).Milliseconds())
 		// RR protocol level error, Nack the job
 		p.nackJob(jb)
 		p.putPayload(exec)
@@ -139,7 +138,7 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 		if pld.Error() != nil {
 			p.metrics.CountJobErr()
 
-			p.log.Error("job processed with errors", zap.Error(pld.Error()), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
+			p.log.Error("job processed with errors", "error", pld.Error(), "ID", jb.ID(), "start", start, "elapsed", time.Since(start).Milliseconds())
 			// RR protocol level error, Nack the job
 			p.nackJob(jb)
 
@@ -154,9 +153,9 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 			p.metrics.CountJobErr()
 
 			p.log.Warn("streaming is not supported",
-				zap.String("ID", jb.ID()),
-				zap.Time("start", start),
-				zap.Int64("elapsed", time.Since(start).Milliseconds()))
+				"ID", jb.ID(),
+				"start", start,
+				"elapsed", time.Since(start).Milliseconds())
 
 			p.nackJob(jb)
 
@@ -186,13 +185,13 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 		if err != nil {
 			p.metrics.CountJobErr()
 
-			p.log.Error("acknowledge error, job might be missed", zap.Error(err), zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
+			p.log.Error("acknowledge error, job might be missed", "error", err, "ID", jb.ID(), "start", start, "elapsed", time.Since(start).Milliseconds())
 			jb = nil
 			span.End()
 			return
 		}
 
-		p.log.Debug("job was processed successfully", zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
+		p.log.Debug("job was processed successfully", "ID", jb.ID(), "start", start, "elapsed", time.Since(start).Milliseconds())
 
 		p.metrics.CountJobOk()
 
@@ -205,7 +204,7 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 	err = p.respHandler.Handle(resp, jb)
 	if err != nil {
 		p.metrics.CountJobErr()
-		p.log.Error("response handler error", zap.Error(err), zap.String("ID", jb.ID()), zap.ByteString("response", resp.Body), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
+		p.log.Error("response handler error", "error", err, "ID", jb.ID(), "response", resp.Body, "start", start, "elapsed", time.Since(start).Milliseconds())
 		p.putPayload(exec)
 		// we don't need to use ACK to prevent endless loop here, since the ACK is controlled on the PHP side.
 		// When experimental features are enabled, skip further processing of the current job.
@@ -220,13 +219,13 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 		*/
 		errAck := jb.Ack()
 		if errAck != nil {
-			p.log.Error("acknowledge failed, job might be lost", zap.String("ID", jb.ID()), zap.Error(err), zap.Error(errAck))
+			p.log.Error("acknowledge failed, job might be lost", "ID", jb.ID(), "error", err, "error", errAck)
 			jb = nil
 			span.End()
 			return
 		}
 
-		p.log.Error("job acknowledged, but contains error", zap.Error(err))
+		p.log.Error("job acknowledged, but contains error", "error", err)
 		jb = nil
 		span.End()
 		return
@@ -234,7 +233,7 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 
 	p.metrics.CountJobOk()
 
-	p.log.Debug("job was processed successfully", zap.String("ID", jb.ID()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
+	p.log.Debug("job was processed successfully", "ID", jb.ID(), "start", start, "elapsed", time.Since(start).Milliseconds())
 
 	// return payload
 	p.putPayload(exec)

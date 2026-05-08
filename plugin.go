@@ -4,6 +4,7 @@ import (
 	"context"
 	stderr "errors"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"sync"
 	"time"
@@ -22,7 +23,6 @@ import (
 	"github.com/roadrunner-server/pool/payload"
 	"github.com/roadrunner-server/pool/state/process"
 	pqImpl "github.com/roadrunner-server/priority_queue"
-	"go.uber.org/zap"
 )
 
 const (
@@ -43,7 +43,7 @@ type Plugin struct {
 
 	// Jobs plugin configuration
 	cfg         *Config `mapstructure:"jobs"`
-	log         *zap.Logger
+	log         *slog.Logger
 	workersPool Pool
 	// workerPools holds multiple pools if configured
 	// writes only in config phase, reads after that
@@ -185,8 +185,8 @@ func (p *Plugin) Serve() chan error {
 		}
 		if _, ok := p.jobConstructors[dr]; !ok {
 			p.log.Error("can't find driver constructor for the pipeline, please, check the global configuration for the specified driver",
-				zap.String("driver", dr),
-				zap.String("pipeline", pipeName))
+				"driver", dr,
+				"pipeline", pipeName)
 			return true
 		}
 
@@ -283,7 +283,7 @@ func (p *Plugin) Stop(ctx context.Context) error {
 			ctxT, cancel := context.WithTimeout(ctx, p.cfg.TimeoutDuration())
 			err := consumer.Stop(ctxT)
 			if err != nil {
-				p.log.Error("stop job driver", zap.Any("driver", key), zap.Error(err))
+				p.log.Error("stop job driver", "driver", key, "error", err)
 			}
 			cancel()
 
@@ -454,7 +454,7 @@ func (p *Plugin) Push(ctx context.Context, j jobsApi.Message) error {
 	err = d.Push(ctx, j)
 	if err != nil {
 		p.metrics.CountPushErr()
-		p.log.Error("job push error", zap.String("ID", j.ID()), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()), zap.Error(err))
+		p.log.Error("job push error", "ID", j.ID(), "pipeline", ppl.Name(), "driver", ppl.Driver(), "start", start, "elapsed", time.Since(start).Milliseconds(), "error", err)
 		return errors.E(op, err)
 	}
 
@@ -462,7 +462,7 @@ func (p *Plugin) Push(ctx context.Context, j jobsApi.Message) error {
 
 	p.metrics.pushJobLatencyHistogram.WithLabelValues(ppl.Name(), ppl.Driver(), "single").Observe(time.Since(start).Seconds())
 
-	p.log.Debug("job was pushed successfully", zap.String("ID", j.ID()), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
+	p.log.Debug("job was pushed successfully", "ID", j.ID(), "pipeline", ppl.Name(), "driver", ppl.Driver(), "start", start, "elapsed", time.Since(start).Milliseconds())
 
 	return nil
 }
@@ -499,7 +499,7 @@ func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Message) error {
 		if err != nil {
 			cancel()
 			p.metrics.CountPushErr()
-			p.log.Error("job push batch error", zap.String("ID", j[i].ID()), zap.String("pipeline", ppl.Name()), zap.String("driver", ppl.Driver()), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()), zap.Error(err))
+			p.log.Error("job push batch error", "ID", j[i].ID(), "pipeline", ppl.Name(), "driver", ppl.Driver(), "start", start, "elapsed", time.Since(start).Milliseconds(), "error", err)
 			return errors.E(op, err)
 		}
 
@@ -510,7 +510,7 @@ func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Message) error {
 		cancel()
 	}
 
-	p.log.Debug("job batch was pushed successfully", zap.Int("count", len(j)), zap.Time("start", start), zap.Int64("elapsed", time.Since(start).Milliseconds()))
+	p.log.Debug("job batch was pushed successfully", "count", len(j), "start", start, "elapsed", time.Since(start).Milliseconds())
 
 	return nil
 }
@@ -559,7 +559,7 @@ func (p *Plugin) Declare(ctx context.Context, pipeline jobsApi.Pipeline) error {
 	prInt, err := strconv.Atoi(pr)
 	if err != nil {
 		// we can continue with a default priority
-		p.log.Error(priority, zap.Error(err))
+		p.log.Error(priority, "error", err)
 	}
 
 	pipeline.With(priority, int64(prInt))

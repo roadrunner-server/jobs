@@ -2,12 +2,12 @@ package protocol
 
 import (
 	"encoding/json"
+	"log/slog"
 	"sync"
 
 	"github.com/roadrunner-server/api-plugins/v6/jobs"
 	"github.com/roadrunner-server/errors"
 	"github.com/roadrunner-server/pool/payload"
-	"go.uber.org/zap"
 )
 
 type Type uint32
@@ -29,13 +29,13 @@ type protocol struct {
 }
 
 type RespHandler struct {
-	log *zap.Logger
+	log *slog.Logger
 	// response pools
 	ePool sync.Pool
 	pPool sync.Pool
 }
 
-func NewResponseHandler(log *zap.Logger) *RespHandler {
+func NewResponseHandler(log *slog.Logger) *RespHandler {
 	return &RespHandler{
 		log: log,
 
@@ -89,7 +89,7 @@ func (rh *RespHandler) Handle(pld *payload.Payload, jb jobs.Job) error {
 	case REQUEUE:
 		return rh.requeue(p.Data, jb)
 	default:
-		rh.log.Warn("unknown response type, acknowledging the JOB", zap.Uint32("type", uint32(p.T)))
+		rh.log.Warn("unknown response type, acknowledging the JOB", "type", uint32(p.T))
 		err = jb.Ack()
 		if err != nil {
 			return errors.E(op, err)
