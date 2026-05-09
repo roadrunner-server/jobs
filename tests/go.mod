@@ -17,7 +17,7 @@ require (
 	github.com/roadrunner-server/jobs/v6 v6.0.0-beta.6
 	github.com/roadrunner-server/kafka/v6 v6.0.0-beta.4
 	github.com/roadrunner-server/logger/v6 v6.0.0-beta.3
-	github.com/roadrunner-server/memory/v6 v6.0.0-beta.3
+	github.com/roadrunner-server/memory/v6 v6.0.0-beta.4
 	github.com/roadrunner-server/metrics/v6 v6.0.0-beta.3
 	github.com/roadrunner-server/nats/v6 v6.0.0-beta.3
 	github.com/roadrunner-server/resetter/v6 v6.0.0-beta.2
