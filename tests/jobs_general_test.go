@@ -13,9 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"tests/helpers"
-	mocklogger "tests/mock"
-
 	"github.com/google/uuid"
 	"github.com/roadrunner-server/amqp/v6"
 	jobsProto "github.com/roadrunner-server/api-go/v6/jobs/v2"
@@ -36,7 +33,8 @@ import (
 	"github.com/roadrunner-server/sqs/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
+	"tests/helpers"
+	mocklogger "tests/mock"
 )
 
 func TestJobsInit(t *testing.T) {
@@ -47,7 +45,7 @@ func TestJobsInit(t *testing.T) {
 		Path:    "configs/.rr-jobs-init.yaml",
 	}
 
-	l, oLogger := mocklogger.ZapTestLogger(zap.DebugLevel)
+	l, oLogger := mocklogger.SlogTestLogger(slog.LevelDebug)
 	err := cont.RegisterAll(
 		l,
 		cfg,
@@ -343,7 +341,7 @@ func TestJobsPools(t *testing.T) {
 		Path:    "configs/.rr-pools.yaml",
 	}
 
-	l, oLogger := mocklogger.ZapTestLogger(zap.DebugLevel)
+	l, oLogger := mocklogger.SlogTestLogger(slog.LevelDebug)
 	err := cont.RegisterAll(
 		l,
 		cfg,
@@ -491,7 +489,7 @@ func TestTracePropagation(t *testing.T) {
 		Path:    "configs/.rr-trace-propagation.yaml",
 	}
 
-	l, oLogger := mocklogger.ZapTestLogger(zap.DebugLevel)
+	l, oLogger := mocklogger.SlogTestLogger(slog.LevelDebug)
 	err := cont.RegisterAll(
 		l,
 		cfg,
