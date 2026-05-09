@@ -20,8 +20,8 @@ import (
 	"github.com/roadrunner-server/errors"
 	"github.com/roadrunner-server/events"
 	rh "github.com/roadrunner-server/jobs/v6/protocol"
-	"github.com/roadrunner-server/pool/payload"
-	"github.com/roadrunner-server/pool/state/process"
+	"github.com/roadrunner-server/pool/v2/payload"
+	"github.com/roadrunner-server/pool/v2/state/process"
 	pqImpl "github.com/roadrunner-server/priority_queue"
 )
 

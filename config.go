@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	poolImpl "github.com/roadrunner-server/pool/pool"
+	poolImpl "github.com/roadrunner-server/pool/v2/pool"
 )
 
 const (

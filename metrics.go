@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/roadrunner-server/pool/fsm"
+	"github.com/roadrunner-server/pool/v2/fsm"
 )
 
 const (

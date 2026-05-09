@@ -4,11 +4,11 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/roadrunner-server/pool/payload"
-	poolConfig "github.com/roadrunner-server/pool/pool"
-	staticPool "github.com/roadrunner-server/pool/pool/static_pool"
-	"github.com/roadrunner-server/pool/state/process"
-	"github.com/roadrunner-server/pool/worker"
+	"github.com/roadrunner-server/pool/v2/payload"
+	poolConfig "github.com/roadrunner-server/pool/v2/pool"
+	staticPool "github.com/roadrunner-server/pool/v2/pool/static_pool"
+	"github.com/roadrunner-server/pool/v2/state/process"
+	"github.com/roadrunner-server/pool/v2/worker"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 

@@ -6,9 +6,9 @@ import (
 
 	jobsApi "github.com/roadrunner-server/api-plugins/v6/jobs"
 	"github.com/roadrunner-server/goridge/v4/pkg/frame"
-	"github.com/roadrunner-server/pool/payload"
-	"github.com/roadrunner-server/pool/state/process"
-	"github.com/roadrunner-server/pool/worker"
+	"github.com/roadrunner-server/pool/v2/payload"
+	"github.com/roadrunner-server/pool/v2/state/process"
+	"github.com/roadrunner-server/pool/v2/worker"
 )
 
 func (p *Plugin) processState(workers []*worker.Process) []*process.State {

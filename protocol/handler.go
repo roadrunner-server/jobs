@@ -7,7 +7,7 @@ import (
 
 	"github.com/roadrunner-server/api-plugins/v6/jobs"
 	"github.com/roadrunner-server/errors"
-	"github.com/roadrunner-server/pool/payload"
+	"github.com/roadrunner-server/pool/v2/payload"
 )
 
 type Type uint32
