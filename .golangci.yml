@@ -55,9 +55,6 @@ linters:
       - common-false-positives
       - legacy
       - std-error-handling
-    rules:
-      - linters:
-        path: _test\.go
     paths:
       - .github
       - .git
