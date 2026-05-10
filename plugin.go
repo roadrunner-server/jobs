@@ -644,8 +644,6 @@ func (p *Plugin) List() []string {
 	return out
 }
 
-// RPC returns the Connect-RPC service handler for jobs.v2.JobsService.
-// The rpc plugin mounts the returned handler at the returned path on its HTTP/2 mux.
 func (p *Plugin) RPC() (string, http.Handler) {
 	return jobsV2connect.NewJobsServiceHandler(&rpc{p: p})
 }

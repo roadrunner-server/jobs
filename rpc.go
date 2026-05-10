@@ -28,10 +28,7 @@ func spanError(span trace.Span, err error) {
 	span.SetStatus(codes.Error, err.Error())
 }
 
-// Push sends a single job. The proto shape (PushRequest { Job job = 1; }) enforces
-// single-job semantics — no runtime length guard needed. Trace context is extracted
-// from the job's own headers (cross-process propagation from the producing PHP worker)
-// onto the inbound handler ctx, so client cancellation/deadline still propagates.
+// Single-job semantics enforced by the proto (PushRequest.job); no runtime length guard.
 func (r *rpc) Push(ctx context.Context, req *connect.Request[jobsProto.PushRequest]) (*connect.Response[jobsProto.JobsHandlerResponse], error) {
 	const op = errors.Op("rpc_push")
 
@@ -130,10 +127,6 @@ func (r *rpc) List(ctx context.Context, _ *connect.Request[emptypb.Empty]) (*con
 	return connect.NewResponse(&jobsProto.Pipelines{Pipelines: r.p.List()}), nil
 }
 
-// Declare dynamically registers a pipeline. Mandatory fields in the request map:
-//  1. driver
-//  2. pipeline name
-//  3. driver-specific options
 func (r *rpc) Declare(ctx context.Context, req *connect.Request[jobsProto.DeclareRequest]) (*connect.Response[jobsProto.JobsHandlerResponse], error) {
 	const op = errors.Op("rpc_declare_pipeline")
 
@@ -188,7 +181,7 @@ func (r *rpc) Destroy(ctx context.Context, req *connect.Request[jobsProto.Pipeli
 	}
 
 	if err := errg.Wait(); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, errors.E(op, err))
 	}
 
 	return connect.NewResponse(&jobsProto.Pipelines{Pipelines: destroyed}), nil
@@ -229,7 +222,6 @@ func (r *rpc) GetStats(ctx context.Context, _ *connect.Request[emptypb.Empty]) (
 	return connect.NewResponse(resp), nil
 }
 
-// from converts a wire Job into the plugin's domain Job.
 func from(j *jobsProto.Job) *Job {
 	headers := make(map[string][]string, len(j.GetHeaders()))
 
@@ -255,9 +247,8 @@ func from(j *jobsProto.Job) *Job {
 	}
 }
 
-// rpcContextFromJobs returns the first valid trace context extracted from any job's
-// headers, layered on top of parent (so cancellation/deadline from parent are preserved).
-// Falls back to parent if no job carries a valid traceparent.
+// Layers extracted trace context on parent so cancellation/deadline propagate;
+// falls back to parent if no job carries a valid traceparent.
 func rpcContextFromJobs(parent context.Context, batch []*jobsProto.Job) context.Context {
 	for i := range batch {
 		ctx := rpcContextFromJob(parent, batch[i])

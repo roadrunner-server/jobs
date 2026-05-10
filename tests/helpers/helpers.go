@@ -21,10 +21,6 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
-// NewJobsClient builds an h2c Connect client for the migrated jobs.v2.JobsService.
-// Exported so callers in sibling test packages (e.g. tests/general) can reuse it.
-// The rpc plugin runs HTTP/2 cleartext on rpc.listen (127.0.0.1:6001 by default).
-// Idle HTTP/2 connections are closed on test cleanup to avoid leaks across tests.
 func NewJobsClient(t *testing.T, address string) jobsV2connect.JobsServiceClient {
 	t.Helper()
 	httpc := &http.Client{Transport: &http2.Transport{

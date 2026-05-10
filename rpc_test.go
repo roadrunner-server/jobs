@@ -3,11 +3,40 @@ package jobs
 import (
 	"testing"
 
+	"connectrpc.com/connect"
 	jobsProto "github.com/roadrunner-server/api-go/v6/jobs/v2"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 )
+
+func TestRPCPushRejectsNilJob(t *testing.T) {
+	r := &rpc{}
+	resp, err := r.Push(t.Context(), connect.NewRequest(&jobsProto.PushRequest{}))
+	if resp != nil {
+		t.Fatal("expected nil response")
+	}
+	if err == nil {
+		t.Fatal("expected error for nil job")
+	}
+	if got := connect.CodeOf(err); got != connect.CodeInvalidArgument {
+		t.Fatalf("expected CodeInvalidArgument, got %v", got)
+	}
+}
+
+func TestRPCPushRejectsEmptyJobID(t *testing.T) {
+	r := &rpc{}
+	resp, err := r.Push(t.Context(), connect.NewRequest(&jobsProto.PushRequest{Job: &jobsProto.Job{}}))
+	if resp != nil {
+		t.Fatal("expected nil response")
+	}
+	if err == nil {
+		t.Fatal("expected error for empty job ID")
+	}
+	if got := connect.CodeOf(err); got != connect.CodeInvalidArgument {
+		t.Fatalf("expected CodeInvalidArgument, got %v", got)
+	}
+}
 
 func TestRPCContextFromHeadersLowercaseTraceparent(t *testing.T) {
 	withTraceContextPropagator(t)
