@@ -29,8 +29,10 @@ func spanError(span trace.Span, err error) {
 }
 
 // Push sends a single job. The proto shape (PushRequest { Job job = 1; }) enforces
-// single-job semantics — no runtime length guard needed.
-func (r *rpc) Push(_ context.Context, req *connect.Request[jobsProto.PushRequest]) (*connect.Response[jobsProto.JobsHandlerResponse], error) {
+// single-job semantics — no runtime length guard needed. Trace context is extracted
+// from the job's own headers (cross-process propagation from the producing PHP worker)
+// onto the inbound handler ctx, so client cancellation/deadline still propagates.
+func (r *rpc) Push(ctx context.Context, req *connect.Request[jobsProto.PushRequest]) (*connect.Response[jobsProto.JobsHandlerResponse], error) {
 	const op = errors.Op("rpc_push")
 
 	r.mu.Lock()
@@ -44,9 +46,7 @@ func (r *rpc) Push(_ context.Context, req *connect.Request[jobsProto.PushRequest
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.E(op, errors.Str("empty ID field not allowed")))
 	}
 
-	// Derive trace context from the job's own headers (cross-process propagation
-	// from the producing PHP worker), not from the inbound RPC context.
-	spanCtx, span := r.p.tracer.Tracer(PluginName).Start(rpcContextFromJob(job), "push", trace.WithSpanKind(trace.SpanKindServer))
+	spanCtx, span := r.p.tracer.Tracer(PluginName).Start(rpcContextFromJob(ctx, job), "push", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
 	if err := r.p.Push(spanCtx, from(job)); err != nil {
@@ -57,7 +57,7 @@ func (r *rpc) Push(_ context.Context, req *connect.Request[jobsProto.PushRequest
 	return connect.NewResponse(&jobsProto.JobsHandlerResponse{}), nil
 }
 
-func (r *rpc) PushBatch(_ context.Context, req *connect.Request[jobsProto.PushBatchRequest]) (*connect.Response[jobsProto.JobsHandlerResponse], error) {
+func (r *rpc) PushBatch(ctx context.Context, req *connect.Request[jobsProto.PushBatchRequest]) (*connect.Response[jobsProto.JobsHandlerResponse], error) {
 	const op = errors.Op("rpc_push_batch")
 
 	r.mu.Lock()
@@ -65,7 +65,7 @@ func (r *rpc) PushBatch(_ context.Context, req *connect.Request[jobsProto.PushBa
 
 	in := req.Msg.GetJobs()
 
-	spanCtx, span := r.p.tracer.Tracer(PluginName).Start(rpcContextFromJobs(in), "push_batch", trace.WithSpanKind(trace.SpanKindServer))
+	spanCtx, span := r.p.tracer.Tracer(PluginName).Start(rpcContextFromJobs(ctx, in), "push_batch", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
 	batch := make([]jobs.Message, len(in))
@@ -82,6 +82,8 @@ func (r *rpc) PushBatch(_ context.Context, req *connect.Request[jobsProto.PushBa
 }
 
 func (r *rpc) Pause(ctx context.Context, req *connect.Request[jobsProto.Pipelines]) (*connect.Response[jobsProto.JobsHandlerResponse], error) {
+	const op = errors.Op("rpc_pause")
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -91,7 +93,7 @@ func (r *rpc) Pause(ctx context.Context, req *connect.Request[jobsProto.Pipeline
 		if err != nil {
 			spanError(span, err)
 			span.End()
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, errors.E(op, err))
 		}
 		span.End()
 	}
@@ -100,6 +102,8 @@ func (r *rpc) Pause(ctx context.Context, req *connect.Request[jobsProto.Pipeline
 }
 
 func (r *rpc) Resume(ctx context.Context, req *connect.Request[jobsProto.Pipelines]) (*connect.Response[jobsProto.JobsHandlerResponse], error) {
+	const op = errors.Op("rpc_resume")
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -109,7 +113,7 @@ func (r *rpc) Resume(ctx context.Context, req *connect.Request[jobsProto.Pipelin
 	for _, name := range req.Msg.GetPipelines() {
 		if err := r.p.Resume(spanCtx, name); err != nil {
 			spanError(span, err)
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, errors.E(op, err))
 		}
 	}
 
@@ -251,28 +255,31 @@ func from(j *jobsProto.Job) *Job {
 	}
 }
 
-func rpcContextFromJobs(batch []*jobsProto.Job) context.Context {
+// rpcContextFromJobs returns the first valid trace context extracted from any job's
+// headers, layered on top of parent (so cancellation/deadline from parent are preserved).
+// Falls back to parent if no job carries a valid traceparent.
+func rpcContextFromJobs(parent context.Context, batch []*jobsProto.Job) context.Context {
 	for i := range batch {
-		ctx := rpcContextFromJob(batch[i])
+		ctx := rpcContextFromJob(parent, batch[i])
 		if trace.SpanContextFromContext(ctx).IsValid() {
 			return ctx
 		}
 	}
 
-	return context.Background()
+	return parent
 }
 
-func rpcContextFromJob(job *jobsProto.Job) context.Context {
+func rpcContextFromJob(parent context.Context, job *jobsProto.Job) context.Context {
 	if job == nil {
-		return context.Background()
+		return parent
 	}
 
-	return rpcContextFromHeaders(job.GetHeaders())
+	return rpcContextFromHeaders(parent, job.GetHeaders())
 }
 
-func rpcContextFromHeaders(headers map[string]*jobsProto.JobHeaderValue) context.Context {
+func rpcContextFromHeaders(parent context.Context, headers map[string]*jobsProto.JobHeaderValue) context.Context {
 	if len(headers) == 0 {
-		return context.Background()
+		return parent
 	}
 
 	carrier := make(propagation.HeaderCarrier, len(headers))
@@ -295,5 +302,5 @@ func rpcContextFromHeaders(headers map[string]*jobsProto.JobHeaderValue) context
 		carrier[canonical] = append(carrier[canonical], values...)
 	}
 
-	return otel.GetTextMapPropagator().Extract(context.Background(), carrier)
+	return otel.GetTextMapPropagator().Extract(parent, carrier)
 }
