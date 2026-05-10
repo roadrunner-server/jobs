@@ -556,15 +556,15 @@ func (p *Plugin) Declare(ctx context.Context, pipeline jobsApi.Pipeline) error {
 		return errors.Errorf("pipeline already exists, name: %s, driver: %s", pipeline.Name(), pipeline.Driver())
 	}
 
-	// save priority as int64; fall back to the documented default on parse error.
-	pr := pipeline.String(priority, "10")
-	prInt, err := strconv.Atoi(pr)
+	// save priority as int64; fall back to defaultPriority on parse error.
+	pr := pipeline.String(priority, strconv.FormatInt(defaultPriority, 10))
+	prInt, err := strconv.ParseInt(pr, 10, 64)
 	if err != nil {
-		p.log.Error(priority, "error", err, "fallback", 10)
-		prInt = 10
+		p.log.Error(priority, "error", err, "fallback", defaultPriority)
+		prInt = defaultPriority
 	}
 
-	pipeline.With(priority, int64(prInt))
+	pipeline.With(priority, prInt)
 
 	// jobConstructors contains constructors for the drivers
 	// we need here to initialize these drivers for the pipelines
