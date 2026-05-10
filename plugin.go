@@ -554,12 +554,12 @@ func (p *Plugin) Declare(ctx context.Context, pipeline jobsApi.Pipeline) error {
 		return errors.Errorf("pipeline already exists, name: %s, driver: %s", pipeline.Name(), pipeline.Driver())
 	}
 
-	// save priority as int64
+	// save priority as int64; fall back to the documented default on parse error.
 	pr := pipeline.String(priority, "10")
 	prInt, err := strconv.Atoi(pr)
 	if err != nil {
-		// we can continue with a default priority
-		p.log.Error(priority, "error", err)
+		p.log.Error(priority, "error", err, "fallback", 10)
+		prInt = 10
 	}
 
 	pipeline.With(priority, int64(prInt))
