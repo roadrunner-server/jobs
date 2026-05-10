@@ -1,3 +1,7 @@
+connectrpc.com/connect v1.19.2 h1:McQ83FGdzL+t60peksi0gXC7MQ/iLKgLduAnThbM0mo=
+connectrpc.com/connect v1.19.2/go.mod h1:tN20fjdGlewnSFeZxLKb0xwIZ6ozc3OQs2hTXy4du9w=
+connectrpc.com/grpcreflect v1.3.0 h1:Y4V+ACf8/vOb1XOc251Qun7jMB75gCUNw6llvB9csXc=
+connectrpc.com/grpcreflect v1.3.0/go.mod h1:nfloOtCS8VUQOQ1+GTdFzVg2CJo4ZGaat8JIovCtDYs=
 github.com/aws/aws-sdk-go-v2 v1.41.7 h1:DWpAJt66FmnnaRIOT/8ASTucrvuDPZASqhhLey6tLY8=
 github.com/aws/aws-sdk-go-v2 v1.41.7/go.mod h1:4LAfZOPHNVNQEckOACQx60Y8pSRjIkNZQz1w92xpMJc=
 github.com/aws/aws-sdk-go-v2/config v1.32.17 h1:FpL4/758/diKwqbytU0prpuiu60fgXKUWCpDJtApclU=
@@ -100,8 +104,8 @@ github.com/rabbitmq/amqp091-go v1.11.0 h1:HxIctVm9Gid/Vtn706necmZ7Wj6pgGI2eqplRb
 github.com/rabbitmq/amqp091-go v1.11.0/go.mod h1:Hy4jKW5kQART1u+JkDTF9YYOQUHXqMuhrgxOEeS7G4o=
 github.com/roadrunner-server/amqp/v6 v6.0.0-beta.8 h1:qB36pJz3IxDx9cAHcZ7an1JXiEp6Zn78ASqd1gcdCuI=
 github.com/roadrunner-server/amqp/v6 v6.0.0-beta.8/go.mod h1:gl3PFdUxvGwiCo7hj2gfOd8AHSXeq45S8NTm7GErOE0=
-github.com/roadrunner-server/api-go/v6 v6.0.0-beta.4 h1:wX8IezPUeeBJzlzaBEFSZBE5Bc/Le1Uf/GdFRdFO3HQ=
-github.com/roadrunner-server/api-go/v6 v6.0.0-beta.4/go.mod h1:jI30i64yCAxJh7KHc8e1B8NgDcvcnSTI1OIK8lTE+Y0=
+github.com/roadrunner-server/api-go/v6 v6.0.0-beta.5 h1:4x17K8qmxIbtKrCKoY1NR7bBvJbrB7w0P/0ovYR8C6E=
+github.com/roadrunner-server/api-go/v6 v6.0.0-beta.5/go.mod h1:B9CjHMnKrAUNM99XckiA8NEKg0oid22KqejR+lRnohw=
 github.com/roadrunner-server/api-plugins/v6 v6.0.0-beta.2 h1:GqsZzWQ5jMXRF1O/b8IqFz9PLpS7Ui0K4OyACLql2MI=
 github.com/roadrunner-server/api-plugins/v6 v6.0.0-beta.2/go.mod h1:2v4yUK5Kvbvq8C3IkDoBkuamq9h+7i/JLjyf7k1j5JM=
 github.com/roadrunner-server/beanstalk/v6 v6.0.0-beta.4 h1:oevcKIrlNvSH+dpkTrFZqnAe26WGcu3qVm7geg2H0nk=
@@ -114,8 +118,8 @@ github.com/roadrunner-server/errors v1.5.0 h1:unG7LKIZrSzkCCF3YLRLA5VyqE0KKomofX
 github.com/roadrunner-server/errors v1.5.0/go.mod h1:g9fo/T2C13cWRDR9PW1r0ZAOSQfNhWAZawyfkGiaHuI=
 github.com/roadrunner-server/events v1.0.1 h1:waCkKhxhzdK3VcI1xG22l+h+0J+Nfdpxjhyy01Un+kI=
 github.com/roadrunner-server/events v1.0.1/go.mod h1:WZRqoEVaFm209t52EuoT7ISUtvX6BrCi6bI/7pjkVC0=
-github.com/roadrunner-server/goridge/v4 v4.0.0-beta.1 h1:dO1wKnuMr4xMmH6DY2ZaZ6FWS+Vo50+C7fuAcyO/xBk=
-github.com/roadrunner-server/goridge/v4 v4.0.0-beta.1/go.mod h1:+gKla9HAyYlk0TsC9VktwtOL63aimsWT3oPsuCLh4/o=
+github.com/roadrunner-server/goridge/v4 v4.0.0-beta.2 h1:MgH6oiSgcl+vphsQ6JpyedkXQ/DPf8zVpn0z7rdBp10=
+github.com/roadrunner-server/goridge/v4 v4.0.0-beta.2/go.mod h1:Wv9CBO9VIU92e5iZIuehLHKakXgMkOzxoT4/oHDjIUA=
 github.com/roadrunner-server/informer/v6 v6.0.0-beta.1 h1:xAd8/KtliP+lpuVdDNB8b6YtkcYEDCV7QDy5dkrVnI0=
 github.com/roadrunner-server/informer/v6 v6.0.0-beta.1/go.mod h1:9PoEMzJ5dAh3tUsxpv9uX8Kpo28PUR3hkh6JCD6olBc=
 github.com/roadrunner-server/kafka/v6 v6.0.0-beta.6 h1:FN5/+A44RySiHtg2mID8uPmnjiRSAw9pdMNSkJKwHMo=
@@ -134,8 +138,8 @@ github.com/roadrunner-server/priority_queue v1.0.6 h1:x8bcMyjWs2Z4ySbO9BTP8Dzy2p
 github.com/roadrunner-server/priority_queue v1.0.6/go.mod h1:aJ2D9s18+OGpFfNgwoIduraaFYBGv4FKElnpzqO+TBI=
 github.com/roadrunner-server/resetter/v6 v6.0.0-beta.2 h1:j3boFQdHx0wJSQtqNnayp4HYafE6QJ5plkuWi7tEVng=
 github.com/roadrunner-server/resetter/v6 v6.0.0-beta.2/go.mod h1:M3VQ25p/qeaaf8raLJqo1NAIMNxvlQ6EDhDlIbJTSZs=
-github.com/roadrunner-server/rpc/v6 v6.0.0-beta.3 h1:hvVEDIMB9MKI8uWX++MrBzHRzq404ygU0fDs6U2V/3Y=
-github.com/roadrunner-server/rpc/v6 v6.0.0-beta.3/go.mod h1:BpDpd2/UceDdsDJNP0iMfmegbXthxiZM4MU6GOJoSXo=
+github.com/roadrunner-server/rpc/v6 v6.0.0-beta.4 h1:Qj2nrHIWOHE9Tys+FBG2IdoPtzgIUh6juQ5wXLGGDMw=
+github.com/roadrunner-server/rpc/v6 v6.0.0-beta.4/go.mod h1:k5KT3fpnJVd27m0HbGGBiTPXlWI6eJdd6C+ohp5IE0U=
 github.com/roadrunner-server/server/v6 v6.0.0-beta.5 h1:poCPSHc768UtMqJRgW3rZT5pDboOnwOD4qc28hhXJ4I=
 github.com/roadrunner-server/server/v6 v6.0.0-beta.5/go.mod h1:SbODuCzC2gcbFhAmJDWvjf34pPrUWP5NxxVsTRQDuZ4=
 github.com/roadrunner-server/sqs/v6 v6.0.0-beta.5 h1:ioDuyPE0Gzg4DvvWhk2QLgjLT9YDP+Gaf2Bv5tviejw=
