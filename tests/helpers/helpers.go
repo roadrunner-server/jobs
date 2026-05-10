@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"slices"
 	"testing"
 	"time"
 
@@ -36,7 +37,7 @@ func NewJobsClient(t *testing.T, address string) jobsV2connect.JobsServiceClient
 func ResumePipes(address string, pipes ...string) func(t *testing.T) {
 	return func(t *testing.T) {
 		client := NewJobsClient(t, address)
-		_, err := client.Resume(t.Context(), connect.NewRequest(&jobsProto.Pipelines{Pipelines: append([]string(nil), pipes...)}))
+		_, err := client.Resume(t.Context(), connect.NewRequest(&jobsProto.Pipelines{Pipelines: slices.Clone(pipes)}))
 		require.NoError(t, err)
 	}
 }
@@ -44,7 +45,7 @@ func ResumePipes(address string, pipes ...string) func(t *testing.T) {
 func PausePipelines(address string, pipes ...string) func(t *testing.T) {
 	return func(t *testing.T) {
 		client := NewJobsClient(t, address)
-		_, err := client.Pause(t.Context(), connect.NewRequest(&jobsProto.Pipelines{Pipelines: append([]string(nil), pipes...)}))
+		_, err := client.Pause(t.Context(), connect.NewRequest(&jobsProto.Pipelines{Pipelines: slices.Clone(pipes)}))
 		require.NoError(t, err)
 	}
 }
@@ -96,7 +97,7 @@ func DestroyPipelines(address string, pipes ...string) func(t *testing.T) {
 	return func(t *testing.T) {
 		client := NewJobsClient(t, address)
 
-		req := &jobsProto.Pipelines{Pipelines: append([]string(nil), pipes...)}
+		req := &jobsProto.Pipelines{Pipelines: slices.Clone(pipes)}
 
 		var lastErr error
 		for range 10 {
