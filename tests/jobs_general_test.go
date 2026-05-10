@@ -3,9 +3,7 @@ package general
 import (
 	"io"
 	"log/slog"
-	"net"
 	"net/http"
-	"net/rpc"
 	"os"
 	"os/signal"
 	"sync"
@@ -13,13 +11,16 @@ import (
 	"testing"
 	"time"
 
+	"tests/helpers"
+	mocklogger "tests/mock"
+
+	"connectrpc.com/connect"
 	"github.com/google/uuid"
 	"github.com/roadrunner-server/amqp/v6"
 	jobsProto "github.com/roadrunner-server/api-go/v6/jobs/v2"
 	"github.com/roadrunner-server/beanstalk/v6"
 	"github.com/roadrunner-server/config/v6"
 	"github.com/roadrunner-server/endure/v2"
-	goridgeRpc "github.com/roadrunner-server/goridge/v4/pkg/rpc"
 	"github.com/roadrunner-server/informer/v6"
 	"github.com/roadrunner-server/jobs/v6"
 	"github.com/roadrunner-server/kafka/v6"
@@ -33,8 +34,6 @@ import (
 	"github.com/roadrunner-server/sqs/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"tests/helpers"
-	mocklogger "tests/mock"
 )
 
 func TestJobsInit(t *testing.T) {
@@ -451,33 +450,20 @@ func get(t *testing.T) (string, error) {
 }
 
 func declareMemoryPipe(t *testing.T) {
-	d := net.Dialer{}
-	conn, err := d.DialContext(t.Context(), "tcp", "127.0.0.1:6001")
-	assert.NoError(t, err)
-	client := rpc.NewClientWithCodec(goridgeRpc.NewClientCodec(conn))
+	client := helpers.NewJobsClient(t, "127.0.0.1:6001")
 
-	pipe := &jobsProto.DeclareRequest{Pipeline: map[string]string{
+	_, err := client.Declare(t.Context(), connect.NewRequest(&jobsProto.DeclareRequest{Pipeline: map[string]string{
 		"driver":   "memory",
 		"name":     "test-3",
 		"prefetch": "10000",
-	}}
-
-	er := &jobsProto.JobsHandlerResponse{}
-	err = client.Call("jobs.Declare", pipe, er)
+	}}))
 	assert.NoError(t, err)
 }
 
 func consumeMemoryPipe(t *testing.T) {
-	d := net.Dialer{}
-	conn, err := d.DialContext(t.Context(), "tcp", "127.0.0.1:6001")
-	assert.NoError(t, err)
-	client := rpc.NewClientWithCodec(goridgeRpc.NewClientCodec(conn))
+	client := helpers.NewJobsClient(t, "127.0.0.1:6001")
 
-	pipe := &jobsProto.Pipelines{Pipelines: make([]string, 1)}
-	pipe.GetPipelines()[0] = "test-3"
-
-	er := &jobsProto.JobsHandlerResponse{}
-	err = client.Call("jobs.Resume", pipe, er)
+	_, err := client.Resume(t.Context(), connect.NewRequest(&jobsProto.Pipelines{Pipelines: []string{"test-3"}}))
 	assert.NoError(t, err)
 }
 
@@ -546,12 +532,9 @@ func TestTracePropagation(t *testing.T) {
 	time.Sleep(time.Second * 3)
 
 	// Push a job with a known W3C traceparent header
-	d := net.Dialer{}
-	conn, err := d.DialContext(t.Context(), "tcp", "127.0.0.1:6001")
-	require.NoError(t, err)
-	client := rpc.NewClientWithCodec(goridgeRpc.NewClientCodec(conn))
+	client := helpers.NewJobsClient(t, "127.0.0.1:6001")
 
-	req := &jobsProto.PushBatchRequest{Jobs: []*jobsProto.Job{{
+	req := &jobsProto.PushRequest{Job: &jobsProto.Job{
 		Job:     "test/trace",
 		Id:      uuid.NewString(),
 		Payload: []byte(`{"traceparent":"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"}`),
@@ -562,12 +545,10 @@ func TestTracePropagation(t *testing.T) {
 			Priority: 1,
 			Pipeline: "test-trace",
 		},
-	}}}
+	}}
 
-	er := &jobsProto.JobsHandlerResponse{}
-	err = client.Call("jobs.Push", req, er)
+	_, err = client.Push(t.Context(), connect.NewRequest(req))
 	require.NoError(t, err)
-	_ = conn.Close()
 
 	// Wait for PHP worker to process the job
 	time.Sleep(time.Second * 3)

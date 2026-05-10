@@ -3,16 +3,45 @@ package jobs
 import (
 	"testing"
 
+	"connectrpc.com/connect"
 	jobsProto "github.com/roadrunner-server/api-go/v6/jobs/v2"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 )
 
+func TestRPCPushRejectsNilJob(t *testing.T) {
+	r := &rpc{}
+	resp, err := r.Push(t.Context(), connect.NewRequest(&jobsProto.PushRequest{}))
+	if resp != nil {
+		t.Fatal("expected nil response")
+	}
+	if err == nil {
+		t.Fatal("expected error for nil job")
+	}
+	if got := connect.CodeOf(err); got != connect.CodeInvalidArgument {
+		t.Fatalf("expected CodeInvalidArgument, got %v", got)
+	}
+}
+
+func TestRPCPushRejectsEmptyJobID(t *testing.T) {
+	r := &rpc{}
+	resp, err := r.Push(t.Context(), connect.NewRequest(&jobsProto.PushRequest{Job: &jobsProto.Job{}}))
+	if resp != nil {
+		t.Fatal("expected nil response")
+	}
+	if err == nil {
+		t.Fatal("expected error for empty job ID")
+	}
+	if got := connect.CodeOf(err); got != connect.CodeInvalidArgument {
+		t.Fatalf("expected CodeInvalidArgument, got %v", got)
+	}
+}
+
 func TestRPCContextFromHeadersLowercaseTraceparent(t *testing.T) {
 	withTraceContextPropagator(t)
 
-	ctx := rpcContextFromHeaders(map[string]*jobsProto.JobHeaderValue{
+	ctx := rpcContextFromHeaders(t.Context(), map[string]*jobsProto.JobHeaderValue{
 		"traceparent": headerValue("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"),
 	})
 
@@ -37,7 +66,7 @@ func TestRPCContextFromHeadersLowercaseTraceparent(t *testing.T) {
 func TestRPCContextFromHeadersCanonicalTraceparent(t *testing.T) {
 	withTraceContextPropagator(t)
 
-	ctx := rpcContextFromHeaders(map[string]*jobsProto.JobHeaderValue{
+	ctx := rpcContextFromHeaders(t.Context(), map[string]*jobsProto.JobHeaderValue{
 		"Traceparent": headerValue("00-11111111111111111111111111111111-2222222222222222-01"),
 	})
 
@@ -88,7 +117,7 @@ func TestRPCContextFromHeadersFallbackOnInvalidTraceparent(t *testing.T) {
 
 	for i := range tests {
 		t.Run(tests[i].name, func(t *testing.T) {
-			sc := trace.SpanContextFromContext(rpcContextFromHeaders(tests[i].headers))
+			sc := trace.SpanContextFromContext(rpcContextFromHeaders(t.Context(), tests[i].headers))
 			if sc.IsValid() {
 				t.Fatal("expected invalid span context")
 			}
@@ -99,7 +128,7 @@ func TestRPCContextFromHeadersFallbackOnInvalidTraceparent(t *testing.T) {
 func TestRPCContextFromJobsUsesFirstValidContext(t *testing.T) {
 	withTraceContextPropagator(t)
 
-	ctx := rpcContextFromJobs([]*jobsProto.Job{
+	ctx := rpcContextFromJobs(t.Context(), []*jobsProto.Job{
 		nil,
 		{
 			Headers: map[string]*jobsProto.JobHeaderValue{
@@ -131,7 +160,7 @@ func TestRPCContextFromJobsUsesFirstValidContext(t *testing.T) {
 func TestRPCContextFromJobsFallbackWhenNoValidContext(t *testing.T) {
 	withTraceContextPropagator(t)
 
-	ctx := rpcContextFromJobs([]*jobsProto.Job{
+	ctx := rpcContextFromJobs(t.Context(), []*jobsProto.Job{
 		{},
 		{
 			Headers: map[string]*jobsProto.JobHeaderValue{

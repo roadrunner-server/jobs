@@ -5,10 +5,12 @@ import (
 	stderr "errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"strconv"
 	"sync"
 	"time"
 
+	"github.com/roadrunner-server/api-go/v6/jobs/v2/jobsV2connect"
 	jobsApi "github.com/roadrunner-server/api-plugins/v6/jobs"
 	jprop "go.opentelemetry.io/contrib/propagators/jaeger"
 	"go.opentelemetry.io/otel"
@@ -554,15 +556,15 @@ func (p *Plugin) Declare(ctx context.Context, pipeline jobsApi.Pipeline) error {
 		return errors.Errorf("pipeline already exists, name: %s, driver: %s", pipeline.Name(), pipeline.Driver())
 	}
 
-	// save priority as int64
-	pr := pipeline.String(priority, "10")
-	prInt, err := strconv.Atoi(pr)
+	// save priority as int64; fall back to defaultPriority on parse error.
+	pr := pipeline.String(priority, strconv.FormatInt(defaultPriority, 10))
+	prInt, err := strconv.ParseInt(pr, 10, 64)
 	if err != nil {
-		// we can continue with a default priority
-		p.log.Error(priority, "error", err)
+		p.log.Error(priority, "error", err, "fallback", defaultPriority)
+		prInt = defaultPriority
 	}
 
-	pipeline.With(priority, int64(prInt))
+	pipeline.With(priority, prInt)
 
 	// jobConstructors contains constructors for the drivers
 	// we need here to initialize these drivers for the pipelines
@@ -642,9 +644,6 @@ func (p *Plugin) List() []string {
 	return out
 }
 
-// RPC returns the RPC service handler that exposes jobs operations over goridge.
-func (p *Plugin) RPC() any {
-	return &rpc{
-		p: p,
-	}
+func (p *Plugin) RPC() (string, http.Handler) {
+	return jobsV2connect.NewJobsServiceHandler(&rpc{p: p})
 }

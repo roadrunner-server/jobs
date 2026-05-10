@@ -6,12 +6,12 @@ toolchain go1.26.0
 
 require (
 	github.com/prometheus/client_golang v1.23.2
-	github.com/roadrunner-server/api-go/v6 v6.0.0-beta.4
+	github.com/roadrunner-server/api-go/v6 v6.0.0-beta.5
 	github.com/roadrunner-server/api-plugins/v6 v6.0.0-beta.2
 	github.com/roadrunner-server/endure/v2 v2.6.2
 	github.com/roadrunner-server/errors v1.5.0
 	github.com/roadrunner-server/events v1.0.1
-	github.com/roadrunner-server/goridge/v4 v4.0.0-beta.1
+	github.com/roadrunner-server/goridge/v4 v4.0.0-beta.2
 	github.com/roadrunner-server/pool/v2 v2.0.0-beta.1
 	github.com/roadrunner-server/priority_queue v1.0.6
 	go.opentelemetry.io/contrib/propagators/jaeger v1.43.0
