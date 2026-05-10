@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"connectrpc.com/connect"
 	jobsProto "github.com/roadrunner-server/api-go/v6/jobs/v2"
 	"github.com/roadrunner-server/api-plugins/v6/jobs"
 	"github.com/roadrunner-server/errors"
@@ -14,6 +15,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type rpc struct {
@@ -26,193 +28,187 @@ func spanError(span trace.Span, err error) {
 	span.SetStatus(codes.Error, err.Error())
 }
 
-// Push accepts a PushBatchRequest containing exactly one Job for compatibility
-// with the legacy single-push RPC method. Use PushBatch for multi-job pushes.
-func (r *rpc) Push(j *jobsProto.PushBatchRequest, _ *jobsProto.JobsHandlerResponse) error {
+// Push sends a single job. The proto shape (PushRequest { Job job = 1; }) enforces
+// single-job semantics — no runtime length guard needed.
+func (r *rpc) Push(_ context.Context, req *connect.Request[jobsProto.PushRequest]) (*connect.Response[jobsProto.JobsHandlerResponse], error) {
 	const op = errors.Op("rpc_push")
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	jobs := j.GetJobs()
-	if len(jobs) != 1 {
-		return errors.E(op, errors.Str("Push expects exactly one job, use PushBatch for multiple"))
+	job := req.Msg.GetJob()
+	if job == nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.E(op, errors.Str("job is required")))
 	}
-	if jobs[0].GetId() == "" {
-		return errors.E(op, errors.Str("empty ID field not allowed"))
+	if job.GetId() == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.E(op, errors.Str("empty ID field not allowed")))
 	}
-	ctx, span := r.p.tracer.Tracer(PluginName).Start(rpcContextFromJob(jobs[0]), "push", trace.WithSpanKind(trace.SpanKindServer))
+
+	// Derive trace context from the job's own headers (cross-process propagation
+	// from the producing PHP worker), not from the inbound RPC context.
+	spanCtx, span := r.p.tracer.Tracer(PluginName).Start(rpcContextFromJob(job), "push", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
-	err := r.p.Push(ctx, from(jobs[0]))
-	if err != nil {
+	if err := r.p.Push(spanCtx, from(job)); err != nil {
 		spanError(span, err)
-		return errors.E(op, err)
+		return nil, connect.NewError(connect.CodeInternal, errors.E(op, err))
 	}
 
-	return nil
+	return connect.NewResponse(&jobsProto.JobsHandlerResponse{}), nil
 }
 
-func (r *rpc) PushBatch(j *jobsProto.PushBatchRequest, _ *jobsProto.JobsHandlerResponse) error {
+func (r *rpc) PushBatch(_ context.Context, req *connect.Request[jobsProto.PushBatchRequest]) (*connect.Response[jobsProto.JobsHandlerResponse], error) {
 	const op = errors.Op("rpc_push_batch")
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	ctx, span := r.p.tracer.Tracer(PluginName).Start(rpcContextFromJobs(j.GetJobs()), "push_batch", trace.WithSpanKind(trace.SpanKindServer))
+	in := req.Msg.GetJobs()
+
+	spanCtx, span := r.p.tracer.Tracer(PluginName).Start(rpcContextFromJobs(in), "push_batch", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
-	l := len(j.GetJobs())
-
-	batch := make([]jobs.Message, l)
-
-	for i := range l {
-		// convert transport entity into domain
-		// how we can do this quickly
-		batch[i] = from(j.GetJobs()[i])
+	batch := make([]jobs.Message, len(in))
+	for i := range in {
+		batch[i] = from(in[i])
 	}
 
-	err := r.p.PushBatch(ctx, batch)
-	if err != nil {
+	if err := r.p.PushBatch(spanCtx, batch); err != nil {
 		spanError(span, err)
-		return errors.E(op, err)
+		return nil, connect.NewError(connect.CodeInternal, errors.E(op, err))
 	}
 
-	return nil
+	return connect.NewResponse(&jobsProto.JobsHandlerResponse{}), nil
 }
 
-func (r *rpc) Pause(req *jobsProto.Pipelines, _ *jobsProto.JobsHandlerResponse) error {
+func (r *rpc) Pause(ctx context.Context, req *connect.Request[jobsProto.Pipelines]) (*connect.Response[jobsProto.JobsHandlerResponse], error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	for i := range req.GetPipelines() {
-		ctx, span := r.p.tracer.Tracer(PluginName).Start(context.Background(), "pause_pipeline", trace.WithSpanKind(trace.SpanKindServer))
-		err := r.p.Pause(ctx, req.GetPipelines()[i])
+	for _, name := range req.Msg.GetPipelines() {
+		spanCtx, span := r.p.tracer.Tracer(PluginName).Start(ctx, "pause_pipeline", trace.WithSpanKind(trace.SpanKindServer))
+		err := r.p.Pause(spanCtx, name)
 		if err != nil {
 			spanError(span, err)
 			span.End()
-			return err
+			return nil, connect.NewError(connect.CodeInternal, err)
 		}
 		span.End()
 	}
 
-	return nil
+	return connect.NewResponse(&jobsProto.JobsHandlerResponse{}), nil
 }
 
-func (r *rpc) Resume(req *jobsProto.Pipelines, _ *jobsProto.JobsHandlerResponse) error {
+func (r *rpc) Resume(ctx context.Context, req *connect.Request[jobsProto.Pipelines]) (*connect.Response[jobsProto.JobsHandlerResponse], error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	ctx, span := r.p.tracer.Tracer(PluginName).Start(context.Background(), "resume_pipeline", trace.WithSpanKind(trace.SpanKindServer))
+	spanCtx, span := r.p.tracer.Tracer(PluginName).Start(ctx, "resume_pipeline", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
-	for i := range req.GetPipelines() {
-		err := r.p.Resume(ctx, req.GetPipelines()[i])
-		if err != nil {
+
+	for _, name := range req.Msg.GetPipelines() {
+		if err := r.p.Resume(spanCtx, name); err != nil {
 			spanError(span, err)
-			return err
+			return nil, connect.NewError(connect.CodeInternal, err)
 		}
 	}
 
-	return nil
+	return connect.NewResponse(&jobsProto.JobsHandlerResponse{}), nil
 }
 
-func (r *rpc) List(_ *jobsProto.JobsHandlerResponse, resp *jobsProto.Pipelines) error {
+func (r *rpc) List(ctx context.Context, _ *connect.Request[emptypb.Empty]) (*connect.Response[jobsProto.Pipelines], error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	_, span := r.p.tracer.Tracer(PluginName).Start(context.Background(), "list_pipelines", trace.WithSpanKind(trace.SpanKindServer))
+	_, span := r.p.tracer.Tracer(PluginName).Start(ctx, "list_pipelines", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
-	resp.Pipelines = r.p.List()
-	return nil
+
+	return connect.NewResponse(&jobsProto.Pipelines{Pipelines: r.p.List()}), nil
 }
 
-// Declare pipeline used to dynamically declare any type of the pipeline
-// Mandatory fields:
-// 1. Driver
-// 2. Pipeline name
-// 3. Options related to the particular pipeline
-func (r *rpc) Declare(req *jobsProto.DeclareRequest, _ *jobsProto.JobsHandlerResponse) error {
+// Declare dynamically registers a pipeline. Mandatory fields in the request map:
+//  1. driver
+//  2. pipeline name
+//  3. driver-specific options
+func (r *rpc) Declare(ctx context.Context, req *connect.Request[jobsProto.DeclareRequest]) (*connect.Response[jobsProto.JobsHandlerResponse], error) {
 	const op = errors.Op("rpc_declare_pipeline")
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	pipe := Pipeline{}
-
-	ctx, span := r.p.tracer.Tracer(PluginName).Start(context.Background(), "declare_pipeline", trace.WithSpanKind(trace.SpanKindServer))
+	spanCtx, span := r.p.tracer.Tracer(PluginName).Start(ctx, "declare_pipeline", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
-	for i := range req.GetPipeline() {
-		pipe[i] = req.GetPipeline()[i]
+	pipe := Pipeline{}
+	for k, v := range req.Msg.GetPipeline() {
+		pipe[k] = v
 	}
 
-	err := r.p.Declare(ctx, pipe)
-	if err != nil {
+	if err := r.p.Declare(spanCtx, pipe); err != nil {
 		spanError(span, err)
-		return errors.E(op, err)
+		return nil, connect.NewError(connect.CodeInternal, errors.E(op, err))
 	}
 
-	return nil
+	return connect.NewResponse(&jobsProto.JobsHandlerResponse{}), nil
 }
 
-func (r *rpc) Destroy(req *jobsProto.Pipelines, resp *jobsProto.Pipelines) error {
+func (r *rpc) Destroy(ctx context.Context, req *connect.Request[jobsProto.Pipelines]) (*connect.Response[jobsProto.Pipelines], error) {
 	const op = errors.Op("rpc_destroy_pipeline")
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	errg := errgroup.Group{}
 	errg.SetLimit(r.p.cfg.CfgOptions.Parallelism)
 
-	var destroyed []string
-	localMu := &sync.Mutex{}
-	for i := range req.GetPipelines() {
-		errg.Go(func() error {
-			ctx, span := r.p.tracer.Tracer(PluginName).Start(context.Background(), "destroy_pipeline", trace.WithSpanKind(trace.SpanKindServer))
-			// TODO: apply mutex here?
-			err := r.p.Destroy(ctx, req.GetPipelines()[i])
+	var (
+		destroyed []string
+		localMu   sync.Mutex
+	)
 
-			if err != nil {
+	for _, name := range req.Msg.GetPipelines() {
+		errg.Go(func() error {
+			spanCtx, span := r.p.tracer.Tracer(PluginName).Start(ctx, "destroy_pipeline", trace.WithSpanKind(trace.SpanKindServer))
+			defer span.End()
+
+			if err := r.p.Destroy(spanCtx, name); err != nil {
 				spanError(span, err)
-				span.End()
 				return errors.E(op, err)
 			}
 
 			localMu.Lock()
-			destroyed = append(destroyed, req.GetPipelines()[i])
+			destroyed = append(destroyed, name)
 			localMu.Unlock()
-			span.End()
 			return nil
 		})
 	}
 
-	err := errg.Wait()
-	if err != nil {
-		// return destroyed pipelines
-		resp.Pipelines = destroyed
-		return err
+	if err := errg.Wait(); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	// return destroyed pipelines
-	resp.Pipelines = destroyed
-
-	return nil
+	return connect.NewResponse(&jobsProto.Pipelines{Pipelines: destroyed}), nil
 }
 
-func (r *rpc) Stat(_ *jobsProto.JobsHandlerResponse, resp *jobsProto.Stats) error {
+func (r *rpc) GetStats(ctx context.Context, _ *connect.Request[emptypb.Empty]) (*connect.Response[jobsProto.Stats], error) {
 	const op = errors.Op("rpc_stats")
+
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	statCtx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
 
-	ctx, span := r.p.tracer.Tracer(PluginName).Start(ctx, "stat", trace.WithSpanKind(trace.SpanKindServer))
+	statCtx, span := r.p.tracer.Tracer(PluginName).Start(statCtx, "stat", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
-	state, err := r.p.JobsState(ctx)
+	state, err := r.p.JobsState(statCtx)
 	if err != nil {
 		spanError(span, err)
-		return errors.E(op, err)
+		return nil, connect.NewError(connect.CodeInternal, errors.E(op, err))
 	}
 
+	resp := &jobsProto.Stats{Stats: make([]*jobsProto.Stat, 0, len(state))}
 	for i := range state {
 		resp.Stats = append(resp.Stats, &jobsProto.Stat{
 			Pipeline: state[i].Pipeline,
@@ -226,10 +222,10 @@ func (r *rpc) Stat(_ *jobsProto.JobsHandlerResponse, resp *jobsProto.Stats) erro
 		})
 	}
 
-	return nil
+	return connect.NewResponse(resp), nil
 }
 
-// from converts from transport entity to domain
+// from converts a wire Job into the plugin's domain Job.
 func from(j *jobsProto.Job) *Job {
 	headers := make(map[string][]string, len(j.GetHeaders()))
 
@@ -237,7 +233,7 @@ func from(j *jobsProto.Job) *Job {
 		headers[k] = v.GetValues()
 	}
 
-	jb := &Job{
+	return &Job{
 		Job:   j.GetJob(),
 		Ident: j.GetId(),
 		Pld:   j.GetPayload(),
@@ -253,8 +249,6 @@ func from(j *jobsProto.Job) *Job {
 			Offset:    j.GetOptions().GetOffset(),
 		},
 	}
-
-	return jb
 }
 
 func rpcContextFromJobs(batch []*jobsProto.Job) context.Context {

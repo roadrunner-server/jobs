@@ -5,10 +5,12 @@ import (
 	stderr "errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"strconv"
 	"sync"
 	"time"
 
+	"github.com/roadrunner-server/api-go/v6/jobs/v2/jobsV2connect"
 	jobsApi "github.com/roadrunner-server/api-plugins/v6/jobs"
 	jprop "go.opentelemetry.io/contrib/propagators/jaeger"
 	"go.opentelemetry.io/otel"
@@ -642,9 +644,8 @@ func (p *Plugin) List() []string {
 	return out
 }
 
-// RPC returns the RPC service handler that exposes jobs operations over goridge.
-func (p *Plugin) RPC() any {
-	return &rpc{
-		p: p,
-	}
+// RPC returns the Connect-RPC service handler for jobs.v2.JobsService.
+// The rpc plugin mounts the returned handler at the returned path on its HTTP/2 mux.
+func (p *Plugin) RPC() (string, http.Handler) {
+	return jobsV2connect.NewJobsServiceHandler(&rpc{p: p})
 }
