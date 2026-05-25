@@ -64,7 +64,7 @@ jobs:
           go test -timeout 20m -v -race -cover -tags=debug -failfast -coverprofile=./coverage-ci/jobs.out -covermode=atomic jobs_general_test.go
           docker compose -f env/docker-compose-jobs.yaml down
       - name: Archive code coverage results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-jobs
           path: ./tests/coverage-ci
@@ -79,7 +79,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v6
       - name: Download code coverage results
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           pattern: coverage-*
           path: coverage
@@ -96,7 +96,7 @@ jobs:
           ' summary.txt > summary.filtered.txt
           mv summary.filtered.txt summary.txt
       - name: upload to codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           files: summary.txt
           fail_ci_if_error: false
