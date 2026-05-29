@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"encoding/json"
+	"math"
 	"strconv"
 	"unsafe"
 )
@@ -120,7 +121,7 @@ func (p Pipeline) Int(key string, d int) int {
 	if !ok || v == nil {
 		return d
 	}
-	if res, ok := toInt64(v); ok {
+	if res, ok := toInt64(v); ok && res >= math.MinInt && res <= math.MaxInt {
 		return int(res)
 	}
 	return d
