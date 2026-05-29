@@ -122,10 +122,8 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 		p.pipelines.Store(i, p.cfg.Pipelines[i])
 	}
 
-	if len(p.cfg.Consume) > 0 {
-		for i := range p.cfg.Consume {
-			p.consume[p.cfg.Consume[i]] = struct{}{}
-		}
+	for _, name := range p.cfg.Consume {
+		p.consume[name] = struct{}{}
 	}
 
 	// initialize pollers wg channel
@@ -360,7 +358,7 @@ func (p *Plugin) JobsState(ctx context.Context) ([]*jobsApi.State, error) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
-	jst := make([]*jobsApi.State, 0, 2)
+	var jst []*jobsApi.State
 	var err error
 	p.consumers.Range(func(_, value any) bool {
 		consumer := value.(jobsApi.Driver)
@@ -568,31 +566,34 @@ func (p *Plugin) Declare(ctx context.Context, pipeline jobsApi.Pipeline) error {
 
 	// jobConstructors contains constructors for the drivers
 	// we need here to initialize these drivers for the pipelines
-	if _, ok := p.jobConstructors[dr]; ok {
-		// init the driver from a pipeline
-		initializedDriver, err := p.jobConstructors[dr].DriverFromPipeline(ctx, pipeline, p.queue)
+	jc, ok := p.jobConstructors[dr]
+	if !ok {
+		return errors.E(op, errors.Errorf("no constructor registered for driver: %s, pipeline: %s", dr, pipeline.Name()))
+	}
+
+	// init the driver from a pipeline
+	initializedDriver, err := jc.DriverFromPipeline(ctx, pipeline, p.queue)
+	if err != nil {
+		return errors.E(op, err)
+	}
+
+	// if a pipeline initialized to be consumed, call Run on it,
+	// but likely for the dynamic pipelines it should be started manually
+	if _, ok := p.consume[pipeline.Name()]; ok {
+		ctxDeclare, cancel := context.WithTimeout(ctx, p.cfg.TimeoutDuration())
+		defer cancel()
+		err = initializedDriver.Run(ctxDeclare, pipeline)
 		if err != nil {
 			return errors.E(op, err)
 		}
-
-		// if a pipeline initialized to be consumed, call Run on it,
-		// but likely for the dynamic pipelines it should be started manually
-		if _, ok := p.consume[pipeline.Name()]; ok {
-			ctxDeclare, cancel := context.WithTimeout(ctx, p.cfg.TimeoutDuration())
-			defer cancel()
-			err = initializedDriver.Run(ctxDeclare, pipeline)
-			if err != nil {
-				return errors.E(op, err)
-			}
-		}
-
-		// set how the pipeline was created
-		pipeline.With(createdWithDeclare, trueStr)
-		// add a driver to the set of the consumers (name - pipeline name, value - associated driver)
-		p.consumers.Store(pipeline.Name(), initializedDriver)
-		// save the pipeline
-		p.pipelines.Store(pipeline.Name(), pipeline)
 	}
+
+	// set how the pipeline was created
+	pipeline.With(createdWithDeclare, trueStr)
+	// add a driver to the set of the consumers (name - pipeline name, value - associated driver)
+	p.consumers.Store(pipeline.Name(), initializedDriver)
+	// save the pipeline
+	p.pipelines.Store(pipeline.Name(), pipeline)
 
 	return nil
 }
