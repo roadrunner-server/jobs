@@ -61,10 +61,14 @@ func TestHandleRequeueMetric(t *testing.T) {
 			rh := NewResponseHandler(discardLogger(), counter)
 			jb := &fakeJob{}
 
-			if err := rh.Handle(&payload.Payload{Body: []byte(tc.body)}, jb); err != nil {
+			requeued, err := rh.Handle(&payload.Payload{Body: []byte(tc.body)}, jb)
+			if err != nil {
 				t.Fatalf("Handle returned unexpected error: %v", err)
 			}
 
+			if wantRequeued := tc.wantRequeues > 0; requeued != wantRequeued {
+				t.Errorf("Handle requeued = %v, want %v", requeued, wantRequeued)
+			}
 			if counter.requeues != tc.wantRequeues {
 				t.Errorf("requeue count = %d, want %d", counter.requeues, tc.wantRequeues)
 			}
@@ -87,8 +91,12 @@ func TestHandleRequeueErrorNotCounted(t *testing.T) {
 	rh := NewResponseHandler(discardLogger(), counter)
 	jb := &fakeJob{requeueErr: errors.New("requeue failed")}
 
-	if err := rh.Handle(&payload.Payload{Body: []byte(`{"type":4,"data":{}}`)}, jb); err == nil {
+	requeued, err := rh.Handle(&payload.Payload{Body: []byte(`{"type":4,"data":{}}`)}, jb)
+	if err == nil {
 		t.Fatal("expected an error when Requeue fails, got nil")
+	}
+	if requeued {
+		t.Error("Handle requeued = true, want false on a failed re-queue")
 	}
 	if counter.requeues != 0 {
 		t.Errorf("requeue count = %d, want 0 (a failed requeue must not be counted)", counter.requeues)

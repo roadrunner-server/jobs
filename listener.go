@@ -201,7 +201,7 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 	}
 
 	// handle the response protocol
-	err = p.respHandler.Handle(resp, jb)
+	requeued, err := p.respHandler.Handle(resp, jb)
 	if err != nil {
 		p.metrics.CountJobErr()
 		p.log.Error("response handler error", "error", err, "ID", jb.ID(), "response", resp.Body, "start", start, "elapsed", time.Since(start).Milliseconds())
@@ -231,7 +231,11 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 		return
 	}
 
-	p.metrics.CountJobOk()
+	// a re-queued job is already counted via CountJobRequeue in the response handler;
+	// only a non-re-queued completion counts as a successfully processed job.
+	if !requeued {
+		p.metrics.CountJobOk()
+	}
 
 	p.log.Debug("job was processed successfully", "ID", jb.ID(), "start", start, "elapsed", time.Since(start).Milliseconds())
 

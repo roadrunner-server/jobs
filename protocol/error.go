@@ -7,13 +7,13 @@ import (
 	"github.com/roadrunner-server/errors"
 )
 
-func (rh *RespHandler) handleErrResp(data []byte, jb jobs.Job) error {
+func (rh *RespHandler) handleErrResp(data []byte, jb jobs.Job) (bool, error) {
 	er := rh.getErrResp()
 	defer rh.putErrResp(er)
 
 	err := json.Unmarshal(data, er)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if er.Msg != "" {
@@ -24,11 +24,11 @@ func (rh *RespHandler) handleErrResp(data []byte, jb jobs.Job) error {
 	if er.Requeue {
 		err = jb.Requeue(er.Headers, er.Delay)
 		if err != nil {
-			return err
+			return false, err
 		}
 		rh.metrics.CountJobRequeue()
 		rh.log.Info("job was re-queued", "error", errors.E(er.Msg), "delay", er.Delay, "requeue", er.Requeue)
-		return nil
+		return true, nil
 	}
 
 	// the user doesn't want to requeue the job - silently ACK and return nil
@@ -40,16 +40,16 @@ func (rh *RespHandler) handleErrResp(data []byte, jb jobs.Job) error {
 
 	rh.log.Debug("requeue was not set, acknowledging the job", "error", errors.E(er.Msg))
 
-	return nil
+	return false, nil
 }
 
-func (rh *RespHandler) handleNackResponse(data []byte, jb jobs.Job) error {
+func (rh *RespHandler) handleNackResponse(data []byte, jb jobs.Job) (bool, error) {
 	er := rh.getErrResp()
 	defer rh.putErrResp(er)
 
 	err := json.Unmarshal(data, er)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// we have an error message
@@ -59,28 +59,29 @@ func (rh *RespHandler) handleNackResponse(data []byte, jb jobs.Job) error {
 
 	err = jb.NackWithOptions(er.Requeue, er.Delay)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if er.Requeue {
 		rh.metrics.CountJobRequeue()
+		return true, nil
 	}
 
-	return nil
+	return false, nil
 }
 
-func (rh *RespHandler) requeue(data []byte, jb jobs.Job) error {
+func (rh *RespHandler) requeue(data []byte, jb jobs.Job) (bool, error) {
 	er := rh.getErrResp()
 	defer rh.putErrResp(er)
 
 	err := json.Unmarshal(data, er)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	err = jb.Requeue(er.Headers, er.Delay)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	rh.metrics.CountJobRequeue()
@@ -91,5 +92,5 @@ func (rh *RespHandler) requeue(data []byte, jb jobs.Job) error {
 		"requeue", er.Requeue,
 	)
 
-	return nil
+	return true, nil
 }

@@ -61,14 +61,18 @@ func NewResponseHandler(log *slog.Logger, metrics MetricsCounter) *RespHandler {
 	}
 }
 
-func (rh *RespHandler) Handle(pld *payload.Payload, jb jobs.Job) error {
+// Handle processes a single worker response and acks, nacks, or re-queues the job
+// accordingly. It reports whether the job was re-queued so the caller can keep the
+// jobs_ok / jobs_requeue counters mutually exclusive (a re-queue is counted here, via
+// CountJobRequeue, and must not also be counted as a successfully processed job).
+func (rh *RespHandler) Handle(pld *payload.Payload, jb jobs.Job) (bool, error) {
 	const op = errors.Op("jobs_handle_response")
 	p := rh.getProtocol()
 	defer rh.putProtocol(p)
 
 	err := json.Unmarshal(pld.Body, p)
 	if err != nil {
-		return errors.E(op, err)
+		return false, errors.E(op, err)
 	}
 
 	switch p.T {
@@ -76,22 +80,23 @@ func (rh *RespHandler) Handle(pld *payload.Payload, jb jobs.Job) error {
 	case NoError:
 		err = jb.Ack()
 		if err != nil {
-			return errors.E(op, err)
+			return false, errors.E(op, err)
 		}
-		return nil
+		return false, nil
 		// error returned from the PHP
 	case Error:
-		err = rh.handleErrResp(p.Data, jb)
+		var requeued bool
+		requeued, err = rh.handleErrResp(p.Data, jb)
 		if err != nil {
-			return errors.E(op, err)
+			return false, errors.E(op, err)
 		}
-		return nil
+		return requeued, nil
 	case ACK:
 		err = jb.Ack()
 		if err != nil {
-			return errors.E(op, err)
+			return false, errors.E(op, err)
 		}
-		return nil
+		return false, nil
 	case NACK:
 		return rh.handleNackResponse(p.Data, jb)
 	case REQUEUE:
@@ -100,11 +105,11 @@ func (rh *RespHandler) Handle(pld *payload.Payload, jb jobs.Job) error {
 		rh.log.Warn("unknown response type, acknowledging the JOB", "type", uint32(p.T))
 		err = jb.Ack()
 		if err != nil {
-			return errors.E(op, err)
+			return false, errors.E(op, err)
 		}
 	}
 
-	return nil
+	return false, nil
 }
 
 func (rh *RespHandler) getProtocol() *protocol {
