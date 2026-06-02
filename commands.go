@@ -87,7 +87,7 @@ func (p *Plugin) readCommands(errCh chan error) {
 					}
 					restartCancel()
 					// TIP: Do not need to store the pipeline and consumer, as it was done in the Declare
-				} else if pipe.String(createdWithConfig, "") != "" {
+				} else if pipe.Has(createdWithConfig) {
 					// 5a. If the pipeline was created via config
 					p.jobsProcessor.add(&pjob{
 						p.jobConstructors[pipe.Driver()],

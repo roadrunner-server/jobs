@@ -13,10 +13,10 @@ const (
 )
 
 type statsExporter struct {
-	jobsOk  *uint64
-	pushOk  *uint64
-	jobsErr *uint64
-	pushErr *uint64
+	jobsOk  atomic.Uint64
+	pushOk  atomic.Uint64
+	jobsErr atomic.Uint64
+	pushErr atomic.Uint64
 
 	pushOkDesc              *prometheus.Desc
 	pushErrDesc             *prometheus.Desc
@@ -35,19 +35,19 @@ func (p *Plugin) MetricsCollector() []prometheus.Collector {
 }
 
 func (se *statsExporter) CountJobOk() {
-	atomic.AddUint64(se.jobsOk, 1)
+	se.jobsOk.Add(1)
 }
 
 func (se *statsExporter) CountJobErr() {
-	atomic.AddUint64(se.jobsErr, 1)
+	se.jobsErr.Add(1)
 }
 
 func (se *statsExporter) CountPushOk() {
-	atomic.AddUint64(se.pushOk, 1)
+	se.pushOk.Add(1)
 }
 
 func (se *statsExporter) CountPushErr() {
-	atomic.AddUint64(se.pushErr, 1)
+	se.pushErr.Add(1)
 }
 
 func newStatsExporter(stats Informer) *statsExporter {
@@ -64,11 +64,6 @@ func newStatsExporter(stats Informer) *statsExporter {
 
 			Workers: stats,
 		},
-
-		jobsOk:  new(uint64(0)),
-		pushOk:  new(uint64(0)),
-		jobsErr: new(uint64(0)),
-		pushErr: new(uint64(0)),
 
 		pushOkDesc:  prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "push_ok"), "Number of job push", nil, nil),
 		pushErrDesc: prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "push_err"), "Number of jobs push which was failed", nil, nil),
@@ -105,10 +100,10 @@ func (se *statsExporter) Collect(ch chan<- prometheus.Metric) {
 	se.defaultExporter.Collect(ch)
 
 	// send the values to the prometheus
-	ch <- prometheus.MustNewConstMetric(se.jobsOkDesc, prometheus.GaugeValue, float64(atomic.LoadUint64(se.jobsOk)))
-	ch <- prometheus.MustNewConstMetric(se.jobsErrDesc, prometheus.GaugeValue, float64(atomic.LoadUint64(se.jobsErr)))
-	ch <- prometheus.MustNewConstMetric(se.pushOkDesc, prometheus.GaugeValue, float64(atomic.LoadUint64(se.pushOk)))
-	ch <- prometheus.MustNewConstMetric(se.pushErrDesc, prometheus.GaugeValue, float64(atomic.LoadUint64(se.pushErr)))
+	ch <- prometheus.MustNewConstMetric(se.jobsOkDesc, prometheus.GaugeValue, float64(se.jobsOk.Load()))
+	ch <- prometheus.MustNewConstMetric(se.jobsErrDesc, prometheus.GaugeValue, float64(se.jobsErr.Load()))
+	ch <- prometheus.MustNewConstMetric(se.pushOkDesc, prometheus.GaugeValue, float64(se.pushOk.Load()))
+	ch <- prometheus.MustNewConstMetric(se.pushErrDesc, prometheus.GaugeValue, float64(se.pushErr.Load()))
 
 	se.pushJobLatencyHistogram.Collect(ch)
 	se.pushJobRequestCounter.Collect(ch)

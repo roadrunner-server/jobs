@@ -19,8 +19,7 @@ import (
 )
 
 type rpc struct {
-	p  *Plugin
-	mu sync.RWMutex
+	p *Plugin
 }
 
 func spanError(span trace.Span, err error) {
@@ -31,9 +30,6 @@ func spanError(span trace.Span, err error) {
 // Single-job semantics enforced by the proto (PushRequest.job); no runtime length guard.
 func (r *rpc) Push(ctx context.Context, req *connect.Request[jobsProto.PushRequest]) (*connect.Response[jobsProto.JobsHandlerResponse], error) {
 	const op = errors.Op("rpc_push")
-
-	r.mu.Lock()
-	defer r.mu.Unlock()
 
 	job := req.Msg.GetJob()
 	if job == nil {
@@ -57,9 +53,6 @@ func (r *rpc) Push(ctx context.Context, req *connect.Request[jobsProto.PushReque
 func (r *rpc) PushBatch(ctx context.Context, req *connect.Request[jobsProto.PushBatchRequest]) (*connect.Response[jobsProto.JobsHandlerResponse], error) {
 	const op = errors.Op("rpc_push_batch")
 
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
 	in := req.Msg.GetJobs()
 
 	spanCtx, span := r.p.tracer.Tracer(PluginName).Start(rpcContextFromJobs(ctx, in), "push_batch", trace.WithSpanKind(trace.SpanKindServer))
@@ -81,9 +74,6 @@ func (r *rpc) PushBatch(ctx context.Context, req *connect.Request[jobsProto.Push
 func (r *rpc) Pause(ctx context.Context, req *connect.Request[jobsProto.Pipelines]) (*connect.Response[jobsProto.JobsHandlerResponse], error) {
 	const op = errors.Op("rpc_pause")
 
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
 	for _, name := range req.Msg.GetPipelines() {
 		spanCtx, span := r.p.tracer.Tracer(PluginName).Start(ctx, "pause_pipeline", trace.WithSpanKind(trace.SpanKindServer))
 		err := r.p.Pause(spanCtx, name)
@@ -101,9 +91,6 @@ func (r *rpc) Pause(ctx context.Context, req *connect.Request[jobsProto.Pipeline
 func (r *rpc) Resume(ctx context.Context, req *connect.Request[jobsProto.Pipelines]) (*connect.Response[jobsProto.JobsHandlerResponse], error) {
 	const op = errors.Op("rpc_resume")
 
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
 	spanCtx, span := r.p.tracer.Tracer(PluginName).Start(ctx, "resume_pipeline", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
@@ -118,9 +105,6 @@ func (r *rpc) Resume(ctx context.Context, req *connect.Request[jobsProto.Pipelin
 }
 
 func (r *rpc) List(ctx context.Context, _ *connect.Request[emptypb.Empty]) (*connect.Response[jobsProto.Pipelines], error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
 	_, span := r.p.tracer.Tracer(PluginName).Start(ctx, "list_pipelines", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
@@ -129,9 +113,6 @@ func (r *rpc) List(ctx context.Context, _ *connect.Request[emptypb.Empty]) (*con
 
 func (r *rpc) Declare(ctx context.Context, req *connect.Request[jobsProto.DeclareRequest]) (*connect.Response[jobsProto.JobsHandlerResponse], error) {
 	const op = errors.Op("rpc_declare_pipeline")
-
-	r.mu.Lock()
-	defer r.mu.Unlock()
 
 	spanCtx, span := r.p.tracer.Tracer(PluginName).Start(ctx, "declare_pipeline", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
@@ -151,9 +132,6 @@ func (r *rpc) Declare(ctx context.Context, req *connect.Request[jobsProto.Declar
 
 func (r *rpc) Destroy(ctx context.Context, req *connect.Request[jobsProto.Pipelines]) (*connect.Response[jobsProto.Pipelines], error) {
 	const op = errors.Op("rpc_destroy_pipeline")
-
-	r.mu.Lock()
-	defer r.mu.Unlock()
 
 	errg := errgroup.Group{}
 	errg.SetLimit(r.p.cfg.CfgOptions.Parallelism)
@@ -189,9 +167,6 @@ func (r *rpc) Destroy(ctx context.Context, req *connect.Request[jobsProto.Pipeli
 
 func (r *rpc) GetStats(ctx context.Context, _ *connect.Request[emptypb.Empty]) (*connect.Response[jobsProto.Stats], error) {
 	const op = errors.Op("rpc_stats")
-
-	r.mu.RLock()
-	defer r.mu.RUnlock()
 
 	statCtx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()

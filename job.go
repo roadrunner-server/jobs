@@ -86,10 +86,16 @@ func (j *Job) Headers() map[string][]string {
 }
 
 func (j *Job) Delay() int64 {
+	if j.Options == nil {
+		return 0
+	}
 	return j.Options.Delay
 }
 
 func (j *Job) AutoAck() bool {
+	if j.Options == nil {
+		return false
+	}
 	return j.Options.AutoAck
 }
 

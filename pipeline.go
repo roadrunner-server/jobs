@@ -87,39 +87,44 @@ func (p Pipeline) String(key string, d string) string {
 	return d
 }
 
+// toInt64 converts common numeric/string types to int64; returns (0, false) when conversion fails.
+func toInt64(v any) (int64, bool) {
+	switch val := v.(type) {
+	case string:
+		res, err := strconv.ParseInt(val, 10, 64)
+		if err != nil {
+			return 0, false
+		}
+		return res, true
+	case float32:
+		return int64(val), true
+	case float64:
+		return int64(val), true
+	case int:
+		return int64(val), true
+	case int64:
+		return val, true
+	case int32:
+		return int64(val), true
+	case int16:
+		return int64(val), true
+	case int8:
+		return int64(val), true
+	default:
+		return 0, false
+	}
+}
+
 // Int must return option value as int or return default value.
 func (p Pipeline) Int(key string, d int) int {
 	v, ok := p.resolve(key)
 	if !ok || v == nil {
 		return d
 	}
-	switch val := v.(type) {
-	case string:
-		res, err := strconv.ParseInt(val, 10, 32)
-		if err != nil {
-			return d
-		}
-		if res > math.MaxInt32 || res < math.MinInt32 {
-			return d
-		}
+	if res, ok := toInt64(v); ok && res >= math.MinInt && res <= math.MaxInt {
 		return int(res)
-	case float32:
-		return int(val)
-	case float64:
-		return int(val)
-	case int:
-		return val
-	case int64:
-		return int(val)
-	case int32:
-		return int(val)
-	case int16:
-		return int(val)
-	case int8:
-		return int(val)
-	default:
-		return d
 	}
+	return d
 }
 
 // Bool must return option value as bool or return default value.
@@ -163,30 +168,10 @@ func (p Pipeline) Priority() int64 {
 	if !ok || v == nil {
 		return defaultPriority
 	}
-	switch val := v.(type) {
-	case string:
-		res, err := strconv.ParseInt(val, 10, 64)
-		if err != nil {
-			return defaultPriority
-		}
+	if res, ok := toInt64(v); ok {
 		return res
-	case float32:
-		return int64(val)
-	case float64:
-		return int64(val)
-	case int:
-		return int64(val)
-	case int64:
-		return val
-	case int32:
-		return int64(val)
-	case int16:
-		return int64(val)
-	case int8:
-		return int64(val)
-	default:
-		return defaultPriority
 	}
+	return defaultPriority
 }
 
 // Get used to get the data associated with the key

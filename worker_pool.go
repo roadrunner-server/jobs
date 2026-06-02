@@ -28,7 +28,7 @@ type pjob struct {
 	queue     jobsApi.Queue
 	configKey string
 	timeout   int
-	context   context.Context
+	ctx       context.Context
 }
 
 // args:
@@ -58,7 +58,7 @@ func (p *processor) run() {
 			for job := range p.queueCh {
 				p.log.Debug("initializing driver", "pipeline", job.pipe.Name(), "driver", job.pipe.Driver())
 				t := time.Now().UTC()
-				initializedDriver, err := job.jc.DriverFromConfig(job.context, job.configKey, job.queue, job.pipe)
+				initializedDriver, err := job.jc.DriverFromConfig(job.ctx, job.configKey, job.queue, job.pipe)
 				if err != nil {
 					p.mu.Lock()
 					p.errs = append(p.errs, err)
@@ -114,8 +114,9 @@ func (p *processor) errors() []error {
 	defer p.mu.Unlock()
 	errs := make([]error, len(p.errs))
 	copy(errs, p.errs)
-	// clear the original errors
-	p.errs = make([]error, 0, 1)
+	// clear the original errors without reallocating
+	clear(p.errs)
+	p.errs = p.errs[:0]
 	return errs
 }
 
