@@ -28,16 +28,24 @@ type protocol struct {
 	Data json.RawMessage `json:"data"`
 }
 
+// MetricsCounter records the jobs-processing events the response handler emits.
+type MetricsCounter interface {
+	// CountJobRequeue records that a job was re-queued.
+	CountJobRequeue()
+}
+
 type RespHandler struct {
-	log *slog.Logger
+	log     *slog.Logger
+	metrics MetricsCounter
 	// response pools
 	ePool sync.Pool
 	pPool sync.Pool
 }
 
-func NewResponseHandler(log *slog.Logger) *RespHandler {
+func NewResponseHandler(log *slog.Logger, metrics MetricsCounter) *RespHandler {
 	return &RespHandler{
-		log: log,
+		log:     log,
+		metrics: metrics,
 
 		pPool: sync.Pool{
 			New: func() any {

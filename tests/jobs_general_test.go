@@ -284,6 +284,7 @@ func TestJOBSMetrics(t *testing.T) {
 
 	assert.Contains(t, genericOut, `rr_jobs_jobs_err 0`)
 	assert.Contains(t, genericOut, `rr_jobs_jobs_ok 0`)
+	assert.Contains(t, genericOut, `rr_jobs_jobs_requeue 0`)
 	assert.Contains(t, genericOut, `rr_jobs_push_err 0`)
 	assert.Contains(t, genericOut, `rr_jobs_push_ok 0`)
 	assert.Contains(t, genericOut, `workers_memory_bytes`)
@@ -305,6 +306,7 @@ func TestJOBSMetrics(t *testing.T) {
 
 	assert.Contains(t, genericOut, `rr_jobs_jobs_err 0`)
 	assert.Contains(t, genericOut, `rr_jobs_jobs_ok 3`)
+	assert.Contains(t, genericOut, `rr_jobs_jobs_requeue 0`)
 	assert.Contains(t, genericOut, `rr_jobs_push_err 0`)
 	assert.Contains(t, genericOut, `rr_jobs_push_ok 3`)
 	assert.Contains(t, genericOut, `rr_jobs_requests_total{driver="memory",job="test-3",source="single"} 3`)
@@ -320,6 +322,7 @@ func TestJOBSMetrics(t *testing.T) {
 
 	assert.Contains(t, genericOut, `rr_jobs_jobs_err 0`)
 	assert.Contains(t, genericOut, `rr_jobs_jobs_ok 10`)
+	assert.Contains(t, genericOut, `rr_jobs_jobs_requeue 0`)
 	assert.Contains(t, genericOut, `rr_jobs_push_err 0`)
 	assert.Contains(t, genericOut, `rr_jobs_push_ok 10`)
 	assert.Contains(t, genericOut, `rr_jobs_requests_total{driver="memory",job="test-3",source="single"} 3`)

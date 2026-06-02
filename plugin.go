@@ -138,7 +138,7 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 	// collector
 	p.metrics = newStatsExporter(p)
 
-	p.respHandler = rh.NewResponseHandler(p.log)
+	p.respHandler = rh.NewResponseHandler(p.log, p.metrics)
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}, jprop.Jaeger{}))
 
 	return nil

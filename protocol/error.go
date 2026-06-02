@@ -26,6 +26,7 @@ func (rh *RespHandler) handleErrResp(data []byte, jb jobs.Job) error {
 		if err != nil {
 			return err
 		}
+		rh.metrics.CountJobRequeue()
 		rh.log.Info("job was re-queued", "error", errors.E(er.Msg), "delay", er.Delay, "requeue", er.Requeue)
 		return nil
 	}
@@ -61,6 +62,10 @@ func (rh *RespHandler) handleNackResponse(data []byte, jb jobs.Job) error {
 		return err
 	}
 
+	if er.Requeue {
+		rh.metrics.CountJobRequeue()
+	}
+
 	return nil
 }
 
@@ -77,6 +82,8 @@ func (rh *RespHandler) requeue(data []byte, jb jobs.Job) error {
 	if err != nil {
 		return err
 	}
+
+	rh.metrics.CountJobRequeue()
 
 	rh.log.Info("job was re-queued",
 		"message", er.Msg,
