@@ -108,11 +108,11 @@ func (se *statsExporter) Collect(ch chan<- prometheus.Metric) {
 	se.defaultExporter.Collect(ch)
 
 	// send the values to the prometheus
-	ch <- prometheus.MustNewConstMetric(se.jobsOkDesc, prometheus.GaugeValue, float64(se.jobsOk.Load()))
-	ch <- prometheus.MustNewConstMetric(se.jobsErrDesc, prometheus.GaugeValue, float64(se.jobsErr.Load()))
-	ch <- prometheus.MustNewConstMetric(se.jobsRequeueDesc, prometheus.GaugeValue, float64(se.jobsRequeue.Load()))
-	ch <- prometheus.MustNewConstMetric(se.pushOkDesc, prometheus.GaugeValue, float64(se.pushOk.Load()))
-	ch <- prometheus.MustNewConstMetric(se.pushErrDesc, prometheus.GaugeValue, float64(se.pushErr.Load()))
+	ch <- prometheus.MustNewConstMetric(se.jobsOkDesc, prometheus.CounterValue, float64(se.jobsOk.Load()))
+	ch <- prometheus.MustNewConstMetric(se.jobsErrDesc, prometheus.CounterValue, float64(se.jobsErr.Load()))
+	ch <- prometheus.MustNewConstMetric(se.jobsRequeueDesc, prometheus.CounterValue, float64(se.jobsRequeue.Load()))
+	ch <- prometheus.MustNewConstMetric(se.pushOkDesc, prometheus.CounterValue, float64(se.pushOk.Load()))
+	ch <- prometheus.MustNewConstMetric(se.pushErrDesc, prometheus.CounterValue, float64(se.pushErr.Load()))
 
 	se.pushJobLatencyHistogram.Collect(ch)
 	se.pushJobRequestCounter.Collect(ch)
