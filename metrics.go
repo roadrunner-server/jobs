@@ -13,15 +13,17 @@ const (
 )
 
 type statsExporter struct {
-	jobsOk  atomic.Uint64
-	pushOk  atomic.Uint64
-	jobsErr atomic.Uint64
-	pushErr atomic.Uint64
+	jobsOk      atomic.Uint64
+	pushOk      atomic.Uint64
+	jobsErr     atomic.Uint64
+	pushErr     atomic.Uint64
+	jobsRequeue atomic.Uint64
 
 	pushOkDesc              *prometheus.Desc
 	pushErrDesc             *prometheus.Desc
 	jobsErrDesc             *prometheus.Desc
 	jobsOkDesc              *prometheus.Desc
+	jobsRequeueDesc         *prometheus.Desc
 	pushJobLatencyHistogram *prometheus.HistogramVec
 	pushJobRequestCounter   *prometheus.CounterVec
 
@@ -40,6 +42,10 @@ func (se *statsExporter) CountJobOk() {
 
 func (se *statsExporter) CountJobErr() {
 	se.jobsErr.Add(1)
+}
+
+func (se *statsExporter) CountJobRequeue() {
+	se.jobsRequeue.Add(1)
 }
 
 func (se *statsExporter) CountPushOk() {
@@ -65,10 +71,11 @@ func newStatsExporter(stats Informer) *statsExporter {
 			Workers: stats,
 		},
 
-		pushOkDesc:  prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "push_ok"), "Number of job push", nil, nil),
-		pushErrDesc: prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "push_err"), "Number of jobs push which was failed", nil, nil),
-		jobsErrDesc: prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "jobs_err"), "Number of jobs error while processing in the worker", nil, nil),
-		jobsOkDesc:  prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "jobs_ok"), "Number of successfully processed jobs", nil, nil),
+		pushOkDesc:      prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "push_ok"), "Number of job push", nil, nil),
+		pushErrDesc:     prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "push_err"), "Number of jobs push which was failed", nil, nil),
+		jobsErrDesc:     prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "jobs_err"), "Number of jobs error while processing in the worker", nil, nil),
+		jobsOkDesc:      prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "jobs_ok"), "Number of successfully processed jobs", nil, nil),
+		jobsRequeueDesc: prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "jobs_requeue"), "Number of re-queued jobs", nil, nil),
 
 		pushJobLatencyHistogram: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Name: prometheus.BuildFQName(namespace, "", "push_latency"),
@@ -90,6 +97,7 @@ func (se *statsExporter) Describe(d chan<- *prometheus.Desc) {
 	d <- se.pushOkDesc
 	d <- se.jobsErrDesc
 	d <- se.jobsOkDesc
+	d <- se.jobsRequeueDesc
 
 	se.pushJobLatencyHistogram.Describe(d)
 	se.pushJobRequestCounter.Describe(d)
@@ -100,10 +108,11 @@ func (se *statsExporter) Collect(ch chan<- prometheus.Metric) {
 	se.defaultExporter.Collect(ch)
 
 	// send the values to the prometheus
-	ch <- prometheus.MustNewConstMetric(se.jobsOkDesc, prometheus.GaugeValue, float64(se.jobsOk.Load()))
-	ch <- prometheus.MustNewConstMetric(se.jobsErrDesc, prometheus.GaugeValue, float64(se.jobsErr.Load()))
-	ch <- prometheus.MustNewConstMetric(se.pushOkDesc, prometheus.GaugeValue, float64(se.pushOk.Load()))
-	ch <- prometheus.MustNewConstMetric(se.pushErrDesc, prometheus.GaugeValue, float64(se.pushErr.Load()))
+	ch <- prometheus.MustNewConstMetric(se.jobsOkDesc, prometheus.CounterValue, float64(se.jobsOk.Load()))
+	ch <- prometheus.MustNewConstMetric(se.jobsErrDesc, prometheus.CounterValue, float64(se.jobsErr.Load()))
+	ch <- prometheus.MustNewConstMetric(se.jobsRequeueDesc, prometheus.CounterValue, float64(se.jobsRequeue.Load()))
+	ch <- prometheus.MustNewConstMetric(se.pushOkDesc, prometheus.CounterValue, float64(se.pushOk.Load()))
+	ch <- prometheus.MustNewConstMetric(se.pushErrDesc, prometheus.CounterValue, float64(se.pushErr.Load()))
 
 	se.pushJobLatencyHistogram.Collect(ch)
 	se.pushJobRequestCounter.Collect(ch)

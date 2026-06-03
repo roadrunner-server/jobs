@@ -7,13 +7,13 @@ import (
 	"github.com/roadrunner-server/errors"
 )
 
-func (rh *RespHandler) handleErrResp(data []byte, jb jobs.Job) error {
+func (rh *RespHandler) handleErrResp(data []byte, jb jobs.Job) (Outcome, error) {
 	er := rh.getErrResp()
 	defer rh.putErrResp(er)
 
 	err := json.Unmarshal(data, er)
 	if err != nil {
-		return err
+		return OutcomeOK, err
 	}
 
 	if er.Msg != "" {
@@ -24,13 +24,13 @@ func (rh *RespHandler) handleErrResp(data []byte, jb jobs.Job) error {
 	if er.Requeue {
 		err = jb.Requeue(er.Headers, er.Delay)
 		if err != nil {
-			return err
+			return OutcomeOK, err
 		}
 		rh.log.Info("job was re-queued", "error", errors.E(er.Msg), "delay", er.Delay, "requeue", er.Requeue)
-		return nil
+		return OutcomeRequeued, nil
 	}
 
-	// the user doesn't want to requeue the job - silently ACK and return nil
+	// the user doesn't want to requeue the job - silently ACK; the job still failed
 	errAck := jb.Ack()
 	if errAck != nil {
 		rh.log.Error("job acknowledge was failed", "error", errors.E(er.Msg), "error", errAck)
@@ -39,16 +39,16 @@ func (rh *RespHandler) handleErrResp(data []byte, jb jobs.Job) error {
 
 	rh.log.Debug("requeue was not set, acknowledging the job", "error", errors.E(er.Msg))
 
-	return nil
+	return OutcomeFailed, nil
 }
 
-func (rh *RespHandler) handleNackResponse(data []byte, jb jobs.Job) error {
+func (rh *RespHandler) handleNackResponse(data []byte, jb jobs.Job) (Outcome, error) {
 	er := rh.getErrResp()
 	defer rh.putErrResp(er)
 
 	err := json.Unmarshal(data, er)
 	if err != nil {
-		return err
+		return OutcomeOK, err
 	}
 
 	// we have an error message
@@ -58,24 +58,28 @@ func (rh *RespHandler) handleNackResponse(data []byte, jb jobs.Job) error {
 
 	err = jb.NackWithOptions(er.Requeue, er.Delay)
 	if err != nil {
-		return err
+		return OutcomeOK, err
 	}
 
-	return nil
+	if er.Requeue {
+		return OutcomeRequeued, nil
+	}
+
+	return OutcomeFailed, nil
 }
 
-func (rh *RespHandler) requeue(data []byte, jb jobs.Job) error {
+func (rh *RespHandler) requeue(data []byte, jb jobs.Job) (Outcome, error) {
 	er := rh.getErrResp()
 	defer rh.putErrResp(er)
 
 	err := json.Unmarshal(data, er)
 	if err != nil {
-		return err
+		return OutcomeOK, err
 	}
 
 	err = jb.Requeue(er.Headers, er.Delay)
 	if err != nil {
-		return err
+		return OutcomeOK, err
 	}
 
 	rh.log.Info("job was re-queued",
@@ -84,5 +88,5 @@ func (rh *RespHandler) requeue(data []byte, jb jobs.Job) error {
 		"requeue", er.Requeue,
 	)
 
-	return nil
+	return OutcomeRequeued, nil
 }
