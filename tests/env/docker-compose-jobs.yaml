@@ -48,7 +48,10 @@ services:
       CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
 
   localstack:
-    image: localstack/localstack
+    image: localstack/localstack:4.14.0
+    environment:
+      SERVICES: sqs
+      EAGER_SERVICE_LOADING: "1"
     ports:
       - "127.0.0.1:4566:4566"            # LocalStack Gateway
       - "127.0.0.1:4510-4559:4510-4559"  # external services port range

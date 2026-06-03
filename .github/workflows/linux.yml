@@ -59,7 +59,23 @@ jobs:
           mkdir ./coverage-ci
 
           docker compose -f env/docker-compose-jobs.yaml up -d
-          sleep 30
+
+          # brokers without a readiness endpoint (kafka/rabbitmq/beanstalk/nats) — brief warm-up
+          sleep 20
+
+          # wait for LocalStack SQS to be ready (replaces the old blind sleep that flaked)
+          ok=0
+          for _ in $(seq 60); do
+            if curl -sf http://localhost:4566/_localstack/health | jq -e '.services.sqs | test("available|running")' >/dev/null 2>&1; then
+              ok=1; break
+            fi
+            sleep 2
+          done
+          if [ "$ok" != "1" ]; then
+            echo "::error::LocalStack SQS not ready after 120s"
+            docker compose -f env/docker-compose-jobs.yaml logs localstack
+            exit 1
+          fi
 
           go test -timeout 20m -v -race -cover -tags=debug -failfast -coverprofile=./coverage-ci/jobs.out -covermode=atomic jobs_general_test.go
           docker compose -f env/docker-compose-jobs.yaml down
