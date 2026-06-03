@@ -28,24 +28,39 @@ type protocol struct {
 	Data json.RawMessage `json:"data"`
 }
 
-// MetricsCounter records the jobs-processing events the response handler emits.
-type MetricsCounter interface {
-	// CountJobRequeue records that a job was re-queued.
-	CountJobRequeue()
+// Outcome is the result of handling a worker response; the caller uses it to
+// record exactly one of jobs_ok / jobs_err / jobs_requeue.
+type Outcome uint8
+
+const (
+	OutcomeOK       Outcome = iota // job processed successfully (ack)
+	OutcomeFailed                  // terminal failure (worker error or nack without requeue)
+	OutcomeRequeued                // job was re-queued
+)
+
+func (o Outcome) String() string {
+	switch o {
+	case OutcomeOK:
+		return "ok"
+	case OutcomeFailed:
+		return "failed"
+	case OutcomeRequeued:
+		return "requeued"
+	default:
+		return "unknown"
+	}
 }
 
 type RespHandler struct {
-	log     *slog.Logger
-	metrics MetricsCounter
+	log *slog.Logger
 	// response pools
 	ePool sync.Pool
 	pPool sync.Pool
 }
 
-func NewResponseHandler(log *slog.Logger, metrics MetricsCounter) *RespHandler {
+func NewResponseHandler(log *slog.Logger) *RespHandler {
 	return &RespHandler{
-		log:     log,
-		metrics: metrics,
+		log: log,
 
 		pPool: sync.Pool{
 			New: func() any {
@@ -61,55 +76,50 @@ func NewResponseHandler(log *slog.Logger, metrics MetricsCounter) *RespHandler {
 	}
 }
 
-// Handle processes a single worker response and acks, nacks, or re-queues the job
-// accordingly. It reports whether the job was re-queued so the caller can keep the
-// jobs_ok / jobs_requeue counters mutually exclusive (a re-queue is counted here, via
-// CountJobRequeue, and must not also be counted as a successfully processed job).
-func (rh *RespHandler) Handle(pld *payload.Payload, jb jobs.Job) (bool, error) {
+// Handle processes a single worker response — acking, nacking, or re-queueing the job —
+// and returns the Outcome so the caller can record exactly one of jobs_ok / jobs_err /
+// jobs_requeue. On error the returned Outcome is meaningless (callers check err first).
+func (rh *RespHandler) Handle(pld *payload.Payload, jb jobs.Job) (Outcome, error) {
 	const op = errors.Op("jobs_handle_response")
 	p := rh.getProtocol()
 	defer rh.putProtocol(p)
 
 	err := json.Unmarshal(pld.Body, p)
 	if err != nil {
-		return false, errors.E(op, err)
+		return OutcomeOK, errors.E(op, err)
 	}
 
 	switch p.T {
 	// likely case
 	case NoError:
-		err = jb.Ack()
-		if err != nil {
-			return false, errors.E(op, err)
+		if err = jb.Ack(); err != nil {
+			return OutcomeOK, errors.E(op, err)
 		}
-		return false, nil
+		return OutcomeOK, nil
 		// error returned from the PHP
 	case Error:
-		var requeued bool
-		requeued, err = rh.handleErrResp(p.Data, jb)
-		if err != nil {
-			return false, errors.E(op, err)
+		outcome, errH := rh.handleErrResp(p.Data, jb)
+		if errH != nil {
+			return OutcomeOK, errors.E(op, errH)
 		}
-		return requeued, nil
+		return outcome, nil
 	case ACK:
-		err = jb.Ack()
-		if err != nil {
-			return false, errors.E(op, err)
+		if err = jb.Ack(); err != nil {
+			return OutcomeOK, errors.E(op, err)
 		}
-		return false, nil
+		return OutcomeOK, nil
 	case NACK:
 		return rh.handleNackResponse(p.Data, jb)
 	case REQUEUE:
 		return rh.requeue(p.Data, jb)
 	default:
 		rh.log.Warn("unknown response type, acknowledging the JOB", "type", uint32(p.T))
-		err = jb.Ack()
-		if err != nil {
-			return false, errors.E(op, err)
+		if err = jb.Ack(); err != nil {
+			return OutcomeOK, errors.E(op, err)
 		}
 	}
 
-	return false, nil
+	return OutcomeOK, nil
 }
 
 func (rh *RespHandler) getProtocol() *protocol {

@@ -28,49 +28,40 @@ func (f *fakeJob) Body() []byte                               { return nil }
 func (f *fakeJob) Context() ([]byte, error)                   { return nil, nil }
 func (f *fakeJob) Headers() map[string][]string               { return nil }
 
-// fakeCounter counts CountJobRequeue calls.
-type fakeCounter struct{ requeues int }
-
-func (f *fakeCounter) CountJobRequeue() { f.requeues++ }
-
 func discardLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, nil))
 }
 
-func TestHandleRequeueMetric(t *testing.T) {
+func TestHandleOutcome(t *testing.T) {
 	tests := []struct {
 		name         string
 		body         string
-		wantRequeues int
+		wantOutcome  Outcome
 		wantAcked    bool
 		wantRequeued bool
 		wantNacked   bool
 	}{
-		{name: "no_error_acks", body: `{"type":0}`, wantAcked: true},
-		{name: "ack", body: `{"type":2}`, wantAcked: true},
-		{name: "error_with_requeue", body: `{"type":1,"data":{"requeue":true}}`, wantRequeues: 1, wantRequeued: true},
-		{name: "error_without_requeue_acks", body: `{"type":1,"data":{"requeue":false}}`, wantAcked: true},
-		{name: "nack_with_requeue", body: `{"type":3,"data":{"requeue":true}}`, wantRequeues: 1, wantNacked: true},
-		{name: "nack_without_requeue", body: `{"type":3,"data":{"requeue":false}}`, wantNacked: true},
-		{name: "requeue", body: `{"type":4,"data":{}}`, wantRequeues: 1, wantRequeued: true},
+		{name: "no_error_acks", body: `{"type":0}`, wantOutcome: OutcomeOK, wantAcked: true},
+		{name: "ack", body: `{"type":2}`, wantOutcome: OutcomeOK, wantAcked: true},
+		{name: "error_with_requeue", body: `{"type":1,"data":{"requeue":true}}`, wantOutcome: OutcomeRequeued, wantRequeued: true},
+		{name: "error_without_requeue_fails", body: `{"type":1,"data":{"requeue":false}}`, wantOutcome: OutcomeFailed, wantAcked: true},
+		{name: "nack_with_requeue", body: `{"type":3,"data":{"requeue":true}}`, wantOutcome: OutcomeRequeued, wantNacked: true},
+		{name: "nack_without_requeue_fails", body: `{"type":3,"data":{"requeue":false}}`, wantOutcome: OutcomeFailed, wantNacked: true},
+		{name: "requeue", body: `{"type":4,"data":{}}`, wantOutcome: OutcomeRequeued, wantRequeued: true},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			counter := &fakeCounter{}
-			rh := NewResponseHandler(discardLogger(), counter)
+			rh := NewResponseHandler(discardLogger())
 			jb := &fakeJob{}
 
-			requeued, err := rh.Handle(&payload.Payload{Body: []byte(tc.body)}, jb)
+			outcome, err := rh.Handle(&payload.Payload{Body: []byte(tc.body)}, jb)
 			if err != nil {
 				t.Fatalf("Handle returned unexpected error: %v", err)
 			}
 
-			if wantRequeued := tc.wantRequeues > 0; requeued != wantRequeued {
-				t.Errorf("Handle requeued = %v, want %v", requeued, wantRequeued)
-			}
-			if counter.requeues != tc.wantRequeues {
-				t.Errorf("requeue count = %d, want %d", counter.requeues, tc.wantRequeues)
+			if outcome != tc.wantOutcome {
+				t.Errorf("outcome = %s, want %s", outcome, tc.wantOutcome)
 			}
 			if jb.acked != tc.wantAcked {
 				t.Errorf("acked = %v, want %v", jb.acked, tc.wantAcked)
@@ -85,20 +76,12 @@ func TestHandleRequeueMetric(t *testing.T) {
 	}
 }
 
-// A requeue that fails at the driver must not be counted.
-func TestHandleRequeueErrorNotCounted(t *testing.T) {
-	counter := &fakeCounter{}
-	rh := NewResponseHandler(discardLogger(), counter)
+// A requeue that fails at the driver surfaces an error (the outcome is then irrelevant).
+func TestHandleRequeueError(t *testing.T) {
+	rh := NewResponseHandler(discardLogger())
 	jb := &fakeJob{requeueErr: errors.New("requeue failed")}
 
-	requeued, err := rh.Handle(&payload.Payload{Body: []byte(`{"type":4,"data":{}}`)}, jb)
-	if err == nil {
+	if _, err := rh.Handle(&payload.Payload{Body: []byte(`{"type":4,"data":{}}`)}, jb); err == nil {
 		t.Fatal("expected an error when Requeue fails, got nil")
-	}
-	if requeued {
-		t.Error("Handle requeued = true, want false on a failed re-queue")
-	}
-	if counter.requeues != 0 {
-		t.Errorf("requeue count = %d, want 0 (a failed requeue must not be counted)", counter.requeues)
 	}
 }

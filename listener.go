@@ -6,6 +6,7 @@ import (
 
 	"github.com/roadrunner-server/api-plugins/v6/jobs"
 	"github.com/roadrunner-server/goridge/v4/pkg/frame"
+	rh "github.com/roadrunner-server/jobs/v6/protocol"
 	"github.com/roadrunner-server/pool/v2/payload"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -201,7 +202,7 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 	}
 
 	// handle the response protocol
-	requeued, err := p.respHandler.Handle(resp, jb)
+	outcome, err := p.respHandler.Handle(resp, jb)
 	if err != nil {
 		p.metrics.CountJobErr()
 		p.log.Error("response handler error", "error", err, "ID", jb.ID(), "response", resp.Body, "start", start, "elapsed", time.Since(start).Milliseconds())
@@ -231,13 +232,18 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 		return
 	}
 
-	// a re-queued job is already counted via CountJobRequeue in the response handler;
-	// only a non-re-queued completion counts as a successfully processed job.
-	if !requeued {
+	// record the outcome metric and log the result
+	switch outcome {
+	case rh.OutcomeOK:
 		p.metrics.CountJobOk()
+		p.log.Debug("job was processed successfully", "ID", jb.ID(), "start", start, "elapsed", time.Since(start).Milliseconds())
+	case rh.OutcomeFailed:
+		p.metrics.CountJobErr()
+		p.log.Debug("job processing finished with an error", "ID", jb.ID(), "start", start, "elapsed", time.Since(start).Milliseconds())
+	case rh.OutcomeRequeued:
+		p.metrics.CountJobRequeue()
+		// the re-queue itself is already logged by the protocol handler
 	}
-
-	p.log.Debug("job was processed successfully", "ID", jb.ID(), "start", start, "elapsed", time.Since(start).Milliseconds())
 
 	// return payload
 	p.putPayload(exec)
