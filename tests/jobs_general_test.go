@@ -14,7 +14,6 @@ import (
 	"tests/helpers"
 	mocklogger "tests/mock"
 
-	"connectrpc.com/connect"
 	"github.com/google/uuid"
 	"github.com/roadrunner-server/amqp/v6"
 	jobsProto "github.com/roadrunner-server/api-go/v6/jobs/v2"
@@ -144,11 +143,12 @@ func TestJobsInit(t *testing.T) {
 }
 
 func TestIssue2085(t *testing.T) {
-	// roadrunner#2085: the jobs RPC migrated to Connect-RPC (jobs.v2.JobsService), but the PHP
-	// spiral/roadrunner-jobs client (v4.7.0, the latest release) still calls the legacy goridge
-	// `jobs.List` method, so `$jobs->count()` in server.on_init misreads the Connect response and
-	// OOMs the worker. Re-enable once the PHP client speaks Connect-RPC.
-	t.Skip("roadrunner#2085: PHP spiral/roadrunner-jobs has no Connect-RPC client for jobs.v2.JobsService yet")
+	// roadrunner#2085: the jobs RPC is served over goridge net/rpc again, but the PHP
+	// spiral/roadrunner-jobs client (v4.7.0, the latest release) still speaks the legacy
+	// jobs.v1 DTO messages (RoadRunner\Jobs\DTO\V1), while this plugin now uses the jobs.v2
+	// schema, so `$jobs->count()` in server.on_init cannot round-trip against the v2 wire
+	// format. Re-enable once the PHP client ships jobs.v2 payloads.
+	t.Skip("roadrunner#2085: PHP spiral/roadrunner-jobs client needs jobs/v2 payloads")
 
 	cont := endure.New(slog.LevelDebug)
 
@@ -461,18 +461,18 @@ func get(t *testing.T) (string, error) {
 func declareMemoryPipe(t *testing.T) {
 	client := helpers.NewJobsClient(t, "127.0.0.1:6001")
 
-	_, err := client.Declare(t.Context(), connect.NewRequest(&jobsProto.DeclareRequest{Pipeline: map[string]string{
+	err := client.Call("jobs.Declare", &jobsProto.DeclareRequest{Pipeline: map[string]string{
 		"driver":   "memory",
 		"name":     "test-3",
 		"prefetch": "10000",
-	}}))
+	}}, &jobsProto.JobsHandlerResponse{})
 	assert.NoError(t, err)
 }
 
 func consumeMemoryPipe(t *testing.T) {
 	client := helpers.NewJobsClient(t, "127.0.0.1:6001")
 
-	_, err := client.Resume(t.Context(), connect.NewRequest(&jobsProto.Pipelines{Pipelines: []string{"test-3"}}))
+	err := client.Call("jobs.Resume", &jobsProto.Pipelines{Pipelines: []string{"test-3"}}, &jobsProto.JobsHandlerResponse{})
 	assert.NoError(t, err)
 }
 
@@ -556,7 +556,7 @@ func TestTracePropagation(t *testing.T) {
 		},
 	}}
 
-	_, err = client.Push(t.Context(), connect.NewRequest(req))
+	err = client.Call("jobs.Push", req, &jobsProto.JobsHandlerResponse{})
 	require.NoError(t, err)
 
 	// Wait for PHP worker to process the job
