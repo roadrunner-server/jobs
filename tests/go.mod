@@ -7,21 +7,21 @@ toolchain go1.26.4
 require (
 	github.com/google/uuid v1.6.0
 	github.com/roadrunner-server/amqp/v6 v6.0.0-beta.8
-	github.com/roadrunner-server/api-go/v6 v6.0.0-beta.12.0.20260714200341-93604e5012d4
+	github.com/roadrunner-server/api-go/v6 v6.0.0-beta.13
 	github.com/roadrunner-server/api-plugins/v6 v6.0.0-beta.2
 	github.com/roadrunner-server/beanstalk/v6 v6.0.0-beta.4
 	github.com/roadrunner-server/config/v6 v6.0.0-beta.3
 	github.com/roadrunner-server/endure/v2 v2.6.2
-	github.com/roadrunner-server/goridge/v4 v4.0.0-beta.2.0.20260714195909-75e9ece43063
-	github.com/roadrunner-server/informer/v6 v6.0.0-beta.2.0.20260714201850-2854c943433a
+	github.com/roadrunner-server/goridge/v4 v4.0.0-beta.3
+	github.com/roadrunner-server/informer/v6 v6.0.0-beta.3
 	github.com/roadrunner-server/jobs/v6 v6.0.0-beta.7
 	github.com/roadrunner-server/kafka/v6 v6.0.0-beta.6
 	github.com/roadrunner-server/logger/v6 v6.0.0-beta.3
 	github.com/roadrunner-server/memory/v6 v6.0.0-beta.4
-	github.com/roadrunner-server/metrics/v6 v6.0.0-beta.4.0.20260714202642-4d64dad6a173
+	github.com/roadrunner-server/metrics/v6 v6.0.0-beta.5
 	github.com/roadrunner-server/nats/v6 v6.0.0-beta.4
-	github.com/roadrunner-server/resetter/v6 v6.0.0-beta.3.0.20260714201533-91a174bb65d4
-	github.com/roadrunner-server/rpc/v6 v6.0.0-beta.4.0.20260714200548-15b82bc47898
+	github.com/roadrunner-server/resetter/v6 v6.0.0-beta.4
+	github.com/roadrunner-server/rpc/v6 v6.0.0-beta.5
 	github.com/roadrunner-server/server/v6 v6.0.0-beta.6
 	github.com/roadrunner-server/sqs/v6 v6.0.0-beta.5
 	github.com/stretchr/testify v1.11.1
@@ -70,7 +70,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
-	github.com/prometheus/common v0.69.0 // indirect
+	github.com/prometheus/common v0.70.0 // indirect
 	github.com/prometheus/procfs v0.21.1 // indirect
 	github.com/rabbitmq/amqp091-go v1.12.0 // indirect
 	github.com/roadrunner-server/errors v1.5.0 // indirect
@@ -100,8 +100,8 @@ require (
 	go.uber.org/zap v1.28.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.53.0 // indirect
-	golang.org/x/sync v0.21.0 // indirect
-	golang.org/x/sys v0.46.0 // indirect
+	golang.org/x/sync v0.22.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.38.0 // indirect
 	google.golang.org/genproto v0.0.0-20260630182238-925bb5da69e7 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
