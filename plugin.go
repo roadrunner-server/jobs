@@ -5,12 +5,10 @@ import (
 	stderr "errors"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"strconv"
 	"sync"
 	"time"
 
-	"github.com/roadrunner-server/api-go/v6/jobs/v2/jobsV2connect"
 	jobsApi "github.com/roadrunner-server/api-plugins/v6/jobs"
 	jprop "go.opentelemetry.io/contrib/propagators/jaeger"
 	"go.opentelemetry.io/otel"
@@ -645,6 +643,6 @@ func (p *Plugin) List() []string {
 	return out
 }
 
-func (p *Plugin) RPC() (string, http.Handler) {
-	return jobsV2connect.NewJobsServiceHandler(&rpc{p: p})
+func (p *Plugin) RPC() any {
+	return &rpc{p: p}
 }
