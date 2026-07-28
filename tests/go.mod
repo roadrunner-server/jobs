@@ -45,7 +45,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.33.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.38.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.45.0 // indirect
-	github.com/aws/smithy-go v1.27.4 // indirect
+	github.com/aws/smithy-go v1.27.5 // indirect
 	github.com/beanstalkd/go-beanstalk v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
@@ -103,6 +103,6 @@ require (
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
-	google.golang.org/genproto v0.0.0-20260724162435-b2f20204f0df // indirect
+	google.golang.org/genproto v0.0.0-20260727163830-6c54dddc4772 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
