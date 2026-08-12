@@ -3,7 +3,7 @@ package jobs
 import (
 	"testing"
 
-	jobsProto "github.com/roadrunner-server/api-go/v6/jobs/v2"
+	jobsProto "github.com/roadrunner-server/api-go/v6/jobs/v1"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
@@ -11,7 +11,7 @@ import (
 
 func TestRPCPushRejectsNilJob(t *testing.T) {
 	r := &rpc{}
-	err := r.Push(&jobsProto.PushRequest{}, &jobsProto.JobsHandlerResponse{})
+	err := r.Push(&jobsProto.PushRequest{}, &jobsProto.Empty{})
 	if err == nil {
 		t.Fatal("expected error for nil job")
 	}
@@ -19,7 +19,7 @@ func TestRPCPushRejectsNilJob(t *testing.T) {
 
 func TestRPCPushRejectsEmptyJobID(t *testing.T) {
 	r := &rpc{}
-	err := r.Push(&jobsProto.PushRequest{Job: &jobsProto.Job{}}, &jobsProto.JobsHandlerResponse{})
+	err := r.Push(&jobsProto.PushRequest{Job: &jobsProto.Job{}}, &jobsProto.Empty{})
 	if err == nil {
 		t.Fatal("expected error for empty job ID")
 	}
@@ -28,7 +28,7 @@ func TestRPCPushRejectsEmptyJobID(t *testing.T) {
 func TestRPCContextFromHeadersLowercaseTraceparent(t *testing.T) {
 	withTraceContextPropagator(t)
 
-	ctx := rpcContextFromHeaders(t.Context(), map[string]*jobsProto.JobHeaderValue{
+	ctx := rpcContextFromHeaders(t.Context(), map[string]*jobsProto.HeaderValue{
 		"traceparent": headerValue("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"),
 	})
 
@@ -53,7 +53,7 @@ func TestRPCContextFromHeadersLowercaseTraceparent(t *testing.T) {
 func TestRPCContextFromHeadersCanonicalTraceparent(t *testing.T) {
 	withTraceContextPropagator(t)
 
-	ctx := rpcContextFromHeaders(t.Context(), map[string]*jobsProto.JobHeaderValue{
+	ctx := rpcContextFromHeaders(t.Context(), map[string]*jobsProto.HeaderValue{
 		"Traceparent": headerValue("00-11111111111111111111111111111111-2222222222222222-01"),
 	})
 
@@ -72,7 +72,7 @@ func TestRPCContextFromHeadersFallbackOnInvalidTraceparent(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		headers map[string]*jobsProto.JobHeaderValue
+		headers map[string]*jobsProto.HeaderValue
 	}{
 		{
 			name:    "nil headers",
@@ -80,23 +80,23 @@ func TestRPCContextFromHeadersFallbackOnInvalidTraceparent(t *testing.T) {
 		},
 		{
 			name:    "empty headers",
-			headers: map[string]*jobsProto.JobHeaderValue{},
+			headers: map[string]*jobsProto.HeaderValue{},
 		},
 		{
 			name: "invalid traceparent",
-			headers: map[string]*jobsProto.JobHeaderValue{
+			headers: map[string]*jobsProto.HeaderValue{
 				"traceparent": headerValue("invalid"),
 			},
 		},
 		{
 			name: "empty traceparent",
-			headers: map[string]*jobsProto.JobHeaderValue{
+			headers: map[string]*jobsProto.HeaderValue{
 				"traceparent": headerValue(),
 			},
 		},
 		{
 			name: "nil header value",
-			headers: map[string]*jobsProto.JobHeaderValue{
+			headers: map[string]*jobsProto.HeaderValue{
 				"traceparent": nil,
 			},
 		},
@@ -118,17 +118,17 @@ func TestRPCContextFromJobsUsesFirstValidContext(t *testing.T) {
 	ctx := rpcContextFromJobs(t.Context(), []*jobsProto.Job{
 		nil,
 		{
-			Headers: map[string]*jobsProto.JobHeaderValue{
+			Headers: map[string]*jobsProto.HeaderValue{
 				"traceparent": headerValue("invalid"),
 			},
 		},
 		{
-			Headers: map[string]*jobsProto.JobHeaderValue{
+			Headers: map[string]*jobsProto.HeaderValue{
 				"traceparent": headerValue("00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01"),
 			},
 		},
 		{
-			Headers: map[string]*jobsProto.JobHeaderValue{
+			Headers: map[string]*jobsProto.HeaderValue{
 				"traceparent": headerValue("00-cccccccccccccccccccccccccccccccc-dddddddddddddddd-01"),
 			},
 		},
@@ -150,7 +150,7 @@ func TestRPCContextFromJobsFallbackWhenNoValidContext(t *testing.T) {
 	ctx := rpcContextFromJobs(t.Context(), []*jobsProto.Job{
 		{},
 		{
-			Headers: map[string]*jobsProto.JobHeaderValue{
+			Headers: map[string]*jobsProto.HeaderValue{
 				"traceparent": headerValue("invalid"),
 			},
 		},
@@ -173,6 +173,6 @@ func withTraceContextPropagator(t *testing.T) {
 	})
 }
 
-func headerValue(v ...string) *jobsProto.JobHeaderValue {
-	return &jobsProto.JobHeaderValue{Values: v}
+func headerValue(v ...string) *jobsProto.HeaderValue {
+	return &jobsProto.HeaderValue{Value: v}
 }

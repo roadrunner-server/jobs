@@ -16,7 +16,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/roadrunner-server/amqp/v6"
-	jobsProto "github.com/roadrunner-server/api-go/v6/jobs/v2"
+	jobsProto "github.com/roadrunner-server/api-go/v6/jobs/v1"
 	"github.com/roadrunner-server/beanstalk/v6"
 	"github.com/roadrunner-server/config/v6"
 	"github.com/roadrunner-server/endure/v2"
@@ -143,13 +143,6 @@ func TestJobsInit(t *testing.T) {
 }
 
 func TestIssue2085(t *testing.T) {
-	// roadrunner#2085: the jobs RPC is served over goridge net/rpc again, but the PHP
-	// spiral/roadrunner-jobs client (v4.7.0, the latest release) still speaks the legacy
-	// jobs.v1 DTO messages (RoadRunner\Jobs\DTO\V1), while this plugin now uses the jobs.v2
-	// schema, so `$jobs->count()` in server.on_init cannot round-trip against the v2 wire
-	// format. Re-enable once the PHP client ships jobs.v2 payloads.
-	t.Skip("roadrunner#2085: PHP spiral/roadrunner-jobs client needs jobs/v2 payloads")
-
 	cont := endure.New(slog.LevelDebug)
 
 	cfg := &config.Plugin{
@@ -465,14 +458,14 @@ func declareMemoryPipe(t *testing.T) {
 		"driver":   "memory",
 		"name":     "test-3",
 		"prefetch": "10000",
-	}}, &jobsProto.JobsHandlerResponse{})
+	}}, &jobsProto.Empty{})
 	assert.NoError(t, err)
 }
 
 func consumeMemoryPipe(t *testing.T) {
 	client := helpers.NewJobsClient(t, "127.0.0.1:6001")
 
-	err := client.Call("jobs.Resume", &jobsProto.Pipelines{Pipelines: []string{"test-3"}}, &jobsProto.JobsHandlerResponse{})
+	err := client.Call("jobs.Resume", &jobsProto.Pipelines{Pipelines: []string{"test-3"}}, &jobsProto.Empty{})
 	assert.NoError(t, err)
 }
 
@@ -547,8 +540,8 @@ func TestTracePropagation(t *testing.T) {
 		Job:     "test/trace",
 		Id:      uuid.NewString(),
 		Payload: []byte(`{"traceparent":"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"}`),
-		Headers: map[string]*jobsProto.JobHeaderValue{
-			"traceparent": {Values: []string{"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"}},
+		Headers: map[string]*jobsProto.HeaderValue{
+			"traceparent": {Value: []string{"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"}},
 		},
 		Options: &jobsProto.Options{
 			Priority: 1,
@@ -556,7 +549,7 @@ func TestTracePropagation(t *testing.T) {
 		},
 	}}
 
-	err = client.Call("jobs.Push", req, &jobsProto.JobsHandlerResponse{})
+	err = client.Call("jobs.Push", req, &jobsProto.Empty{})
 	require.NoError(t, err)
 
 	// Wait for PHP worker to process the job

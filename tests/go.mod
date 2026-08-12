@@ -7,7 +7,7 @@ toolchain go1.26.5
 require (
 	github.com/google/uuid v1.6.0
 	github.com/roadrunner-server/amqp/v6 v6.0.0-beta.8
-	github.com/roadrunner-server/api-go/v6 v6.0.0-beta.13
+	github.com/roadrunner-server/api-go/v6 v6.0.0-beta.14
 	github.com/roadrunner-server/api-plugins/v6 v6.0.0-beta.2
 	github.com/roadrunner-server/beanstalk/v6 v6.0.0-beta.4
 	github.com/roadrunner-server/config/v6 v6.0.0-beta.3

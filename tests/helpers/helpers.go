@@ -11,12 +11,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	jobsProto "github.com/roadrunner-server/api-go/v6/jobs/v2"
+	jobsProto "github.com/roadrunner-server/api-go/v6/jobs/v1"
 	jobState "github.com/roadrunner-server/api-plugins/v6/jobs"
 	goridgeRpc "github.com/roadrunner-server/goridge/v4/pkg/rpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 func NewJobsClient(t *testing.T, address string) *rpc.Client {
@@ -31,7 +30,7 @@ func NewJobsClient(t *testing.T, address string) *rpc.Client {
 func ResumePipes(address string, pipes ...string) func(t *testing.T) {
 	return func(t *testing.T) {
 		client := NewJobsClient(t, address)
-		err := client.Call("jobs.Resume", &jobsProto.Pipelines{Pipelines: slices.Clone(pipes)}, &jobsProto.JobsHandlerResponse{})
+		err := client.Call("jobs.Resume", &jobsProto.Pipelines{Pipelines: slices.Clone(pipes)}, &jobsProto.Empty{})
 		require.NoError(t, err)
 	}
 }
@@ -39,7 +38,7 @@ func ResumePipes(address string, pipes ...string) func(t *testing.T) {
 func PausePipelines(address string, pipes ...string) func(t *testing.T) {
 	return func(t *testing.T) {
 		client := NewJobsClient(t, address)
-		err := client.Call("jobs.Pause", &jobsProto.Pipelines{Pipelines: slices.Clone(pipes)}, &jobsProto.JobsHandlerResponse{})
+		err := client.Call("jobs.Pause", &jobsProto.Pipelines{Pipelines: slices.Clone(pipes)}, &jobsProto.Empty{})
 		require.NoError(t, err)
 	}
 }
@@ -52,7 +51,7 @@ func PushToPipeDelayed(address string, pipeline string, delay int64) func(t *tes
 			Job:     "some/php/namespace",
 			Id:      uuid.NewString(),
 			Payload: []byte(`{"hello":"world"}}`),
-			Headers: map[string]*jobsProto.JobHeaderValue{"test": {Values: []string{"test2"}}},
+			Headers: map[string]*jobsProto.HeaderValue{"test": {Value: []string{"test2"}}},
 			Options: &jobsProto.Options{
 				Priority: 1,
 				Pipeline: pipeline,
@@ -60,7 +59,7 @@ func PushToPipeDelayed(address string, pipeline string, delay int64) func(t *tes
 			},
 		}}
 
-		err := client.Call("jobs.Push", req, &jobsProto.JobsHandlerResponse{})
+		err := client.Call("jobs.Push", req, &jobsProto.Empty{})
 		assert.NoError(t, err)
 	}
 }
@@ -74,7 +73,7 @@ func PushToPipeBatch(address string, pipeline string, count int, autoAck bool, p
 			jobs[i] = createDummyJob(pipeline, autoAck, payload)
 		}
 
-		err := client.Call("jobs.PushBatch", &jobsProto.PushBatchRequest{Jobs: jobs}, &jobsProto.JobsHandlerResponse{})
+		err := client.Call("jobs.PushBatch", &jobsProto.PushBatchRequest{Jobs: jobs}, &jobsProto.Empty{})
 		assert.NoError(t, err)
 	}
 }
@@ -82,7 +81,7 @@ func PushToPipeBatch(address string, pipeline string, count int, autoAck bool, p
 func PushToPipe(pipeline string, autoAck bool, address string, payload []byte) func(t *testing.T) {
 	return func(t *testing.T) {
 		client := NewJobsClient(t, address)
-		err := client.Call("jobs.Push", &jobsProto.PushRequest{Job: createDummyJob(pipeline, autoAck, payload)}, &jobsProto.JobsHandlerResponse{})
+		err := client.Call("jobs.Push", &jobsProto.PushRequest{Job: createDummyJob(pipeline, autoAck, payload)}, &jobsProto.Empty{})
 		require.NoError(t, err)
 	}
 }
@@ -111,7 +110,7 @@ func Stats(address string, state *jobState.State) func(t *testing.T) {
 		client := NewJobsClient(t, address)
 
 		resp := &jobsProto.Stats{}
-		err := client.Call("jobs.GetStats", &emptypb.Empty{}, resp)
+		err := client.Call("jobs.Stat", &jobsProto.Empty{}, resp)
 		require.NoError(t, err)
 		require.NotEmpty(t, resp.GetStats())
 
@@ -169,7 +168,7 @@ func createDummyJob(pipeline string, autoAck bool, payload []byte) *jobsProto.Jo
 		Job:     "some/php/namespace",
 		Id:      uuid.NewString(),
 		Payload: payload,
-		Headers: map[string]*jobsProto.JobHeaderValue{"test": {Values: []string{"test2"}}},
+		Headers: map[string]*jobsProto.HeaderValue{"test": {Value: []string{"test2"}}},
 		Options: &jobsProto.Options{
 			AutoAck:  autoAck,
 			Priority: 1,

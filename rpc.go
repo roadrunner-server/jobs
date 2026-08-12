@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	jobsProto "github.com/roadrunner-server/api-go/v6/jobs/v2"
+	jobsProto "github.com/roadrunner-server/api-go/v6/jobs/v1"
 	"github.com/roadrunner-server/api-plugins/v6/jobs"
 	"github.com/roadrunner-server/errors"
 	"go.opentelemetry.io/otel"
@@ -14,7 +14,6 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/errgroup"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type rpc struct {
@@ -27,7 +26,7 @@ func spanError(span trace.Span, err error) {
 }
 
 // Single-job semantics enforced by the proto (PushRequest.job); no runtime length guard.
-func (r *rpc) Push(in *jobsProto.PushRequest, _ *jobsProto.JobsHandlerResponse) error {
+func (r *rpc) Push(in *jobsProto.PushRequest, _ *jobsProto.Empty) error {
 	const op = errors.Op("rpc_push")
 
 	job := in.GetJob()
@@ -49,7 +48,7 @@ func (r *rpc) Push(in *jobsProto.PushRequest, _ *jobsProto.JobsHandlerResponse) 
 	return nil
 }
 
-func (r *rpc) PushBatch(in *jobsProto.PushBatchRequest, _ *jobsProto.JobsHandlerResponse) error {
+func (r *rpc) PushBatch(in *jobsProto.PushBatchRequest, _ *jobsProto.Empty) error {
 	const op = errors.Op("rpc_push_batch")
 
 	jobsIn := in.GetJobs()
@@ -70,7 +69,7 @@ func (r *rpc) PushBatch(in *jobsProto.PushBatchRequest, _ *jobsProto.JobsHandler
 	return nil
 }
 
-func (r *rpc) Pause(in *jobsProto.Pipelines, _ *jobsProto.JobsHandlerResponse) error {
+func (r *rpc) Pause(in *jobsProto.Pipelines, _ *jobsProto.Empty) error {
 	const op = errors.Op("rpc_pause")
 
 	for _, name := range in.GetPipelines() {
@@ -87,7 +86,7 @@ func (r *rpc) Pause(in *jobsProto.Pipelines, _ *jobsProto.JobsHandlerResponse) e
 	return nil
 }
 
-func (r *rpc) Resume(in *jobsProto.Pipelines, _ *jobsProto.JobsHandlerResponse) error {
+func (r *rpc) Resume(in *jobsProto.Pipelines, _ *jobsProto.Empty) error {
 	const op = errors.Op("rpc_resume")
 
 	spanCtx, span := r.p.tracer.Tracer(PluginName).Start(context.Background(), "resume_pipeline", trace.WithSpanKind(trace.SpanKindServer))
@@ -103,7 +102,7 @@ func (r *rpc) Resume(in *jobsProto.Pipelines, _ *jobsProto.JobsHandlerResponse) 
 	return nil
 }
 
-func (r *rpc) List(_ *emptypb.Empty, out *jobsProto.Pipelines) error {
+func (r *rpc) List(_ *jobsProto.Empty, out *jobsProto.Pipelines) error {
 	_, span := r.p.tracer.Tracer(PluginName).Start(context.Background(), "list_pipelines", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
@@ -111,7 +110,7 @@ func (r *rpc) List(_ *emptypb.Empty, out *jobsProto.Pipelines) error {
 	return nil
 }
 
-func (r *rpc) Declare(in *jobsProto.DeclareRequest, _ *jobsProto.JobsHandlerResponse) error {
+func (r *rpc) Declare(in *jobsProto.DeclareRequest, _ *jobsProto.Empty) error {
 	const op = errors.Op("rpc_declare_pipeline")
 
 	spanCtx, span := r.p.tracer.Tracer(PluginName).Start(context.Background(), "declare_pipeline", trace.WithSpanKind(trace.SpanKindServer))
@@ -166,7 +165,7 @@ func (r *rpc) Destroy(in *jobsProto.Pipelines, out *jobsProto.Pipelines) error {
 	return nil
 }
 
-func (r *rpc) GetStats(_ *emptypb.Empty, out *jobsProto.Stats) error {
+func (r *rpc) Stat(_ *jobsProto.Empty, out *jobsProto.Stats) error {
 	const op = errors.Op("rpc_stats")
 
 	statCtx, cancel := context.WithTimeout(context.Background(), time.Minute)
@@ -202,7 +201,7 @@ func from(j *jobsProto.Job) *Job {
 	headers := make(map[string][]string, len(j.GetHeaders()))
 
 	for k, v := range j.GetHeaders() {
-		headers[k] = v.GetValues()
+		headers[k] = v.GetValue()
 	}
 
 	return &Job{
@@ -244,7 +243,7 @@ func rpcContextFromJob(parent context.Context, job *jobsProto.Job) context.Conte
 	return rpcContextFromHeaders(parent, job.GetHeaders())
 }
 
-func rpcContextFromHeaders(parent context.Context, headers map[string]*jobsProto.JobHeaderValue) context.Context {
+func rpcContextFromHeaders(parent context.Context, headers map[string]*jobsProto.HeaderValue) context.Context {
 	if len(headers) == 0 {
 		return parent
 	}
@@ -256,7 +255,7 @@ func rpcContextFromHeaders(parent context.Context, headers map[string]*jobsProto
 			continue
 		}
 
-		values := v.GetValues()
+		values := v.GetValue()
 		if len(values) == 0 {
 			continue
 		}
