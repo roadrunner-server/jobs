@@ -8,7 +8,6 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/roadrunner-server/amqp/v6 v6.0.0-beta.8
 	github.com/roadrunner-server/api-go/v6 v6.0.0-beta.14
-	github.com/roadrunner-server/api-plugins/v6 v6.0.0-beta.2
 	github.com/roadrunner-server/beanstalk/v6 v6.0.0-beta.4
 	github.com/roadrunner-server/config/v6 v6.0.0-beta.3
 	github.com/roadrunner-server/endure/v2 v2.6.2
@@ -20,6 +19,7 @@ require (
 	github.com/roadrunner-server/memory/v6 v6.0.0-beta.4
 	github.com/roadrunner-server/metrics/v6 v6.0.0-beta.5.0.20260812195006-38e98e6079fa
 	github.com/roadrunner-server/nats/v6 v6.0.0-beta.4
+	github.com/roadrunner-server/pool/v2 v2.0.0-beta.1
 	github.com/roadrunner-server/resetter/v6 v6.0.0-beta.4.0.20260812195002-d8956d0fde3c
 	github.com/roadrunner-server/rpc/v6 v6.0.0-beta.5
 	github.com/roadrunner-server/server/v6 v6.0.0-beta.6
@@ -72,9 +72,9 @@ require (
 	github.com/prometheus/common v0.70.1 // indirect
 	github.com/prometheus/procfs v0.21.1 // indirect
 	github.com/rabbitmq/amqp091-go v1.13.0 // indirect
+	github.com/roadrunner-server/api-plugins/v6 v6.0.0-beta.2 // indirect
 	github.com/roadrunner-server/errors v1.5.0 // indirect
 	github.com/roadrunner-server/events v1.0.1 // indirect
-	github.com/roadrunner-server/pool/v2 v2.0.0-beta.1 // indirect
 	github.com/roadrunner-server/priority_queue v1.0.6 // indirect
 	github.com/roadrunner-server/tcplisten v1.5.2 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect

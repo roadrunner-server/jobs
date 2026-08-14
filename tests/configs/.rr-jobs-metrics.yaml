@@ -1,7 +1,7 @@
 version: '3'
 
 rpc:
-  listen: tcp://127.0.0.1:6001
+  listen: tcp://127.0.0.1:6381
 
 server:
   command: "php php_test_files/jobs/jobs_ok.php"
@@ -9,7 +9,7 @@ server:
   relay_timeout: "20s"
 
 metrics:
-  address: 127.0.0.1:2112
+  address: 127.0.0.1:2381
 
 logs:
   level: info
@@ -17,7 +17,6 @@ logs:
   mode: development
 
 jobs:
-  num_pollers: 10
   pipeline_size: 100000
   pool:
     num_workers: 1
