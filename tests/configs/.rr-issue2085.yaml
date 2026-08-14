@@ -1,13 +1,17 @@
 version: '3'
 
 rpc:
-  listen: tcp://127.0.0.1:6001
+  listen: tcp://127.0.0.1:6381
 
 server:
   command: "php php_test_files/jobs/jobs_ok.php"
   on_init:
     command: "php php_test_files/jobs/on-init.php"
     exit_on_error: true
+    # on_init commands do not inherit RR_RPC, the script would fall back to the
+    # PHP client default otherwise
+    env:
+      RR_RPC: "tcp://127.0.0.1:6381"
   relay: "pipes"
 
 
@@ -17,8 +21,6 @@ logs:
   mode: development
 
 jobs:
-  # num logical cores by default
-  num_pollers: 12
   # 1mi by default
   pipeline_size: 100000
   # worker pool configuration

@@ -31,14 +31,14 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: sockets
       - name: Check out code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Get Composer Cache Directory
         id: composer-cache
         run: |
           cd tests/php_test_files
           echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
       - name: Init Composer Cache # Docs: <https://git.io/JfAKn#php---composer>
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ runner.os }}-composer-${{ matrix.php }}-${{ hashFiles('**/composer.json') }}
@@ -46,24 +46,73 @@ jobs:
       - name: Install Composer dependencies
         run: cd tests/php_test_files && composer update --prefer-dist --no-progress --ansi
       - name: Init Go modules Cache # Docs: <https://git.io/JfAKn#go---modules>
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-go-
+      - name: Create folders
+        run: |
+          mkdir ./tests/coverage-ci
       - name: Install Go dependencies
         run: go mod download
+      - name: Run JOBS unit tests with coverage
+        run: |
+          go test -timeout 20m -v -race -cover -coverpkg=./... -coverprofile=./tests/coverage-ci/jobsu.out -covermode=atomic ./...
       - name: Run golang tests with coverage
+        env:
+          RR_JOBS_STRICT_ENV: "1"
         run: |
           cd tests
-          mkdir ./coverage-ci
 
           docker compose -f env/docker-compose-jobs.yaml up -d
 
-          # brokers without a readiness endpoint (kafka/rabbitmq/beanstalk/nats) — brief warm-up
-          sleep 20
+          # wait for the brokers that only answer on a plain tcp port
+          for addr in 127.0.0.1:4222 127.0.0.1:11300; do
+            ok=0
+            for _ in $(seq 60); do
+              if timeout 1 bash -c "cat < /dev/null > /dev/tcp/${addr%:*}/${addr#*:}" 2>/dev/null; then
+                ok=1; break
+              fi
+              sleep 2
+            done
+            if [ "$ok" != "1" ]; then
+              echo "::error::$addr not reachable after 120s"
+              docker compose -f env/docker-compose-jobs.yaml logs
+              exit 1
+            fi
+          done
 
-          # wait for LocalStack SQS to be ready (replaces the old blind sleep that flaked)
+          # kafka binds 9092 before the broker answers requests, so ask it for its api versions
+          ok=0
+          for _ in $(seq 30); do
+            if docker compose -f env/docker-compose-jobs.yaml exec -T broker \
+                 kafka-broker-api-versions --bootstrap-server localhost:9092 >/dev/null 2>&1; then
+              ok=1; break
+            fi
+            sleep 2
+          done
+          if [ "$ok" != "1" ]; then
+            echo "::error::Kafka broker did not become ready"
+            docker compose -f env/docker-compose-jobs.yaml logs broker
+            exit 1
+          fi
+
+          # rabbitmq is ready once the management api answers
+          ok=0
+          for _ in $(seq 60); do
+            if curl -sf -u guest:guest http://127.0.0.1:15672/api/overview >/dev/null 2>&1; then
+              ok=1; break
+            fi
+            sleep 2
+          done
+          if [ "$ok" != "1" ]; then
+            echo "::error::RabbitMQ not ready after 120s"
+            docker compose -f env/docker-compose-jobs.yaml logs rabbitmq
+            exit 1
+          fi
+
+          # wait for LocalStack SQS to be ready
           ok=0
           for _ in $(seq 60); do
             if curl -sf http://localhost:4566/_localstack/health | jq -e '.services.sqs | test("^(available|running)$")' >/dev/null 2>&1; then
@@ -77,7 +126,7 @@ jobs:
             exit 1
           fi
 
-          go test -timeout 20m -v -race -cover -tags=debug -failfast -coverprofile=./coverage-ci/jobs.out -covermode=atomic jobs_general_test.go
+          go test -timeout 20m -v -race -cover -coverpkg=github.com/roadrunner-server/jobs/v6/... -coverprofile=./coverage-ci/jobs.out -covermode=atomic .
           docker compose -f env/docker-compose-jobs.yaml down
       - name: Archive code coverage results
         uses: actions/upload-artifact@v7
@@ -93,7 +142,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Check out code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Download code coverage results
         uses: actions/download-artifact@v8
         with:
@@ -112,7 +161,7 @@ jobs:
           ' summary.txt > summary.filtered.txt
           mv summary.filtered.txt summary.txt
       - name: upload to codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           files: summary.txt
           fail_ci_if_error: false
