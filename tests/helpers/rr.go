@@ -179,6 +179,32 @@ func StartExpectInitError(t *testing.T, cfgPath string, plugins []any, opts ...O
 	return err
 }
 
+// StartExpectServeError registers the plugins, requires Init to succeed and
+// Serve to report an error, then stops the container and returns that error.
+func StartExpectServeError(t *testing.T, cfgPath string, plugins []any, opts ...Option) error {
+	t.Helper()
+
+	cont, _, _ := newContainer(t, cfgPath, plugins, opts)
+	require.NoError(t, cont.Init())
+
+	// an error already waiting when the container polls the serve channels is
+	// returned from Serve itself, a later one arrives on the channel
+	ch, serveErr := cont.Serve()
+	if serveErr == nil {
+		select {
+		case res := <-ch:
+			serveErr = res.Error
+		case <-time.After(probeTimeout):
+			t.Fatal("the container did not report a serve error")
+		}
+	}
+
+	require.Error(t, serveErr)
+	require.NoError(t, cont.Stop())
+
+	return serveErr
+}
+
 // newContainer builds the container and registers the config, a logger and the
 // caller's plugins. The container is not initialized yet.
 func newContainer(t *testing.T, cfgPath string, plugins []any, opts []Option) (*endure.Endure, *RR, *bootCfg) {
