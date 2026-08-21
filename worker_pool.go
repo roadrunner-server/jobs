@@ -124,7 +124,11 @@ func (p *processor) wait() {
 	p.wg.Wait()
 }
 
+// stop is reached from both a failed Serve and the plugin's Stop; only the
+// first call may close the queue.
 func (p *processor) stop() {
-	p.stopped.Store(true)
+	if p.stopped.Swap(true) {
+		return
+	}
 	close(p.queueCh)
 }
