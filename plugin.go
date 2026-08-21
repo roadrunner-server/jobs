@@ -375,7 +375,11 @@ func (p *Plugin) JobsState(ctx context.Context) ([]*jobsApi.State, error) {
 			return false
 		}
 
-		jst = append(jst, state)
+		// a driver may report neither state nor error; the rpc consumers
+		// dereference every entry, so such drivers are skipped
+		if state != nil {
+			jst = append(jst, state)
+		}
 		cancel()
 		return true
 	})
