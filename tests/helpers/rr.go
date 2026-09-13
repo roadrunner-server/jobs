@@ -33,7 +33,6 @@ const (
 // bootCfg holds the options applied to a container before it is started.
 type bootCfg struct {
 	version string
-	inline  string
 	logger  loggerKind
 	probe   func(ctx context.Context) bool
 }
@@ -52,11 +51,6 @@ type Option func(*bootCfg)
 // WithConfigVersion overrides the config schema version.
 func WithConfigVersion(v string) Option {
 	return func(b *bootCfg) { b.version = v }
-}
-
-// WithInlineConfig feeds the container YAML from memory; the cfgPath argument is ignored.
-func WithInlineConfig(yaml string) Option {
-	return func(b *bootCfg) { b.inline = yaml }
 }
 
 // WithObservedLogger registers an in-memory logger instead of the real logger
@@ -215,13 +209,7 @@ func newContainer(t *testing.T, cfgPath string, plugins []any, opts []Option) (*
 		o(bc)
 	}
 
-	cfg := &config.Plugin{Version: bc.version}
-	if bc.inline != "" {
-		cfg.Type = "yaml"
-		cfg.ReadInCfg = []byte(bc.inline)
-	} else {
-		cfg.Path = cfgPath
-	}
+	cfg := &config.Plugin{Version: bc.version, Path: cfgPath}
 
 	rr := &RR{}
 	all := []any{cfg}

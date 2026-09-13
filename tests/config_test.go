@@ -24,24 +24,6 @@ func jobsPlugins() []any {
 // A single pool and named pools describe two different runtimes, so the plugin
 // refuses to start with both.
 func TestPoolAndPoolsAreExclusive(t *testing.T) {
-	cfg := `
-version: '3'
-
-rpc:
-  listen: tcp://127.0.0.1:6381
-
-server:
-  command: "php php_test_files/jobs/jobs_ok.php"
-  relay: "pipes"
-
-jobs:
-  pool:
-    num_workers: 1
-  pools:
-    default:
-      num_workers: 1
-`
-
-	err := helpers.StartExpectInitError(t, "", jobsPlugins(), helpers.WithInlineConfig(cfg))
+	err := helpers.StartExpectInitError(t, "configs/.rr-jobs-pool-and-pools.yaml", jobsPlugins())
 	require.ErrorContains(t, err, "both pool and pools options cannot be set at the same time")
 }

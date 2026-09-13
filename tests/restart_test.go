@@ -2,7 +2,6 @@ package tests
 
 import (
 	"context"
-	"fmt"
 	"slices"
 	"sync/atomic"
 	"testing"
@@ -44,54 +43,49 @@ func (m *restartMemory) DriverFromPipeline(ctx context.Context, pipe jobsApi.Pip
 func TestPipelineRestartRetainsRuntimeState(t *testing.T) {
 	tests := []struct {
 		name       string
+		config     string
 		address    string
 		configured bool
 		consume    bool
 		paused     bool
 	}{
-		{name: "declared resumed", address: "127.0.0.1:6385"},
-		{name: "configured resumed", address: "127.0.0.1:6386", configured: true},
-		{name: "declared paused", address: "127.0.0.1:6387", consume: true, paused: true},
-		{name: "configured paused", address: "127.0.0.1:6388", configured: true, consume: true, paused: true},
+		{
+			name:    "declared resumed",
+			config:  "configs/.rr-jobs-restart-declared-resumed.yaml",
+			address: "127.0.0.1:6385",
+		},
+		{
+			name:       "configured resumed",
+			config:     "configs/.rr-jobs-restart-configured-resumed.yaml",
+			address:    "127.0.0.1:6386",
+			configured: true,
+		},
+		{
+			name:    "declared paused",
+			config:  "configs/.rr-jobs-restart-declared-paused.yaml",
+			address: "127.0.0.1:6387",
+			consume: true,
+			paused:  true,
+		},
+		{
+			name:       "configured paused",
+			config:     "configs/.rr-jobs-restart-configured-paused.yaml",
+			address:    "127.0.0.1:6388",
+			configured: true,
+			consume:    true,
+			paused:     true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			const pipeline = "test-recovery"
-			consume := "[]"
-			if tt.consume {
-				consume = "[test-recovery]"
-			}
-			pipelines := ""
-			if tt.configured {
-				pipelines = `
-  pipelines:
-    test-recovery:
-      driver: memory
-      config:
-        prefetch: 100
-`
-			}
-			cfg := fmt.Sprintf(`
-version: '3'
-rpc:
-  listen: tcp://%s
-server:
-  command: "php php_test_files/jobs/jobs_ok.php"
-  relay: pipes
-logs:
-  level: debug
-jobs:
-  pool:
-    num_workers: 1
-  consume: %s
-%s`, tt.address, consume, pipelines)
 			constructor := &restartMemory{}
-			rr, _ := helpers.Start(t, "", []any{
+			rr, _ := helpers.Start(t, tt.config, []any{
 				&server.Plugin{},
 				&rpcPlugin.Plugin{},
 				&jobs.Plugin{},
 				constructor,
-			}, helpers.WithInlineConfig(cfg), helpers.WithObservedLogger(), helpers.WithRPCProbe(tt.address))
+			}, helpers.WithObservedLogger(), helpers.WithRPCProbe(tt.address))
 			client := helpers.NewJobsClient(t, tt.address)
 			if !tt.configured {
 				helpers.Declare(t, client, map[string]string{

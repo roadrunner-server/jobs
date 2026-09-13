@@ -1,0 +1,23 @@
+version: '3'
+
+rpc:
+  listen: tcp://127.0.0.1:6388
+
+server:
+  command: "php php_test_files/jobs/jobs_ok.php"
+  relay: "pipes"
+
+logs:
+  level: debug
+
+jobs:
+  pool:
+    num_workers: 1
+
+  pipelines:
+    test-recovery:
+      driver: memory
+      config:
+        prefetch: 100
+
+  consume: ["test-recovery"]

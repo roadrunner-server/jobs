@@ -49,26 +49,11 @@ func TestIssue2085(t *testing.T) {
 // path; stopping the container afterwards stops the processor again, which used
 // to panic on a double channel close.
 func TestIssue2378(t *testing.T) {
-	err := helpers.StartExpectServeError(t, "", []any{
+	err := helpers.StartExpectServeError(t, "configs/.rr-issue2378.yaml", []any{
 		&server.Plugin{},
 		&jobs.Plugin{},
 		&brokenDriver{},
-	}, helpers.WithInlineConfig(`
-version: '3'
-
-server:
-  command: "php php_test_files/jobs/jobs_ok.php"
-  relay: "pipes"
-
-jobs:
-  pool:
-    num_workers: 1
-  pipelines:
-    broken:
-      driver: broken
-      config: {}
-  consume: [ "broken" ]
-`))
+	})
 
 	require.ErrorContains(t, err, "the broken driver cannot be constructed")
 }
@@ -94,30 +79,12 @@ func (b *brokenDriver) DriverFromPipeline(context.Context, jobsApi.Pipeline, job
 // not dereferenced: jobs.Stat panicked on the nil entry, and net/rpc does not
 // recover panics in service methods, so the call killed the whole process.
 func TestIssue2377(t *testing.T) {
-	helpers.Start(t, "", []any{
+	helpers.Start(t, "configs/.rr-issue2377.yaml", []any{
 		&server.Plugin{},
 		&rpcPlugin.Plugin{},
 		&jobs.Plugin{},
 		&statelessDriver{},
-	}, helpers.WithInlineConfig(`
-version: '3'
-
-rpc:
-  listen: tcp://127.0.0.1:6381
-
-server:
-  command: "php php_test_files/jobs/jobs_ok.php"
-  relay: "pipes"
-
-jobs:
-  pool:
-    num_workers: 1
-  pipelines:
-    stateless:
-      driver: stateless
-      config: {}
-  consume: [ "stateless" ]
-`), helpers.WithPipelinesReady(rpcAddr, 1))
+	}, helpers.WithPipelinesReady(rpcAddr, 1))
 
 	client := helpers.NewJobsClient(t, rpcAddr)
 

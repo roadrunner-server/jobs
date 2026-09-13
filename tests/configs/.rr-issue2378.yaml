@@ -1,0 +1,14 @@
+version: '3'
+
+server:
+  command: "php php_test_files/jobs/jobs_ok.php"
+  relay: "pipes"
+
+jobs:
+  pool:
+    num_workers: 1
+  pipelines:
+    broken:
+      driver: broken
+      config: {}
+  consume: ["broken"]
