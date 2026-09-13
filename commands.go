@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/roadrunner-server/events"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -17,94 +16,114 @@ func (p *Plugin) readCommands(errCh chan error) {
 				p.log.Warn("events channel was closed")
 				return
 			}
-			if err := p.handleCommand(ev); err != nil {
-				select {
-				case errCh <- err:
-				case <-p.stopCh:
+			ctx, span := p.tracer.Tracer(PluginName).Start(context.Background(), "read_command", trace.WithSpanKind(trace.SpanKindServer))
+			p.log.Debug("received JOBS event", "message", ev.Message(), "pipeline", ev.Plugin())
+			// message can be 'restart', 'stop'.
+			switch ev.Message() {
+			case stopStr:
+				// by agreement, the message should contain the pipeline name
+				pipeline := ev.Plugin()
+				_, _, err := p.pipelineExists(pipeline)
+				if err != nil {
+					p.log.Warn("failed to restart the pipeline", "error", err, "pipeline", pipeline)
+					span.End()
+					continue
 				}
-				return
+
+				// Destroy operation has its own timeout
+				err = p.Destroy(ctx, pipeline)
+				if err != nil {
+					p.log.Error("failed to stop the pipeline", "error", err, "pipeline", pipeline)
+					span.RecordError(err)
+				} else {
+					p.log.Info("pipeline was stopped", "pipeline", pipeline)
+				}
+
+				span.End()
+				continue
+			case restartSrt:
+				// Algorithm:
+				// 1. Stop the pipeline.
+				// 2. Delete the pipeline from the pipeline list.
+				// 3. Delete the consumer (actual driver).
+				// 4. Check how the pipeline was created (via Declare or via config).
+				// 5. If the pipeline was created via config -> use jobsProcessor to add a job to create a pipeline.
+				// 5a.If the pipeline was created via Declare -> use Declare again with the same parameters included in the pipeline.
+
+				pipeline := ev.Plugin()
+				drv, pipe, err := p.pipelineExists(pipeline)
+				if err != nil {
+					p.log.Warn("failed to restart the pipeline", "error", err, "pipeline", pipeline)
+					span.RecordError(err)
+					span.End()
+					continue
+				}
+
+				stopCtx, stopCancel := context.WithTimeout(context.Background(), time.Second*30)
+				// 1. Stop the pipeline
+				err = drv.Stop(stopCtx)
+				if err != nil {
+					p.log.Error("failed to stop the pipeline", "error", err, "pipeline", pipeline)
+				}
+				stopCancel()
+
+				// 2+3. Delete the pipeline from the pipeline list
+				p.pipelines.Delete(pipeline)
+				p.consumers.Delete(pipeline)
+
+				// fresh context for restart operations (the stop context was already canceled)
+				restartCtx, restartCancel := context.WithTimeout(context.Background(), time.Second*30)
+
+				// 4. Check how the pipeline was created
+				if pipe.String(createdWithDeclare, "") == trueStr { //nolint:gocritic
+					// 5. If the pipeline was created via Declare
+					err = p.Declare(restartCtx, pipe)
+					if err != nil {
+						restartCancel()
+						p.log.Error("failed to restart the pipeline", "error", err, "pipeline", pipeline)
+						span.RecordError(err)
+						span.End()
+						continue
+					}
+					restartCancel()
+					// TIP: Do not need to store the pipeline and consumer, as it was done in the Declare
+				} else if pipe.Has(createdWithConfig) {
+					// 5a. If the pipeline was created via config
+					p.jobsProcessor.add(&pjob{
+						p.jobConstructors[pipe.Driver()],
+						pipe,
+						p.queue,
+						pipe.String(createdWithConfig, ""),
+						p.cfg.Timeout,
+						restartCtx,
+					})
+
+					p.jobsProcessor.wait()
+					restartCancel()
+					// if we have errors when restarting the pipeline, we should stop RR
+					if p.jobsProcessor.hasErrors() {
+						span.End()
+						errCh <- fmt.Errorf("failed to restart the pipeline, errors: %v", p.jobsProcessor.errors())
+						return
+					}
+
+					// Store the pipeline, consumer would be added by the processor
+					p.pipelines.Store(pipeline, pipe)
+				} else {
+					restartCancel()
+					p.log.Warn("unknown pipeline creation method", "pipeline", pipeline)
+				}
+
+				span.End()
+				continue
+			default:
+				p.log.Warn("unknown command", "command", ev.Message())
+				span.End()
+				continue
 			}
+
 		case <-p.stopCh:
 			return
-		case <-p.commandsCtx.Done():
-			return
 		}
 	}
-}
-
-func (p *Plugin) cancelCommands() {
-	p.commandsCancel()
-	p.eventBus.Unsubscribe(p.id)
-}
-
-func (p *Plugin) handleCommand(ev events.Event) error {
-	if err := p.pipelineMu.Acquire(p.commandsCtx, 1); err != nil {
-		return nil
-	}
-	defer p.pipelineMu.Release(1)
-	ctx, span := p.tracer.Tracer(PluginName).Start(p.commandsCtx, "read_command", trace.WithSpanKind(trace.SpanKindServer))
-	defer span.End()
-	p.log.Debug("received JOBS event", "message", ev.Message(), "pipeline", ev.Plugin())
-
-	pipeline := ev.Plugin()
-	switch ev.Message() {
-	case stopStr:
-		err := p.destroy(ctx, pipeline)
-		if err != nil {
-			p.log.Error("failed to stop the pipeline", "error", err, "pipeline", pipeline)
-			span.RecordError(err)
-		} else {
-			p.log.Info("pipeline was stopped", "pipeline", pipeline)
-		}
-	case restartSrt:
-		drv, pipe, err := p.pipelineExists(pipeline)
-		if err != nil {
-			p.log.Warn("failed to restart the pipeline", "error", err, "pipeline", pipeline)
-			span.RecordError(err)
-			return nil
-		}
-
-		stopCtx, stopCancel := context.WithTimeout(ctx, time.Second*30)
-		err = drv.Stop(stopCtx)
-		stopCancel()
-		if err != nil {
-			p.log.Error("failed to stop the pipeline", "error", err, "pipeline", pipeline)
-		}
-		p.pipelines.Delete(pipeline)
-		p.consumers.Delete(pipeline)
-
-		if ctx.Err() != nil {
-			return nil
-		}
-		restartCtx, restartCancel := context.WithTimeout(ctx, time.Second*30)
-		defer restartCancel()
-
-		switch {
-		case pipe.String(createdWithDeclare, "") == trueStr:
-			if err = p.declare(restartCtx, pipe); err != nil {
-				p.log.Error("failed to restart the pipeline", "error", err, "pipeline", pipeline)
-				span.RecordError(err)
-			}
-		case pipe.Has(createdWithConfig):
-			p.jobsProcessor.add(&pjob{
-				jc:        p.jobConstructors[pipe.Driver()],
-				pipe:      pipe,
-				queue:     p.queue,
-				configKey: pipe.String(createdWithConfig, ""),
-				timeout:   p.cfg.Timeout,
-				ctx:       restartCtx,
-				consume:   p.shouldConsume(pipeline),
-			})
-			p.jobsProcessor.wait()
-			if p.jobsProcessor.hasErrors() {
-				return fmt.Errorf("failed to restart the pipeline, errors: %v", p.jobsProcessor.errors())
-			}
-			p.pipelines.Store(pipeline, pipe)
-		default:
-			p.log.Warn("unknown pipeline creation method", "pipeline", pipeline)
-		}
-	default:
-		p.log.Warn("unknown command", "command", ev.Message())
-	}
-	return nil
 }

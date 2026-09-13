@@ -11,14 +11,15 @@ import (
 )
 
 type processor struct {
-	wg         sync.WaitGroup
-	mu         sync.Mutex
-	consumers  *sync.Map
-	log        *slog.Logger
-	queueCh    chan *pjob
-	maxWorkers int
-	errs       []error
-	stopped    atomic.Bool
+	wg            sync.WaitGroup
+	mu            sync.Mutex
+	consumers     *sync.Map
+	shouldConsume func(string) bool
+	log           *slog.Logger
+	queueCh       chan *pjob
+	maxWorkers    int
+	errs          []error
+	stopped       atomic.Bool
 }
 
 type pjob struct {
@@ -28,20 +29,21 @@ type pjob struct {
 	configKey string
 	timeout   int
 	ctx       context.Context
-	consume   bool
 }
 
 // args:
 // log - logger
 // consumers - sync.Map with all drivers (consumers) for pipelines
+// shouldConsume reports whether a pipeline should start consuming.
 // maxWorkers - number of parallel workers which will start pipelines
-func newPipesProc(log *slog.Logger, consumers *sync.Map, maxWorkers int) *processor {
+func newPipesProc(log *slog.Logger, consumers *sync.Map, shouldConsume func(string) bool, maxWorkers int) *processor {
 	p := &processor{
-		log:        log,
-		queueCh:    make(chan *pjob, 100),
-		maxWorkers: maxWorkers,
-		consumers:  consumers,
-		errs:       make([]error, 0, 1),
+		log:           log,
+		queueCh:       make(chan *pjob, 100),
+		maxWorkers:    maxWorkers,
+		consumers:     consumers,
+		shouldConsume: shouldConsume,
+		errs:          make([]error, 0, 1),
 	}
 
 	// start the processor
@@ -74,8 +76,8 @@ func (p *processor) run() {
 
 				p.log.Debug("driver ready", "pipeline", job.pipe.Name(), "driver", job.pipe.Driver(), "start", t, "elapsed", time.Since(t).Milliseconds())
 				// if a pipeline initialized to be consumed, call Run on it
-				if job.consume {
-					ctx, cancel := context.WithTimeout(job.ctx, time.Second*time.Duration(job.timeout))
+				if p.shouldConsume(job.pipe.Name()) {
+					ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(job.timeout))
 					err = initializedDriver.Run(ctx, job.pipe)
 					if err != nil {
 						p.mu.Lock()

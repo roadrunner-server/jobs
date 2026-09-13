@@ -3,6 +3,7 @@ package jobs
 import (
 	"context"
 	stderr "errors"
+	"fmt"
 	"log/slog"
 	"strconv"
 	"sync"
@@ -40,12 +41,6 @@ const (
 type Plugin struct {
 	mu sync.RWMutex
 
-	pipelineMu     *semaphore.Weighted
-	consumeState   map[string]bool
-	commandsCtx    context.Context
-	commandsCancel context.CancelFunc
-	commandsDone   chan struct{}
-
 	// Jobs plugin configuration
 	cfg         *Config `mapstructure:"jobs"`
 	log         *slog.Logger
@@ -54,7 +49,7 @@ type Plugin struct {
 	// writes only in config phase, reads after that
 	workersPools map[string]Pool
 	server       Server
-	eventBus     events.QueuedEventBus
+	eventBus     events.EventBus
 	eventsCh     chan events.Event
 	// bus id
 	id           string
@@ -74,6 +69,8 @@ type Plugin struct {
 
 	// initial set of the pipelines to consume
 	consume map[string]struct{}
+	// successful runtime pause and resume operations
+	consumeState sync.Map // map[string]bool
 
 	// signal channel to stop the pollers
 	stopCh chan struct{}
@@ -111,9 +108,6 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 
 	p.jobConstructors = make(map[string]jobsApi.Constructor)
 	p.consume = make(map[string]struct{})
-	p.pipelineMu = semaphore.NewWeighted(1)
-	p.consumeState = make(map[string]bool)
-	p.commandsCtx, p.commandsCancel = context.WithCancel(context.Background())
 	p.stopCh = make(chan struct{}, 1)
 	p.eventsCh = make(chan events.Event, 1)
 	p.eventBus, p.id = events.NewEventBus()
@@ -137,7 +131,7 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 	// initialize priority queue
 	p.queue = pqImpl.NewBinHeap[jobsApi.Job](p.cfg.PipelineSize)
 	p.log = log.NamedLogger(PluginName)
-	p.jobsProcessor = newPipesProc(p.log, &p.consumers, p.cfg.CfgOptions.Parallelism)
+	p.jobsProcessor = newPipesProc(p.log, &p.consumers, p.shouldConsume, p.cfg.CfgOptions.Parallelism)
 	p.experimental = cfg.Experimental()
 	p.tracer = sdktrace.NewTracerProvider()
 
@@ -169,22 +163,58 @@ func (p *Plugin) Serve() chan error {
 		p.tracer = sdktrace.NewTracerProvider()
 	}
 
-	if err := p.eventBus.SubscribePQueued(p.id, "*.EventJOBSDriverCommand", p.eventsCh); err != nil {
-		errCh <- errors.E(op, err)
-		return errCh
-	}
-	p.commandsDone = make(chan struct{})
-	go func() {
-		defer close(p.commandsDone)
-		p.readCommands(errCh)
-	}()
-
-	if err := p.initPipelines(); err != nil {
+	err := p.eventBus.SubscribeP(p.id, fmt.Sprintf("*.%s", events.EventJOBSDriverCommand), p.eventsCh)
+	if err != nil {
 		errCh <- errors.E(op, err)
 		return errCh
 	}
 
-	var err error
+	go p.readCommands(errCh)
+
+	// register initial pipelines
+	p.pipelines.Range(func(key, value any) bool {
+		// pipeline associated with the name
+		pipe := value.(jobsApi.Pipeline)
+		pipeName := key.(string)
+		// driver for the pipeline (ie amqp, ephemeral, etc)
+		dr := pipe.Driver()
+
+		if dr == "" {
+			p.log.Error("can't find driver name for the pipeline, please, check that the 'driver' keyword for the pipelines specified correctly, JOBS plugin will try to run the next pipeline")
+			return true
+		}
+		if _, ok := p.jobConstructors[dr]; !ok {
+			p.log.Error("can't find driver constructor for the pipeline, please, check the global configuration for the specified driver",
+				"driver", dr,
+				"pipeline", pipeName)
+			return true
+		}
+
+		// configuration key for the config
+		configKey := fmt.Sprintf("%s.%s.%s.%s", PluginName, pipelines, pipeName, config)
+		// save on how the pipeline was created
+		pipe.With(createdWithConfig, configKey)
+
+		p.jobsProcessor.add(&pjob{
+			p.jobConstructors[dr],
+			pipe,
+			p.queue,
+			configKey,
+			p.cfg.Timeout,
+			context.Background(),
+		})
+
+		return true
+	})
+
+	// block until all jobs are processed
+	p.jobsProcessor.wait()
+	// check for the errors
+	if p.jobsProcessor.hasErrors() {
+		errCh <- errors.E(op, stderr.Join(p.jobsProcessor.errors()...))
+		return errCh
+	}
+
 	p.mu.Lock()
 	if p.cfg.Pools != nil {
 		p.workersPools = make(map[string]Pool, len(p.cfg.Pools))
@@ -213,53 +243,14 @@ func (p *Plugin) Serve() chan error {
 	return errCh
 }
 
-func (p *Plugin) initPipelines() error {
-	if err := p.pipelineMu.Acquire(p.commandsCtx, 1); err != nil {
-		return err
-	}
-	defer p.pipelineMu.Release(1)
-
-	p.pipelines.Range(func(key, value any) bool {
-		pipe := value.(jobsApi.Pipeline)
-		pipeName := key.(string)
-		dr := pipe.Driver()
-		if dr == "" {
-			p.log.Error("can't find driver name for the pipeline, please, check that the 'driver' keyword for the pipelines specified correctly, JOBS plugin will try to run the next pipeline")
-			return true
-		}
-		if _, ok := p.jobConstructors[dr]; !ok {
-			p.log.Error("can't find driver constructor for the pipeline, please, check the global configuration for the specified driver",
-				"driver", dr,
-				"pipeline", pipeName)
-			return true
-		}
-
-		configKey := PluginName + "." + pipelines + "." + pipeName + "." + config
-		pipe.With(createdWithConfig, configKey)
-		p.jobsProcessor.add(&pjob{
-			jc:        p.jobConstructors[dr],
-			pipe:      pipe,
-			queue:     p.queue,
-			configKey: configKey,
-			timeout:   p.cfg.Timeout,
-			ctx:       p.commandsCtx,
-			consume:   p.shouldConsume(pipeName),
-		})
-		return true
-	})
-	p.jobsProcessor.wait()
-	if p.jobsProcessor.hasErrors() {
-		return stderr.Join(p.jobsProcessor.errors()...)
-	}
-	return nil
-}
-
 // Stop gracefully shuts down the plugin by signaling pollers to stop, waiting for in-flight jobs
 // to complete, stopping all pipeline drivers, and destroying the worker pool(s).
 func (p *Plugin) Stop(ctx context.Context) error {
 	// Broadcast stop signal to all pollers
 	close(p.stopCh)
-	p.cancelCommands()
+	// drop subscriptions
+	p.eventBus.Unsubscribe(p.id)
+	close(p.eventsCh)
 
 	defer func() {
 		// workers' pool should be stopped
@@ -278,52 +269,30 @@ func (p *Plugin) Stop(ctx context.Context) error {
 		p.mu.Unlock()
 	}()
 
-	if p.commandsDone != nil {
-		select {
-		case <-p.commandsDone:
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-
-	if err := p.pipelineMu.Acquire(ctx, 1); err != nil {
-		return err
-	}
-	type consumer struct {
-		name   string
-		driver jobsApi.Driver
-	}
-	var consumers []consumer
-	p.consumers.Range(func(key, value any) bool {
-		consumers = append(consumers, consumer{name: key.(string), driver: value.(jobsApi.Driver)})
-		return true
-	})
-	p.pipelines.Clear()
-	p.consumers.Clear()
-	clear(p.consumeState)
-	p.pipelineMu.Release(1)
-
 	sema := semaphore.NewWeighted(int64(p.cfg.CfgOptions.Parallelism))
 	// range over all consumers and call stop
-	for _, c := range consumers {
+	p.consumers.Range(func(key, value any) bool {
 		// acquire semaphore, but if RR canceled the context, we should stop
 		errA := sema.Acquire(ctx, 1)
 		if errA != nil {
-			return errA
+			return false
 		}
 
 		go func() {
+			consumer := value.(jobsApi.Driver)
 			ctxT, cancel := context.WithTimeout(ctx, p.cfg.TimeoutDuration())
-			err := c.driver.Stop(ctxT)
+			err := consumer.Stop(ctxT)
 			if err != nil {
-				p.log.Error("stop job driver", "driver", c.name, "error", err)
+				p.log.Error("stop job driver", "driver", key, "error", err)
 			}
 			cancel()
 
 			// release semaphore
 			sema.Release(1)
 		}()
-	}
+		// process next
+		return true
+	})
 
 	err := sema.Acquire(ctx, int64(p.cfg.CfgOptions.Parallelism))
 	if err != nil {
@@ -336,6 +305,10 @@ func (p *Plugin) Stop(ctx context.Context) error {
 	}
 
 	p.waitPollersFinish(ctx)
+
+	p.pipelines.Clear()
+	p.consumers.Clear()
+	p.consumeState.Clear()
 
 	return nil
 }
@@ -549,12 +522,6 @@ func (p *Plugin) PushBatch(ctx context.Context, j []jobsApi.Message) error {
 
 // Pause suspends job consumption for the specified pipeline.
 func (p *Plugin) Pause(ctx context.Context, pp string) error {
-	ctx, unlock, err := p.lockPipelines(ctx)
-	if err != nil {
-		return err
-	}
-	defer unlock()
-
 	d, ppl, err := p.pipelineExists(pp)
 	if err != nil {
 		return err
@@ -565,18 +532,12 @@ func (p *Plugin) Pause(ctx context.Context, pp string) error {
 	if err = d.Pause(ctx, ppl.Name()); err != nil {
 		return err
 	}
-	p.consumeState[pp] = false
+	p.consumeState.Store(pp, false)
 	return nil
 }
 
 // Resume restarts job consumption for a previously paused pipeline.
 func (p *Plugin) Resume(ctx context.Context, pp string) error {
-	ctx, unlock, err := p.lockPipelines(ctx)
-	if err != nil {
-		return err
-	}
-	defer unlock()
-
 	d, ppl, err := p.pipelineExists(pp)
 	if err != nil {
 		return err
@@ -587,25 +548,13 @@ func (p *Plugin) Resume(ctx context.Context, pp string) error {
 	if err = d.Resume(ctx, ppl.Name()); err != nil {
 		return err
 	}
-	p.consumeState[pp] = true
+	p.consumeState.Store(pp, true)
 	return nil
 }
 
 // Declare dynamically registers a new pipeline at runtime, initializing its driver and starting consumption.
 func (p *Plugin) Declare(ctx context.Context, pipeline jobsApi.Pipeline) error {
-	ctx, unlock, err := p.lockPipelines(ctx)
-	if err != nil {
-		return err
-	}
-	defer unlock()
-	return p.declare(ctx, pipeline)
-}
-
-func (p *Plugin) declare(ctx context.Context, pipeline jobsApi.Pipeline) error {
 	const op = errors.Op("jobs_plugin_declare")
-	if err := p.commandsCtx.Err(); err != nil {
-		return err
-	}
 	// driver for the pipeline (ie amqp, ephemeral, etc)
 	dr := pipeline.Driver()
 	if dr == "" {
@@ -638,20 +587,6 @@ func (p *Plugin) declare(ctx context.Context, pipeline jobsApi.Pipeline) error {
 	if err != nil {
 		return errors.E(op, err)
 	}
-	registered := false
-	defer func() {
-		if registered {
-			return
-		}
-		stopCtx, cancel := context.WithTimeout(context.Background(), p.cfg.TimeoutDuration())
-		defer cancel()
-		if stopErr := initializedDriver.Stop(stopCtx); stopErr != nil {
-			p.log.Error("failed to stop the unregistered driver", "error", stopErr, "pipeline", pipeline.Name())
-		}
-	}()
-	if err = ctx.Err(); err != nil {
-		return err
-	}
 
 	if p.shouldConsume(pipeline.Name()) {
 		ctxDeclare, cancel := context.WithTimeout(ctx, p.cfg.TimeoutDuration())
@@ -661,9 +596,6 @@ func (p *Plugin) declare(ctx context.Context, pipeline jobsApi.Pipeline) error {
 			return errors.E(op, err)
 		}
 	}
-	if err = ctx.Err(); err != nil {
-		return err
-	}
 
 	// set how the pipeline was created
 	pipeline.With(createdWithDeclare, trueStr)
@@ -671,41 +603,12 @@ func (p *Plugin) declare(ctx context.Context, pipeline jobsApi.Pipeline) error {
 	p.consumers.Store(pipeline.Name(), initializedDriver)
 	// save the pipeline
 	p.pipelines.Store(pipeline.Name(), pipeline)
-	registered = true
 
 	return nil
 }
 
 // Destroy stops the pipeline driver and removes it from the plugin's registry.
 func (p *Plugin) Destroy(ctx context.Context, pp string) error {
-	ctx, unlock, err := p.lockPipelines(ctx)
-	if err != nil {
-		return err
-	}
-	defer unlock()
-	return p.destroy(ctx, pp)
-}
-
-// lockPipelines cancels lifecycle waits and driver calls during shutdown.
-func (p *Plugin) lockPipelines(ctx context.Context) (context.Context, func(), error) {
-	if err := p.commandsCtx.Err(); err != nil {
-		return nil, nil, err
-	}
-	ctx, cancel := context.WithCancel(ctx)
-	stop := context.AfterFunc(p.commandsCtx, cancel)
-	if err := p.pipelineMu.Acquire(ctx, 1); err != nil {
-		stop()
-		cancel()
-		return nil, nil, err
-	}
-	return ctx, func() {
-		p.pipelineMu.Release(1)
-		stop()
-		cancel()
-	}, nil
-}
-
-func (p *Plugin) destroy(ctx context.Context, pp string) error {
 	const op = errors.Op("jobs_plugin_destroy")
 	pipe, ok := p.pipelines.Load(pp)
 	if !ok {
@@ -726,7 +629,7 @@ func (p *Plugin) destroy(ctx context.Context, pp string) error {
 
 	// delete old pipeline
 	p.pipelines.Delete(pp)
-	delete(p.consumeState, pp)
+	p.consumeState.Delete(pp)
 
 	ctx, cancel := context.WithTimeout(ctx, p.cfg.TimeoutDuration())
 	err := d.(jobsApi.Driver).Stop(ctx)
@@ -739,11 +642,10 @@ func (p *Plugin) destroy(ctx context.Context, pp string) error {
 	return nil
 }
 
-// shouldConsume uses successful runtime operations before startup configuration.
-// Callers hold pipelineMu through driver creation or the state transition.
+// shouldConsume gives runtime state precedence over the startup consume list.
 func (p *Plugin) shouldConsume(pipeline string) bool {
-	if consume, ok := p.consumeState[pipeline]; ok {
-		return consume
+	if consume, ok := p.consumeState.Load(pipeline); ok {
+		return consume.(bool)
 	}
 	_, consume := p.consume[pipeline]
 	return consume

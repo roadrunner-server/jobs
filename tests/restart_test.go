@@ -3,6 +3,7 @@ package tests
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -111,6 +112,10 @@ jobs:
 			bus.Send(events.NewEvent(events.EventJOBSDriverCommand, pipeline, "restart"))
 			require.Eventually(t, func() bool {
 				if constructor.created.Load() != 2 {
+					return false
+				}
+				registered := &jobsProto.Pipelines{}
+				if err := client.Call("jobs.List", &jobsProto.Empty{}, registered); err != nil || !slices.Contains(registered.GetPipelines(), pipeline) {
 					return false
 				}
 				out := &jobsProto.Stats{}
