@@ -262,6 +262,7 @@ func newTestPlugin(t *testing.T, cfg *Config) *Plugin {
 	}
 
 	t.Cleanup(p.jobsProcessor.stop)
+	t.Cleanup(p.cancelCommands)
 
 	return p
 }

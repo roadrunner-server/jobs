@@ -14,7 +14,6 @@ type processor struct {
 	wg         sync.WaitGroup
 	mu         sync.Mutex
 	consumers  *sync.Map
-	runners    map[string]struct{}
 	log        *slog.Logger
 	queueCh    chan *pjob
 	maxWorkers int
@@ -29,20 +28,19 @@ type pjob struct {
 	configKey string
 	timeout   int
 	ctx       context.Context
+	consume   bool
 }
 
 // args:
 // log - logger
 // consumers - sync.Map with all drivers (consumers) for pipelines
-// runners - map with all pipelines that should be consumed (started immediately)
 // maxWorkers - number of parallel workers which will start pipelines
-func newPipesProc(log *slog.Logger, consumers *sync.Map, runners map[string]struct{}, maxWorkers int) *processor {
+func newPipesProc(log *slog.Logger, consumers *sync.Map, maxWorkers int) *processor {
 	p := &processor{
 		log:        log,
 		queueCh:    make(chan *pjob, 100),
 		maxWorkers: maxWorkers,
 		consumers:  consumers,
-		runners:    runners,
 		errs:       make([]error, 0, 1),
 	}
 
@@ -76,8 +74,8 @@ func (p *processor) run() {
 
 				p.log.Debug("driver ready", "pipeline", job.pipe.Name(), "driver", job.pipe.Driver(), "start", t, "elapsed", time.Since(t).Milliseconds())
 				// if a pipeline initialized to be consumed, call Run on it
-				if _, ok := p.runners[job.pipe.Name()]; ok {
-					ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(job.timeout))
+				if job.consume {
+					ctx, cancel := context.WithTimeout(job.ctx, time.Second*time.Duration(job.timeout))
 					err = initializedDriver.Run(ctx, job.pipe)
 					if err != nil {
 						p.mu.Lock()

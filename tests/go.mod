@@ -12,6 +12,7 @@ require (
 	github.com/roadrunner-server/beanstalk/v6 v6.0.0-beta.5
 	github.com/roadrunner-server/config/v6 v6.0.0-beta.4
 	github.com/roadrunner-server/endure/v2 v2.6.2
+	github.com/roadrunner-server/events v1.0.2-0.20260913084508-1bb23fe5cd95
 	github.com/roadrunner-server/goridge/v4 v4.0.0-beta.3
 	github.com/roadrunner-server/informer/v6 v6.0.0-beta.5
 	github.com/roadrunner-server/jobs/v6 v6.0.0-beta.10
@@ -72,7 +73,6 @@ require (
 	github.com/prometheus/procfs v0.22.0 // indirect
 	github.com/rabbitmq/amqp091-go v1.14.0 // indirect
 	github.com/roadrunner-server/errors v1.5.0 // indirect
-	github.com/roadrunner-server/events v1.0.1 // indirect
 	github.com/roadrunner-server/priority_queue v1.0.6 // indirect
 	github.com/roadrunner-server/tcplisten v1.6.0 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect
