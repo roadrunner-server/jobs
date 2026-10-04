@@ -3,7 +3,6 @@
 	"prefer-stable": true,
 	"require": {
 		"ext-curl": "*",
-		"guzzlehttp/guzzle": "^6.5",
 		"nyholm/psr7": "^1.5",
 		"spiral/roadrunner-http": "^3.0",
 		"spiral/roadrunner-worker": "^3.0",
@@ -13,13 +12,12 @@
 		"spiral/roadrunner-tcp": "^4.0",
 		"spiral/roadrunner-jobs": "^4.0",
 		"monolog/monolog": "^3.1",
-		"php-http/guzzle6-adapter": "~2",
+		"php-http/guzzle7-adapter": "^1.0",
 		"spiral/goridge": "^4.0",
 		"roadrunner-php/centrifugo": "^2.0",
 		"roadrunner-php/app-logger": "^1.0",
 		"open-telemetry/sdk": "^0.0.10",
 		"psr/http-factory": "^1.0",
-		"php-http/message-factory": "^1.1",
 		"spiral/roadrunner-kv": "^4.0",
 		"spiral/roadrunner-services": "^2.0"
 	},
