@@ -22,9 +22,9 @@
       "default": 60
     },
     "pipeline_size": {
-      "description": "Size of the internal priority queue. If the internal priority queue is full, you cannot send (push) additional jobs to the queue. If you set this value to zero or omit it, it defaults to 1 million.",
+      "description": "Size of the internal priority queue. All pipelines share this queue. When the queue is full, the drivers wait for a free slot before they add the next job. If you set this value to zero or omit it, it defaults to 100000.",
       "type": "integer",
-      "default": 1000000,
+      "default": 100000,
       "minimum": 0
     },
     "consume": {

@@ -80,7 +80,7 @@ func (c *Config) InitDefaults() error {
 	}
 
 	if c.PipelineSize == 0 {
-		c.PipelineSize = 1_000_000
+		c.PipelineSize = 100_000
 	}
 
 	for k := range c.Pipelines {
