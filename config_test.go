@@ -38,11 +38,9 @@ func TestConfigInitDefaultsNumPollers(t *testing.T) {
 			numPollers: 6,
 		},
 		{
-			// the worker count is read before the pool defaults are applied, so an
-			// omitted num_workers counts as zero here
 			name:       "pool without workers",
 			cfg:        &Config{Pool: &poolImpl.Config{}},
-			numPollers: 2,
+			numPollers: runtime.NumCPU() + 2,
 		},
 		{
 			name: "named pools",

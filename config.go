@@ -55,8 +55,8 @@ func (c *Config) InitDefaults() error {
 		c.NumPollers = int(c.Pool.NumWorkers) + 2 //nolint:gosec
 		// pool is initialized, force to use correct number of pollers
 	case c.Pool != nil:
-		c.NumPollers = int(c.Pool.NumWorkers) + 2 //nolint:gosec
 		c.Pool.InitDefaults()
+		c.NumPollers = int(c.Pool.NumWorkers) + 2 //nolint:gosec
 		// we have pools option
 	case c.Pool == nil && len(c.Pools) > 0:
 		var wn uint64
