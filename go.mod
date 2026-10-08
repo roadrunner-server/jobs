@@ -13,7 +13,7 @@ require (
 	github.com/roadrunner-server/events v1.0.1
 	github.com/roadrunner-server/goridge/v4 v4.0.0-beta.3
 	github.com/roadrunner-server/pool/v2 v2.0.0-beta.1
-	github.com/roadrunner-server/priority_queue v1.0.6
+	github.com/roadrunner-server/priority_queue v1.1.0
 	github.com/stretchr/testify v1.12.1
 	go.opentelemetry.io/contrib/propagators/jaeger v1.47.0
 	go.opentelemetry.io/otel v1.47.0
