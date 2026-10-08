@@ -90,33 +90,23 @@ func (rh *RespHandler) Handle(pld *payload.Payload, jb jobs.Job) (Outcome, error
 	}
 
 	switch p.T {
-	// likely case
-	case NoError:
-		if err = jb.Ack(); err != nil {
-			return OutcomeOK, errors.E(op, err)
-		}
-		return OutcomeOK, nil
-		// error returned from the PHP
+	case NoError, ACK:
 	case Error:
 		outcome, errH := rh.handleErrResp(p.Data, jb)
 		if errH != nil {
 			return OutcomeOK, errors.E(op, errH)
 		}
 		return outcome, nil
-	case ACK:
-		if err = jb.Ack(); err != nil {
-			return OutcomeOK, errors.E(op, err)
-		}
-		return OutcomeOK, nil
 	case NACK:
 		return rh.handleNackResponse(p.Data, jb)
 	case REQUEUE:
 		return rh.requeue(p.Data, jb)
 	default:
 		rh.log.Warn("unknown response type, acknowledging the JOB", "type", uint32(p.T))
-		if err = jb.Ack(); err != nil {
-			return OutcomeOK, errors.E(op, err)
-		}
+	}
+
+	if err = jb.Ack(); err != nil {
+		return OutcomeOK, errors.E(op, err)
 	}
 
 	return OutcomeOK, nil
