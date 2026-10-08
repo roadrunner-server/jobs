@@ -55,8 +55,8 @@ func (c *Config) InitDefaults() error {
 		c.NumPollers = int(c.Pool.NumWorkers) + 2 //nolint:gosec
 		// pool is initialized, force to use correct number of pollers
 	case c.Pool != nil:
-		c.NumPollers = int(c.Pool.NumWorkers) + 2 //nolint:gosec
 		c.Pool.InitDefaults()
+		c.NumPollers = int(c.Pool.NumWorkers) + 2 //nolint:gosec
 		// we have pools option
 	case c.Pool == nil && len(c.Pools) > 0:
 		var wn uint64
@@ -80,7 +80,7 @@ func (c *Config) InitDefaults() error {
 	}
 
 	if c.PipelineSize == 0 {
-		c.PipelineSize = 1_000_000
+		c.PipelineSize = 100_000
 	}
 
 	for k := range c.Pipelines {

@@ -38,11 +38,9 @@ func TestConfigInitDefaultsNumPollers(t *testing.T) {
 			numPollers: 6,
 		},
 		{
-			// the worker count is read before the pool defaults are applied, so an
-			// omitted num_workers counts as zero here
 			name:       "pool without workers",
 			cfg:        &Config{Pool: &poolImpl.Config{}},
-			numPollers: 2,
+			numPollers: runtime.NumCPU() + 2,
 		},
 		{
 			name: "named pools",
@@ -106,7 +104,7 @@ func TestConfigInitDefaultsValues(t *testing.T) {
 			name:            "empty config",
 			cfg:             &Config{},
 			parallelism:     10,
-			pipelineSize:    1_000_000,
+			pipelineSize:    100_000,
 			timeout:         60,
 			timeoutDuration: time.Second * 60,
 		},
@@ -114,7 +112,7 @@ func TestConfigInitDefaultsValues(t *testing.T) {
 			name:            "zero parallelism",
 			cfg:             &Config{CfgOptions: &CfgOptions{}},
 			parallelism:     5,
-			pipelineSize:    1_000_000,
+			pipelineSize:    100_000,
 			timeout:         60,
 			timeoutDuration: time.Second * 60,
 		},
