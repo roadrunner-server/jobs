@@ -16,6 +16,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// A worker reply with an empty payload acknowledges the job. goridge v4 delivers an
+// empty reply as nil or as a zero-length slice, and both mean success.
+func TestJobsEmptyWorkerResponse(t *testing.T) {
+	rr, _ := helpers.Start(t, "configs/.rr-jobs-empty-response.yaml", []any{
+		&server.Plugin{},
+		&rpcPlugin.Plugin{},
+		&jobs.Plugin{},
+		&memory.Plugin{},
+		&informer.Plugin{},
+		&resetter.Plugin{},
+	}, helpers.WithObservedLogger(), helpers.WithPipelinesReady(rpcAddr, 1))
+
+	client := helpers.NewJobsClient(t, rpcAddr)
+
+	helpers.PushBatch(t, client, "test-consumed", 10, []byte("job"))
+	helpers.WaitLogged(t, rr.Logs, "job was processed successfully", 10)
+	require.Zero(t, rr.Logs.FilterMessageSnippet("response handler error").Len())
+
+	helpers.DestroyPipelines(t, client, "test-consumed")
+}
+
 // workersList is the reply of the informer.Workers rpc call.
 type workersList struct {
 	Workers []process.State `json:"workers"`
