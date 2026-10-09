@@ -179,8 +179,8 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 		return
 	}
 
-	// if the response is nil or body is nil, acknowledge the job
-	if resp == nil || resp.Body == nil {
+	// if the response or its body is empty, acknowledge the job
+	if resp == nil || len(resp.Body) == 0 {
 		p.putPayload(exec)
 		err = jb.Ack()
 		if err != nil {

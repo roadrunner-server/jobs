@@ -1,0 +1,29 @@
+version: '3'
+
+rpc:
+  listen: tcp://127.0.0.1:6381
+
+server:
+  command: "php php_test_files/jobs/jobs_empty_response.php"
+  relay: "pipes"
+
+logs:
+  level: debug
+  encoding: console
+  mode: development
+
+jobs:
+  pipeline_size: 100000
+  pool:
+    num_workers: 2
+    allocate_timeout: 60s
+    destroy_timeout: 60s
+
+  pipelines:
+    test-consumed:
+      driver: memory
+      config:
+        priority: 10
+        prefetch: 10000
+
+  consume: ["test-consumed"]
