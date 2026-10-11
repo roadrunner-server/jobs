@@ -52,8 +52,7 @@ type Plugin struct {
 	eventBus     events.EventBus
 	eventsCh     chan events.Event
 	// bus id
-	id           string
-	experimental bool
+	id string
 
 	jobConstructors map[string]jobsApi.Constructor
 	consumers       sync.Map // map[string]jobs.Consumer
@@ -130,7 +129,6 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 	p.queue = pqImpl.NewBinHeap[jobsApi.Job](p.cfg.PipelineSize)
 	p.log = log.NamedLogger(PluginName)
 	p.jobsProcessor = newPipesProc(p.log, &p.consumers, p.consume, p.cfg.CfgOptions.Parallelism)
-	p.experimental = cfg.Experimental()
 	p.tracer = sdktrace.NewTracerProvider()
 
 	// collector

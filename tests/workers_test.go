@@ -37,6 +37,29 @@ func TestJobsEmptyWorkerResponse(t *testing.T) {
 	helpers.DestroyPipelines(t, client, "test-consumed")
 }
 
+// A worker reply that is not a protocol message cannot be handled. The job is
+// acknowledged so the driver does not deliver it again, and it is counted as failed.
+func TestJobsMalformedWorkerResponse(t *testing.T) {
+	rr, _ := helpers.Start(t, "configs/.rr-jobs-malformed-response.yaml", []any{
+		&server.Plugin{},
+		&rpcPlugin.Plugin{},
+		&jobs.Plugin{},
+		&memory.Plugin{},
+		&informer.Plugin{},
+		&resetter.Plugin{},
+	}, helpers.WithObservedLogger(), helpers.WithPipelinesReady(rpcAddr, 1))
+
+	client := helpers.NewJobsClient(t, rpcAddr)
+
+	helpers.PushBatch(t, client, "test-consumed", 10, []byte("job"))
+	helpers.WaitLogged(t, rr.Logs, "job acknowledged, but contains error", 10)
+	require.Equal(t, 10, rr.Logs.FilterMessageSnippet("response handler error").Len())
+	require.Zero(t, rr.Logs.FilterMessageSnippet("job was processed successfully").Len())
+	require.Zero(t, helpers.Stat(t, client, "test-consumed").GetActive())
+
+	helpers.DestroyPipelines(t, client, "test-consumed")
+}
+
 // workersList is the reply of the informer.Workers rpc call.
 type workersList struct {
 	Workers []process.State `json:"workers"`

@@ -207,13 +207,6 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 		p.metrics.CountJobErr()
 		p.log.Error("response handler error", "error", err, "ID", jb.ID(), "response", resp.Body, "start", start, "elapsed", time.Since(start).Milliseconds())
 		p.putPayload(exec)
-		// we don't need to use ACK to prevent endless loop here, since the ACK is controlled on the PHP side.
-		// When experimental features are enabled, skip further processing of the current job.
-		if p.experimental {
-			jb = nil
-			span.End()
-			return
-		}
 
 		/*
 			Job malformed, acknowledge it to prevent endless loop
