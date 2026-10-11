@@ -40,8 +40,6 @@ type Pool interface {
 }
 
 type Configurer interface {
-	// Experimental checks if there are any experimental features enabled.
-	Experimental() bool
 	// UnmarshalKey takes a single key and unmarshal it into a Struct.
 	UnmarshalKey(name string, out any) error
 	// Has checks if config section exists.

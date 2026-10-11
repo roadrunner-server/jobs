@@ -227,14 +227,12 @@ func (f *fakeConstructor) DriverFromPipeline(_ context.Context, _ jobsApi.Pipeli
 
 // stubConfigurer feeds Init a config without going through a file.
 type stubConfigurer struct {
-	cfg          *Config
-	has          bool
-	err          error
-	experimental bool
+	cfg *Config
+	has bool
+	err error
 }
 
-func (s *stubConfigurer) Has(string) bool    { return s.has }
-func (s *stubConfigurer) Experimental() bool { return s.experimental }
+func (s *stubConfigurer) Has(string) bool { return s.has }
 func (s *stubConfigurer) UnmarshalKey(_ string, out any) error {
 	if s.err != nil {
 		return s.err
