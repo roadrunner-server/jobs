@@ -11,7 +11,8 @@ nats:
   addr: "nats://127.0.0.1:4222"
 
 amqp:
-  addr: amqp://guest:guest@127.0.0.1:5672/
+  rabbitmq:
+    addr: amqp://guest:guest@127.0.0.1:5672/
 
 beanstalk:
   addr: tcp://127.0.0.1:11300
@@ -63,22 +64,28 @@ jobs:
     test-4-amqp:
       driver: amqp
       config:
+        connection: rabbitmq
         prefetch: 1000000
-        queue: test-1-queue
         priority: 1
-        exchange: default
-        exchange_type: direct
-        routing_key: test
+        exchange:
+          name: default
+          type: direct
+        queue:
+          name: test-1-queue
+          routing_key: test
 
     test-5-amqp:
       driver: amqp
       config:
+        connection: rabbitmq
         priority: 2
         prefetch: 1000000
-        queue: test-2-queue
-        exchange: default
-        exchange_type: direct
-        routing_key: test-2
+        exchange:
+          name: default
+          type: direct
+        queue:
+          name: test-2-queue
+          routing_key: test-2
 
     test-6-beanstalk:
       driver: beanstalk
@@ -140,4 +147,3 @@ jobs:
     "test-8-kafka",
     "test-9-nats",
   ]
-
