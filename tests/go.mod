@@ -15,10 +15,10 @@ require (
 	github.com/roadrunner-server/goridge/v4 v4.0.0
 	github.com/roadrunner-server/informer/v6 v6.0.0
 	github.com/roadrunner-server/jobs/v6 v6.0.1
-	github.com/roadrunner-server/kafka/v6 v6.0.0
+	github.com/roadrunner-server/kafka/v6 v6.1.0
 	github.com/roadrunner-server/logger/v6 v6.0.0
 	github.com/roadrunner-server/memory/v6 v6.0.0
-	github.com/roadrunner-server/metrics/v6 v6.0.0
+	github.com/roadrunner-server/metrics/v6 v6.1.0
 	github.com/roadrunner-server/nats/v6 v6.0.0
 	github.com/roadrunner-server/pool/v2 v2.0.0
 	github.com/roadrunner-server/resetter/v6 v6.0.0
@@ -41,7 +41,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.21 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.14.6 // indirect
 	github.com/aws/aws-sdk-go-v2/service/signin v1.10.4 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.52.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.52.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.38.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.43.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.51.4 // indirect
@@ -70,7 +70,7 @@ require (
 	github.com/prometheus/client_model v0.6.3 // indirect
 	github.com/prometheus/common v0.72.1 // indirect
 	github.com/prometheus/procfs v0.22.0 // indirect
-	github.com/rabbitmq/amqp091-go v1.15.0 // indirect
+	github.com/rabbitmq/amqp091-go v1.16.0 // indirect
 	github.com/roadrunner-server/errors v1.6.0 // indirect
 	github.com/roadrunner-server/events v1.1.0 // indirect
 	github.com/roadrunner-server/priority_queue v1.1.0 // indirect
@@ -101,6 +101,6 @@ require (
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
-	google.golang.org/genproto v0.0.0-20261012220534-4341edf3f941 // indirect
+	google.golang.org/genproto v0.0.0-20261019180522-ce908d29299b // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 )
