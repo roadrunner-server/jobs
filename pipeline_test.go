@@ -189,6 +189,7 @@ func TestPipelineMap(t *testing.T) {
 		{name: "non string value", pipe: Pipeline{"tags": 10}, decoded: map[string]string{}},
 		{name: "empty string", pipe: Pipeline{"tags": ""}, wantErr: true},
 		{name: "malformed json", pipe: Pipeline{"tags": `{"test"`}, wantErr: true},
+		{name: "duplicate key", pipe: Pipeline{"tags": `{"test":"one","test":"two"}`}, wantErr: true},
 	}
 
 	for _, tt := range tests {

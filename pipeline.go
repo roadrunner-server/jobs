@@ -1,7 +1,7 @@
 package jobs
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"math"
 	"strconv"
 	"unsafe"

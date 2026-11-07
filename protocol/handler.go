@@ -1,7 +1,8 @@
 package protocol
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"log/slog"
 	"sync"
 
@@ -25,7 +26,7 @@ type protocol struct {
 	// message type, see Type
 	T Type `json:"type"`
 	// Payload
-	Data json.RawMessage `json:"data"`
+	Data jsontext.Value `json:"data"`
 }
 
 // Outcome is the result of handling a worker response; the caller uses it to

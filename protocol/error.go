@@ -1,7 +1,7 @@
 package protocol
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 
 	"github.com/roadrunner-server/api-plugins/v6/jobs"
 	"github.com/roadrunner-server/errors"
