@@ -102,15 +102,26 @@ func TestHandleRequeueError(t *testing.T) {
 
 // A response that is not the protocol envelope cannot be acted on.
 func TestHandleMalformedResponse(t *testing.T) {
-	rh := NewResponseHandler(discardLogger())
-	jb := &fakeJob{}
-
-	if _, err := rh.Handle(&payload.Payload{Body: []byte(`not json`)}, jb); err == nil {
-		t.Fatal("expected an error for a body that is not the protocol envelope, got nil")
+	tests := []struct {
+		name string
+		body string
+	}{
+		{name: "invalid json", body: `not json`},
+		{name: "duplicate type", body: `{"type":2,"type":3,"data":{}}`},
+		{name: "duplicate requeue", body: `{"type":1,"data":{"requeue":false,"requeue":true}}`},
 	}
 
-	if jb.acked || jb.nacked || jb.requeued {
-		t.Error("expected the job to be left untouched")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rh := NewResponseHandler(discardLogger())
+			jb := &fakeJob{}
+			if _, err := rh.Handle(&payload.Payload{Body: []byte(tt.body)}, jb); err == nil {
+				t.Fatal("expected an error for an invalid response")
+			}
+			if jb.acked || jb.nacked || jb.requeued {
+				t.Error("invalid response changed the job")
+			}
+		})
 	}
 }
 
