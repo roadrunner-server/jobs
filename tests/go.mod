@@ -74,7 +74,7 @@ require (
 	github.com/rabbitmq/amqp091-go v1.16.0 // indirect
 	github.com/roadrunner-server/errors v1.6.0 // indirect
 	github.com/roadrunner-server/events v1.1.0 // indirect
-	github.com/roadrunner-server/priority_queue v1.1.0 // indirect
+	github.com/roadrunner-server/priority_queue v1.2.0 // indirect
 	github.com/roadrunner-server/tcplisten v1.6.1 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect
 	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
