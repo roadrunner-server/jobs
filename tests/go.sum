@@ -126,8 +126,8 @@ github.com/roadrunner-server/nats/v6 v6.0.0 h1:7Y9GcK5iD/s14iBsI7VNGsubKrnfGDqPF
 github.com/roadrunner-server/nats/v6 v6.0.0/go.mod h1:DjsZ84Il3C7hmMlkupCTOftbYnEBNlfl5GDArUjdTL0=
 github.com/roadrunner-server/pool/v2 v2.0.0 h1:rtxGvX6jt/WfSmNuV9zCOZ3NKdEGa/aTxpVPD14uHrU=
 github.com/roadrunner-server/pool/v2 v2.0.0/go.mod h1:DVi2a3IAqy/hQin8V3EJjmEOLPqS/sI2q3bQL8Qd0OY=
-github.com/roadrunner-server/priority_queue v1.1.0 h1:ecZfrLy7mq4E/yeI5KrXKPwM7jp8j3jUyMGf1IGB9IA=
-github.com/roadrunner-server/priority_queue v1.1.0/go.mod h1:1zWE7phLEfzC/j+SD49xIi3cvSNW/+6KGka278QCriI=
+github.com/roadrunner-server/priority_queue v1.2.0 h1:d886ba17GnE2WQ8NI+bwPNpyyqbqbV99tOSiMXheykI=
+github.com/roadrunner-server/priority_queue v1.2.0/go.mod h1:sjFW0tQK3NSdiPFmuUty0fMydHGg50YoMjfN/EpZIdw=
 github.com/roadrunner-server/resetter/v6 v6.0.0 h1:EIsV+ycJ1309CoyO1NcSNKGzbeRnIhGsQaVP30XxQh0=
 github.com/roadrunner-server/resetter/v6 v6.0.0/go.mod h1:JtohrcwpIM+Hx8b0vn1T3DIn1v4o7XgI6sG8IpAiEdU=
 github.com/roadrunner-server/rpc/v6 v6.0.0 h1:B63RuOl3Md+X8qooXXICBTSnNQNOkOvyuPQ/CU8QpI0=
