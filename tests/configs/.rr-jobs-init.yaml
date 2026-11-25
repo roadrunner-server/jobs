@@ -65,7 +65,7 @@ jobs:
       driver: amqp
       config:
         connection: rabbitmq
-        prefetch: 1000000
+        prefetch: 1
         priority: 1
         exchange:
           name: default
@@ -79,7 +79,7 @@ jobs:
       config:
         connection: rabbitmq
         priority: 2
-        prefetch: 1000000
+        prefetch: 1
         exchange:
           name: default
           type: direct
