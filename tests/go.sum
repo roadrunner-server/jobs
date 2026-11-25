@@ -116,8 +116,8 @@ github.com/roadrunner-server/informer/v6 v6.0.0 h1:h4J1fvbUYJJQ9pxIFw2BCAjFCGOr8
 github.com/roadrunner-server/informer/v6 v6.0.0/go.mod h1:289u6hnZCwzHSR+V1OIYkPScC0Zbb2lKKoNDgpSfZqg=
 github.com/roadrunner-server/kafka/v6 v6.1.0 h1:NuNEOuoXJQdNjnAwdPypUDuk5CD0Hd9zdESlpyuuJtg=
 github.com/roadrunner-server/kafka/v6 v6.1.0/go.mod h1:JU4ChdS9teg41Itt3+acRMDVtWSey7YIne225U02i+w=
-github.com/roadrunner-server/logger/v6 v6.0.0 h1:Un2RXNVlr7LzJlg/loDHhZ0bgapEHmtC07ZRpSrj4QE=
-github.com/roadrunner-server/logger/v6 v6.0.0/go.mod h1:9XfvwsrAf+lwfdX7ODauGPUQt5cePgwdOUj5gDQ3UxU=
+github.com/roadrunner-server/logger/v6 v6.0.1 h1:7X5iBGQyDigxSiu/yYRlhBdOmDXk0riWW1hRdaPFo/s=
+github.com/roadrunner-server/logger/v6 v6.0.1/go.mod h1:jios7/abDpMj3bwvT7pn/KBaFxy/0+IQth4PMzjHbBU=
 github.com/roadrunner-server/memory/v6 v6.0.0 h1:5HFrwGkkxxBzmR7MDkknm2zcj2jMvOROQ54T76uREXQ=
 github.com/roadrunner-server/memory/v6 v6.0.0/go.mod h1:vcHT6CNsejWgDJINE2/wAIUrMNxgNDiLL1n6509/jc4=
 github.com/roadrunner-server/metrics/v6 v6.1.0 h1:eKoKS49SxZdTUn70Csew+ol39woMHZbfN8TnblGL3bE=

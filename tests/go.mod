@@ -16,7 +16,7 @@ require (
 	github.com/roadrunner-server/informer/v6 v6.0.0
 	github.com/roadrunner-server/jobs/v6 v6.0.1
 	github.com/roadrunner-server/kafka/v6 v6.1.0
-	github.com/roadrunner-server/logger/v6 v6.0.0
+	github.com/roadrunner-server/logger/v6 v6.0.1
 	github.com/roadrunner-server/memory/v6 v6.0.0
 	github.com/roadrunner-server/metrics/v6 v6.1.0
 	github.com/roadrunner-server/nats/v6 v6.0.0
