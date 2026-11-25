@@ -65,7 +65,7 @@ jobs:
       driver: amqp
       config:
         connection: rabbitmq
-        prefetch: 1000000
+        prefetch: 1
         priority: 1
         exchange:
           name: default
@@ -73,19 +73,21 @@ jobs:
         queue:
           name: test-1-queue
           routing_key: test
+          durable: true
 
     test-5-amqp:
       driver: amqp
       config:
         connection: rabbitmq
         priority: 2
-        prefetch: 1000000
+        prefetch: 1
         exchange:
           name: default
           type: direct
         queue:
           name: test-2-queue
           routing_key: test-2
+          durable: true
 
     test-6-beanstalk:
       driver: beanstalk

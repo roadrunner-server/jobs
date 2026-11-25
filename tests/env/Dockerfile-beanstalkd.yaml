@@ -1,14 +1,6 @@
-FROM ubuntu:24.04
+FROM ubuntu:26.04
 
-ARG DEBIAN_FRONTEND=noninteractive
-
-RUN apt-get update && apt-get install -y curl build-essential pkg-config
-
-RUN curl -sL https://github.com/kr/beanstalkd/archive/v1.13.tar.gz | tar xvz -C /tmp
-
-WORKDIR /tmp/beanstalkd-1.13
-RUN make
-RUN cp beanstalkd /usr/bin
+RUN apt-get update && apt-get install -y --no-install-recommends beanstalkd && rm -rf /var/lib/apt/lists/*
 
 EXPOSE 11300
 ENTRYPOINT ["/usr/bin/beanstalkd"]

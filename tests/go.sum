@@ -116,8 +116,8 @@ github.com/roadrunner-server/informer/v6 v6.0.0 h1:h4J1fvbUYJJQ9pxIFw2BCAjFCGOr8
 github.com/roadrunner-server/informer/v6 v6.0.0/go.mod h1:289u6hnZCwzHSR+V1OIYkPScC0Zbb2lKKoNDgpSfZqg=
 github.com/roadrunner-server/kafka/v6 v6.1.0 h1:NuNEOuoXJQdNjnAwdPypUDuk5CD0Hd9zdESlpyuuJtg=
 github.com/roadrunner-server/kafka/v6 v6.1.0/go.mod h1:JU4ChdS9teg41Itt3+acRMDVtWSey7YIne225U02i+w=
-github.com/roadrunner-server/logger/v6 v6.0.0 h1:Un2RXNVlr7LzJlg/loDHhZ0bgapEHmtC07ZRpSrj4QE=
-github.com/roadrunner-server/logger/v6 v6.0.0/go.mod h1:9XfvwsrAf+lwfdX7ODauGPUQt5cePgwdOUj5gDQ3UxU=
+github.com/roadrunner-server/logger/v6 v6.0.1 h1:7X5iBGQyDigxSiu/yYRlhBdOmDXk0riWW1hRdaPFo/s=
+github.com/roadrunner-server/logger/v6 v6.0.1/go.mod h1:jios7/abDpMj3bwvT7pn/KBaFxy/0+IQth4PMzjHbBU=
 github.com/roadrunner-server/memory/v6 v6.0.0 h1:5HFrwGkkxxBzmR7MDkknm2zcj2jMvOROQ54T76uREXQ=
 github.com/roadrunner-server/memory/v6 v6.0.0/go.mod h1:vcHT6CNsejWgDJINE2/wAIUrMNxgNDiLL1n6509/jc4=
 github.com/roadrunner-server/metrics/v6 v6.1.0 h1:eKoKS49SxZdTUn70Csew+ol39woMHZbfN8TnblGL3bE=
@@ -189,6 +189,7 @@ go.uber.org/multierr v1.11.0/go.mod h1:20+QtiLqy0Nd6FdQB9TLXag12DsQkrbs3htMFfDN8
 go.uber.org/zap v1.28.0 h1:IZzaP1Fv73/T/pBMLk4VutPl36uNC+OSUh3JLG3FIjo=
 go.uber.org/zap v1.28.0/go.mod h1:rDLpOi171uODNm/mxFcuYWxDsqWSAVkFdX4XojSKg/Q=
 go.yaml.in/yaml/v2 v2.4.5 h1:a5nxWvYi94DRl6QSLlTbLpVmutgx2qg8EVjnJtuFpwI=
+go.yaml.in/yaml/v2 v2.4.5/go.mod h1:gMZqIpDtDqOfM0uNfy0SkpRhvUryYH0Z6wdMYcacYXQ=
 go.yaml.in/yaml/v3 v3.0.6 h1:zcDfvjXEqTQmpjniUBLc91xYJMB2c4QOFxEF/LCEckM=
 go.yaml.in/yaml/v3 v3.0.6/go.mod h1:HVTZu1O7/Vkt2N+BFy8Zza+lnLsABggaTM2ZpNIGuKg=
 golang.org/x/crypto v0.59.0 h1:xS2jhqYbzNrpvkWP2YTDf4TJwBy3ykR03i8vFDxEc7c=
