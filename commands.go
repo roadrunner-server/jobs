@@ -84,7 +84,8 @@ func (p *Plugin) readCommands(errCh chan error) {
 						p.log.Error("failed to restart the pipeline", "error", err, "pipeline", pipeline)
 						span.RecordError(err)
 						span.End()
-						continue
+						errCh <- fmt.Errorf("failed to restart the pipeline %s: %w", pipeline, err)
+						return
 					}
 					restartCancel()
 					// TIP: Do not need to store the pipeline and consumer, as it was done in the Declare

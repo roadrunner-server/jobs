@@ -119,23 +119,80 @@ func TestReadCommandsRestartConfiguredPipeline(t *testing.T) {
 	assert.Equal(t, 1, jc.fromConfig)
 }
 
-// A pipeline the processor cannot rebuild takes RoadRunner down.
+// A pipeline that cannot be rebuilt stops the server through the service error channel.
 func TestReadCommandsRestartFailureStopsTheServer(t *testing.T) {
-	p := newTestPlugin(t, &Config{})
-	jc := &fakeConstructor{name: "memory", driver: &fakeDriver{}, initErr: stderr.New("connect failed")}
-	p.jobConstructors["memory"] = jc
+	tests := []struct {
+		name               string
+		fromConfig         bool
+		resumeBefore       bool
+		restartInitErr     error
+		restartRunErr      error
+		wantErr            string
+		wantReplacementDrv bool
+	}{
+		{
+			name:           "configured pipeline constructor error",
+			fromConfig:     true,
+			restartInitErr: stderr.New("connect failed"),
+			wantErr:        "connect failed",
+		},
+		{
+			name:           "declared pipeline constructor error",
+			restartInitErr: stderr.New("broker unavailable"),
+			wantErr:        "broker unavailable",
+		},
+		{
+			name:               "declared pipeline run error",
+			resumeBefore:       true,
+			restartRunErr:      stderr.New("consume failed"),
+			wantErr:            "consume failed",
+			wantReplacementDrv: true,
+		},
+	}
 
-	pipe := Pipeline{"name": "test-1-memory", "driver": "memory"}
-	pipe.With(createdWithConfig, "jobs.pipelines.test-1-memory.config")
-	p.pipelines.Store("test-1-memory", pipe)
-	p.consumers.Store("test-1-memory", jobsApi.Driver(jc.driver))
+	for i := range tests {
+		tc := tests[i]
+		t.Run(tc.name, func(t *testing.T) {
+			p := newTestPlugin(t, &Config{})
+			jc := &seqConstructor{name: "memory"}
+			p.jobConstructors["memory"] = jc
 
-	errCh, _ := startCommands(t, p)
+			var initialDrv *fakeDriver
+			if tc.fromConfig {
+				initialDrv = jc.nextDriver()
+				pipe := Pipeline{"name": "test-1-memory", "driver": "memory"}
+				pipe.With(createdWithConfig, "jobs.pipelines.test-1-memory.config")
+				p.pipelines.Store("test-1-memory", pipe)
+				p.consumers.Store("test-1-memory", jobsApi.Driver(initialDrv))
+			} else {
+				require.NoError(t, p.Declare(t.Context(), Pipeline{"name": "test-1-memory", "driver": "memory"}))
+				require.Len(t, jc.drivers, 1)
+				initialDrv = jc.drivers[0]
+			}
 
-	p.eventsCh <- driverCommand(t, "test-1-memory", restartSrt)
+			if tc.resumeBefore {
+				require.NoError(t, p.Resume(t.Context(), "test-1-memory"))
+			}
 
-	err := <-errCh
-	require.ErrorContains(t, err, "connect failed")
+			jc.nextInitErr = tc.restartInitErr
+			jc.nextRunErr = tc.restartRunErr
+
+			errCh, join := startCommands(t, p)
+
+			p.eventsCh <- driverCommand(t, "test-1-memory", restartSrt)
+			join()
+
+			require.Len(t, errCh, 1)
+			err := <-errCh
+			require.ErrorContains(t, err, tc.wantErr)
+			assert.Empty(t, p.List())
+			assert.Equal(t, 1, initialDrv.Stops())
+			if tc.wantReplacementDrv {
+				require.Len(t, jc.drivers, 2)
+				assert.Equal(t, 1, jc.drivers[1].Stops())
+			}
+		})
+	}
 }
 
 // A pipeline restored by neither route is only logged.
@@ -168,15 +225,18 @@ func TestReadCommandsStopsOnSignal(t *testing.T) {
 type seqConstructor struct {
 	name string
 
-	mu      sync.Mutex
-	drivers []*fakeDriver
+	mu          sync.Mutex
+	nextInitErr error
+	nextRunErr  error
+	drivers     []*fakeDriver
 }
 
 func (s *seqConstructor) Name() string { return s.name }
 
 func (s *seqConstructor) nextDriver() *fakeDriver {
-	drv := &fakeDriver{state: &jobsApi.State{}}
 	s.mu.Lock()
+	runErr := s.nextRunErr
+	drv := &fakeDriver{state: &jobsApi.State{}, runErr: runErr}
 	s.drivers = append(s.drivers, drv)
 	s.mu.Unlock()
 
@@ -184,10 +244,24 @@ func (s *seqConstructor) nextDriver() *fakeDriver {
 }
 
 func (s *seqConstructor) DriverFromConfig(_ context.Context, _ string, _ jobsApi.Queue, _ jobsApi.Pipeline) (jobsApi.Driver, error) {
+	s.mu.Lock()
+	err := s.nextInitErr
+	s.mu.Unlock()
+	if err != nil {
+		return nil, err
+	}
+
 	return s.nextDriver(), nil
 }
 
 func (s *seqConstructor) DriverFromPipeline(_ context.Context, _ jobsApi.Pipeline, _ jobsApi.Queue) (jobsApi.Driver, error) {
+	s.mu.Lock()
+	err := s.nextInitErr
+	s.mu.Unlock()
+	if err != nil {
+		return nil, err
+	}
+
 	return s.nextDriver(), nil
 }
 
