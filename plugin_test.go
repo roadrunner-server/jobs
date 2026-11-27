@@ -163,10 +163,13 @@ func TestPluginDeclare(t *testing.T) {
 
 	t.Run("run error", func(t *testing.T) {
 		p := newTestPlugin(t, &Config{Consume: []string{"test-1-memory"}})
-		p.jobConstructors["memory"] = &fakeConstructor{name: "memory", driver: &fakeDriver{runErr: stderr.New("consume failed")}}
+		drv := &fakeDriver{runErr: stderr.New("consume failed")}
+		p.jobConstructors["memory"] = &fakeConstructor{name: "memory", driver: drv}
 
 		err := p.Declare(t.Context(), Pipeline{name: "test-1-memory", driver: "memory"})
 		require.ErrorContains(t, err, "consume failed")
+		assert.Equal(t, 1, drv.Stops())
+		assert.Empty(t, p.List())
 	})
 
 	// an unparsable priority is logged and replaced by the default
