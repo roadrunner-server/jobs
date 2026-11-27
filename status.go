@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/roadrunner-server/api-plugins/v6/status"
-	"github.com/roadrunner-server/pool/v2/fsm"
 	"github.com/roadrunner-server/pool/v2/worker"
 )
 
@@ -27,25 +26,9 @@ func (p *Plugin) Status() (*status.Status, error) {
 	}, nil
 }
 
-// Ready return readiness status of the particular plugin
+// Ready returns readiness status of the particular plugin.
 func (p *Plugin) Ready() (*status.Status, error) {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-
-	allWorkers := p.allPoolWorkers()
-	for i := range allWorkers {
-		// If state of the worker is ready (at least 1)
-		// we assume, that plugin's worker pool is ready
-		if allWorkers[i].State().Compare(fsm.StateReady) {
-			return &status.Status{
-				Code: http.StatusOK,
-			}, nil
-		}
-	}
-	// if there are no workers, threat this as no content error
-	return &status.Status{
-		Code: http.StatusServiceUnavailable,
-	}, nil
+	return p.Status()
 }
 
 // allPoolWorkers returns workers from either the single pool or all named pools.
@@ -54,6 +37,9 @@ func (p *Plugin) allPoolWorkers() []*worker.Process {
 	if len(p.workersPools) > 0 {
 		var all []*worker.Process
 		for _, wp := range p.workersPools {
+			if wp == nil {
+				continue
+			}
 			all = append(all, wp.Workers()...)
 		}
 		return all

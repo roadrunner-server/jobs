@@ -59,13 +59,13 @@ func TestPluginStatusAndReady(t *testing.T) {
 			readyCode:  http.StatusOK,
 		},
 		{
-			// a busy worker is active but not ready, which is what separates the two
+			// An active working worker satisfies both status and readiness.
 			name: "working worker",
 			plugin: func(t *testing.T) *Plugin {
 				return &Plugin{workersPool: &fakePool{workers: []*worker.Process{newWorkerInState(t, fsm.StateWorking)}}}
 			},
 			statusCode: http.StatusOK,
-			readyCode:  http.StatusServiceUnavailable,
+			readyCode:  http.StatusOK,
 		},
 		{
 			name: "named pools are walked as one",
@@ -77,6 +77,27 @@ func TestPluginStatusAndReady(t *testing.T) {
 			},
 			statusCode: http.StatusOK,
 			readyCode:  http.StatusOK,
+		},
+		{
+			name: "named pools with working worker",
+			plugin: func(t *testing.T) *Plugin {
+				return &Plugin{workersPools: map[string]Pool{
+					"default": &fakePool{},
+					"high":    &fakePool{workers: []*worker.Process{newWorkerInState(t, fsm.StateWorking)}},
+				}}
+			},
+			statusCode: http.StatusOK,
+			readyCode:  http.StatusOK,
+		},
+		{
+			name: "named pools with nil entry",
+			plugin: func(*testing.T) *Plugin {
+				return &Plugin{workersPools: map[string]Pool{
+					"default": nil,
+				}}
+			},
+			statusCode: http.StatusServiceUnavailable,
+			readyCode:  http.StatusServiceUnavailable,
 		},
 	}
 
