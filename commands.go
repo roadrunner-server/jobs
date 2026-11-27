@@ -80,6 +80,7 @@ func (p *Plugin) readCommands(errCh chan error) {
 					err = p.Declare(restartCtx, pipe)
 					if err != nil {
 						restartCancel()
+						p.active.Delete(pipeline)
 						p.log.Error("failed to restart the pipeline", "error", err, "pipeline", pipeline)
 						span.RecordError(err)
 						span.End()
@@ -111,6 +112,7 @@ func (p *Plugin) readCommands(errCh chan error) {
 					p.pipelines.Store(pipeline, pipe)
 				} else {
 					restartCancel()
+					p.active.Delete(pipeline)
 					p.log.Warn("unknown pipeline creation method", "pipeline", pipeline)
 				}
 

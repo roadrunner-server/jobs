@@ -68,6 +68,8 @@ type Plugin struct {
 
 	// initial set of the pipelines to consume
 	consume map[string]struct{}
+	// intended active state set by Resume and Pause, overriding consume across restarts
+	active sync.Map
 
 	// signal channel to stop the pollers
 	stopCh chan struct{}
@@ -131,7 +133,7 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 	// initialize priority queue
 	p.queue = pqImpl.NewBinHeap[jobsApi.Job](p.cfg.PipelineSize)
 	p.log = log.NamedLogger(PluginName)
-	p.jobsProcessor = newPipesProc(p.log, &p.consumers, p.consume, p.cfg.CfgOptions.Parallelism)
+	p.jobsProcessor = newPipesProc(p.log, &p.consumers, p.shouldConsume, p.cfg.CfgOptions.Parallelism)
 	p.tracer = sdktrace.NewTracerProvider()
 
 	// collector
@@ -307,6 +309,7 @@ func (p *Plugin) Stop(ctx context.Context) error {
 
 	p.pipelines.Clear()
 	p.consumers.Clear()
+	p.active.Clear()
 
 	return nil
 }
@@ -528,7 +531,13 @@ func (p *Plugin) Pause(ctx context.Context, pp string) error {
 	ctx, cancel := context.WithTimeout(ctx, p.cfg.TimeoutDuration())
 	defer cancel()
 	// redirect call to the underlying driver
-	return d.Pause(ctx, ppl.Name())
+	err = d.Pause(ctx, ppl.Name())
+	if err != nil {
+		return err
+	}
+
+	p.active.Store(ppl.Name(), false)
+	return nil
 }
 
 // Resume restarts job consumption for a previously paused pipeline.
@@ -541,7 +550,22 @@ func (p *Plugin) Resume(ctx context.Context, pp string) error {
 	ctx, cancel := context.WithTimeout(ctx, p.cfg.TimeoutDuration())
 	defer cancel()
 	// redirect call to the underlying driver
-	return d.Resume(ctx, ppl.Name())
+	err = d.Resume(ctx, ppl.Name())
+	if err != nil {
+		return err
+	}
+
+	p.active.Store(ppl.Name(), true)
+	return nil
+}
+
+func (p *Plugin) shouldConsume(name string) bool {
+	if v, ok := p.active.Load(name); ok {
+		return v.(bool)
+	}
+
+	_, ok := p.consume[name]
+	return ok
 }
 
 // Declare dynamically registers a new pipeline at runtime, initializing its driver and starting consumption.
@@ -591,7 +615,7 @@ func (p *Plugin) Declare(ctx context.Context, pipeline jobsApi.Pipeline) error {
 
 	// if a pipeline initialized to be consumed, call Run on it,
 	// but likely for the dynamic pipelines it should be started manually
-	if _, ok := p.consume[pipeline.Name()]; ok {
+	if p.shouldConsume(pipeline.Name()) {
 		ctxDeclare, cancel := context.WithTimeout(ctx, p.cfg.TimeoutDuration())
 		err = initializedDriver.Run(ctxDeclare, pipeline)
 		cancel()
@@ -637,6 +661,7 @@ func (p *Plugin) Destroy(ctx context.Context, pp string) error {
 
 	// delete old pipeline
 	p.pipelines.Delete(pp)
+	p.active.Delete(ppl.Name())
 
 	ctx, cancel := context.WithTimeout(ctx, p.cfg.TimeoutDuration())
 	err := d.(jobsApi.Driver).Stop(ctx)

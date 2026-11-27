@@ -1,6 +1,7 @@
 package jobs
 
 import (
+	"context"
 	stderr "errors"
 	"sync"
 	"testing"
@@ -162,4 +163,147 @@ func TestReadCommandsStopsOnSignal(t *testing.T) {
 	requireReturns(t, func() { p.readCommands(errCh) })
 
 	assert.Empty(t, errCh)
+}
+
+type seqConstructor struct {
+	name string
+
+	mu      sync.Mutex
+	drivers []*fakeDriver
+}
+
+func (s *seqConstructor) Name() string { return s.name }
+
+func (s *seqConstructor) nextDriver() *fakeDriver {
+	drv := &fakeDriver{state: &jobsApi.State{}}
+	s.mu.Lock()
+	s.drivers = append(s.drivers, drv)
+	s.mu.Unlock()
+
+	return drv
+}
+
+func (s *seqConstructor) DriverFromConfig(_ context.Context, _ string, _ jobsApi.Queue, _ jobsApi.Pipeline) (jobsApi.Driver, error) {
+	return s.nextDriver(), nil
+}
+
+func (s *seqConstructor) DriverFromPipeline(_ context.Context, _ jobsApi.Pipeline, _ jobsApi.Queue) (jobsApi.Driver, error) {
+	return s.nextDriver(), nil
+}
+
+func TestReadCommandsRestartRestoresRunningState(t *testing.T) {
+	tests := []struct {
+		name                string
+		fromConfig          bool
+		consume             []string
+		resumeBeforeRestart bool
+		pauseBeforeRestart  bool
+		readyAtFailure      bool
+		wantReplacementRuns int
+	}{
+		{
+			name:                "declared pipeline never resumed stays inactive",
+			wantReplacementRuns: 0,
+		},
+		{
+			name:                "declared pipeline resumed with ready true restarts running",
+			resumeBeforeRestart: true,
+			readyAtFailure:      true,
+			wantReplacementRuns: 1,
+		},
+		{
+			name:                "declared pipeline resumed with ready false at failure restarts running",
+			resumeBeforeRestart: true,
+			readyAtFailure:      false,
+			wantReplacementRuns: 1,
+		},
+		{
+			name:                "declared pipeline resumed then paused stays inactive",
+			resumeBeforeRestart: true,
+			pauseBeforeRestart:  true,
+			wantReplacementRuns: 0,
+		},
+		{
+			name:                "declared pipeline in consume stays running",
+			consume:             []string{"stand"},
+			wantReplacementRuns: 1,
+		},
+		{
+			name:                "declared pipeline in consume then paused stays inactive",
+			consume:             []string{"stand"},
+			pauseBeforeRestart:  true,
+			wantReplacementRuns: 0,
+		},
+		{
+			name:                "configured pipeline not in consume then resumed restarts running",
+			fromConfig:          true,
+			resumeBeforeRestart: true,
+			wantReplacementRuns: 1,
+		},
+		{
+			name:                "configured pipeline in consume then paused stays inactive",
+			fromConfig:          true,
+			consume:             []string{"stand"},
+			pauseBeforeRestart:  true,
+			wantReplacementRuns: 0,
+		},
+	}
+
+	for i := range tests {
+		tc := tests[i]
+		t.Run(tc.name, func(t *testing.T) {
+			p := newTestPlugin(t, &Config{Consume: tc.consume})
+			jc := &seqConstructor{name: "memory"}
+			p.jobConstructors["memory"] = jc
+
+			var initialDrv *fakeDriver
+			if tc.fromConfig {
+				initialDrv = jc.nextDriver()
+				pipe := Pipeline{"name": "stand", "driver": "memory"}
+				pipe.With(createdWithConfig, "jobs.pipelines.stand.config")
+				p.pipelines.Store("stand", pipe)
+				p.consumers.Store("stand", jobsApi.Driver(initialDrv))
+			} else {
+				require.NoError(t, p.Declare(t.Context(), Pipeline{"name": "stand", "driver": "memory"}))
+				require.Len(t, jc.drivers, 1)
+				initialDrv = jc.drivers[0]
+			}
+
+			if tc.resumeBeforeRestart {
+				require.NoError(t, p.Resume(t.Context(), "stand"))
+			}
+			if tc.pauseBeforeRestart {
+				require.NoError(t, p.Pause(t.Context(), "stand"))
+			}
+
+			initialDrv.state = &jobsApi.State{Pipeline: "stand", Driver: "memory", Ready: tc.readyAtFailure}
+
+			errCh, join := startCommands(t, p)
+			p.eventsCh <- driverCommand(t, "stand", restartSrt)
+			join()
+
+			assert.Empty(t, errCh)
+			assert.Equal(t, []string{"stand"}, p.List())
+			assert.Equal(t, 1, initialDrv.Stops())
+			require.Len(t, jc.drivers, 2)
+
+			replacementDrv := jc.drivers[1]
+			assert.Equal(t, tc.wantReplacementRuns, replacementDrv.Runs())
+			assert.Empty(t, replacementDrv.Resumed())
+		})
+	}
+}
+
+func TestDestroyResetsIntendedActiveState(t *testing.T) {
+	p := newTestPlugin(t, &Config{})
+	jc := &seqConstructor{name: "memory"}
+	p.jobConstructors["memory"] = jc
+
+	require.NoError(t, p.Declare(t.Context(), Pipeline{"name": "stand", "driver": "memory"}))
+	require.NoError(t, p.Resume(t.Context(), "stand"))
+	require.NoError(t, p.Destroy(t.Context(), "stand"))
+
+	require.NoError(t, p.Declare(t.Context(), Pipeline{"name": "stand", "driver": "memory"}))
+	require.Len(t, jc.drivers, 2)
+	assert.Zero(t, jc.drivers[1].Runs())
 }
