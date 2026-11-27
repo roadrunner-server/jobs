@@ -5,9 +5,11 @@ import (
 	"time"
 
 	"github.com/roadrunner-server/api-plugins/v6/jobs"
+	"github.com/roadrunner-server/errors"
 	"github.com/roadrunner-server/goridge/v4/pkg/frame"
 	rh "github.com/roadrunner-server/jobs/v6/protocol"
 	"github.com/roadrunner-server/pool/v2/payload"
+	staticPool "github.com/roadrunner-server/pool/v2/pool/static_pool"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
@@ -111,11 +113,21 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 	// get payload from the sync.Pool
 	exec := p.payload(jb.Body(), pldCtx)
 
-	// protect from the pool reset
-	// TODO: use a structure with pool and mutex to protect the particular pool
-	p.mu.RLock()
-	re, err := pool.Exec(p.execCtx, exec, nil)
-	p.mu.RUnlock()
+	var re chan *staticPool.PExec
+	var err error
+	for {
+		// protect from the pool reset
+		// TODO: use a structure with pool and mutex to protect the particular pool
+		p.mu.RLock()
+		re, err = pool.Exec(p.execCtx, exec, nil)
+		p.mu.RUnlock()
+
+		// Keep unstarted jobs in the poller under worker saturation until a worker frees up or Stop runs.
+		if err != nil && errors.Is(errors.NoFreeWorkers, err) && !p.stopping.Load() && p.execCtx.Err() == nil {
+			continue
+		}
+		break
+	}
 
 	if err != nil {
 		p.metrics.CountJobErr()
