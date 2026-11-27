@@ -226,21 +226,22 @@ func (p *Plugin) Serve() chan error {
 	if p.cfg.Pools != nil {
 		p.workersPools = make(map[string]Pool, len(p.cfg.Pools))
 		for poolName, poolCfg := range p.cfg.Pools {
-			p.workersPools[poolName], err = p.server.NewPool(context.Background(), poolCfg, map[string]string{RrMode: RrModeJobs}, nil)
-			if err != nil {
+			wp, poolErr := p.server.NewPool(context.Background(), poolCfg, map[string]string{RrMode: RrModeJobs}, nil)
+			if poolErr != nil {
 				p.mu.Unlock()
-				errCh <- errors.E(op, err)
+				errCh <- errors.E(op, poolErr)
 				return errCh
 			}
+			p.workersPools[poolName] = wp
 		}
 	} else {
-		p.workersPool, err = p.server.NewPool(context.Background(), p.cfg.Pool, map[string]string{RrMode: RrModeJobs}, nil)
-	}
-
-	if err != nil {
-		p.mu.Unlock()
-		errCh <- errors.E(op, err)
-		return errCh
+		wp, poolErr := p.server.NewPool(context.Background(), p.cfg.Pool, map[string]string{RrMode: RrModeJobs}, nil)
+		if poolErr != nil {
+			p.mu.Unlock()
+			errCh <- errors.E(op, poolErr)
+			return errCh
+		}
+		p.workersPool = wp
 	}
 
 	// start listening
