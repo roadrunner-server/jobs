@@ -1,12 +1,18 @@
 package jobs
 
 import (
+	"context"
 	stderr "errors"
+	"sync"
 	"testing"
+	"time"
 
 	jobsApi "github.com/roadrunner-server/api-plugins/v6/jobs"
 	"github.com/roadrunner-server/errors"
+	"github.com/roadrunner-server/pool/v2/payload"
 	poolImpl "github.com/roadrunner-server/pool/v2/pool"
+	staticPool "github.com/roadrunner-server/pool/v2/pool/static_pool"
+	"github.com/roadrunner-server/pool/v2/worker"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -345,4 +351,210 @@ func TestPluginJobsState(t *testing.T) {
 		_, err := p.JobsState(t.Context())
 		require.ErrorContains(t, err, "broker unreachable")
 	})
+}
+
+type blockingPool struct {
+	entered     chan struct{}
+	enterOnce   sync.Once
+	destroyCh   chan struct{}
+	destroyOnce sync.Once
+	finishEarly chan struct{}
+	waitOnCtx   bool
+
+	mu                     sync.Mutex
+	execCtx                context.Context
+	destroyed              int
+	ctxCanceledBeforeDestr bool
+	ctxErrAtFinish         error
+	destroyedAtFinish      int
+}
+
+func newBlockingPool(waitOnCtx bool, finishEarly chan struct{}) *blockingPool {
+	return &blockingPool{
+		entered:     make(chan struct{}),
+		destroyCh:   make(chan struct{}),
+		finishEarly: finishEarly,
+		waitOnCtx:   waitOnCtx,
+	}
+}
+
+func (b *blockingPool) Workers() []*worker.Process         { return nil }
+func (b *blockingPool) AddWorker() error                   { return nil }
+func (b *blockingPool) RemoveWorker(context.Context) error { return nil }
+func (b *blockingPool) Reset(context.Context) error        { return nil }
+
+func (b *blockingPool) Exec(ctx context.Context, _ *payload.Payload, _ chan struct{}) (chan *staticPool.PExec, error) {
+	b.mu.Lock()
+	b.execCtx = ctx
+	b.mu.Unlock()
+	b.enterOnce.Do(func() { close(b.entered) })
+
+	if b.finishEarly != nil {
+		<-b.finishEarly
+		b.mu.Lock()
+		b.ctxErrAtFinish = ctx.Err()
+		b.destroyedAtFinish = b.destroyed
+		b.mu.Unlock()
+		return nil, stderr.New("finished during grace")
+	}
+
+	if b.waitOnCtx {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-b.destroyCh:
+			return nil, stderr.New("destroyed before exec context canceled")
+		}
+	}
+
+	<-b.destroyCh
+	return nil, stderr.New("worker killed by destroy")
+}
+
+func (b *blockingPool) Destroy(_ context.Context) {
+	b.mu.Lock()
+	b.destroyed++
+	if b.execCtx != nil && b.execCtx.Err() != nil {
+		b.ctxCanceledBeforeDestr = true
+	}
+	b.mu.Unlock()
+	b.destroyOnce.Do(func() { close(b.destroyCh) })
+}
+
+func (b *blockingPool) release() {
+	b.destroyOnce.Do(func() { close(b.destroyCh) })
+}
+
+func (b *blockingPool) Destroyed() int {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.destroyed
+}
+
+func (b *blockingPool) CtxCanceledBeforeDestroy() bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.ctxCanceledBeforeDestr
+}
+
+func (b *blockingPool) FinishState() (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.destroyedAtFinish, b.ctxErrAtFinish
+}
+
+func TestPluginStopDestroysPoolsWhileExecuteIsBlocked(t *testing.T) {
+	tests := []struct {
+		name                         string
+		namedPools                   bool
+		waitOnCtx                    bool
+		finishDuringGrace            bool
+		grace                        time.Duration
+		wantCtxCanceledBeforeDestroy bool
+	}{
+		{
+			name:                         "single pool with handler blocked past grace",
+			grace:                        50 * time.Millisecond,
+			wantCtxCanceledBeforeDestroy: true,
+		},
+		{
+			name:                         "named pools with handler blocked past grace",
+			namedPools:                   true,
+			grace:                        50 * time.Millisecond,
+			wantCtxCanceledBeforeDestroy: true,
+		},
+		{
+			name:                         "poller waiting on exec context is canceled before pool destroy",
+			waitOnCtx:                    true,
+			grace:                        50 * time.Millisecond,
+			wantCtxCanceledBeforeDestroy: true,
+		},
+		{
+			name:                         "handler finishing within grace completes before destroy",
+			finishDuringGrace:            true,
+			grace:                        time.Second,
+			wantCtxCanceledBeforeDestroy: true,
+		},
+	}
+
+	for i := range tests {
+		tc := tests[i]
+		t.Run(tc.name, func(t *testing.T) {
+			p := newTestPlugin(t, &Config{})
+
+			var finishCh chan struct{}
+			if tc.finishDuringGrace {
+				finishCh = make(chan struct{})
+			}
+
+			bp := newBlockingPool(tc.waitOnCtx, finishCh)
+			var secondary *blockingPool
+			if tc.namedPools {
+				secondary = newBlockingPool(false, nil)
+				p.workersPools = map[string]Pool{
+					"default": bp,
+					"high":    secondary,
+				}
+			} else {
+				p.workersPool = bp
+			}
+
+			jb := &fakeJob{id: "job-1", body: []byte("body")}
+			execDone := make(chan struct{})
+			p.pollersWg.Go(func() {
+				defer close(execDone)
+				p.Execute([]byte("ctx"), bp, jb, testSpan(p), time.Now().UTC())
+			})
+
+			<-bp.entered
+
+			graceCtx, cancel := context.WithTimeout(t.Context(), tc.grace)
+			defer cancel()
+
+			stopDone := make(chan error, 1)
+			go func() {
+				stopDone <- p.Stop(graceCtx)
+			}()
+
+			if tc.finishDuringGrace {
+				close(finishCh)
+			}
+
+			select {
+			case err := <-stopDone:
+				require.NoError(t, err)
+			case <-time.After(2 * time.Second):
+				bp.release()
+				if secondary != nil {
+					secondary.release()
+				}
+				stopErr := <-stopDone
+				<-execDone
+				t.Fatalf("Stop blocked past grace timeout without destroying worker pool (stopErr=%v)", stopErr)
+			}
+
+			<-execDone
+
+			assert.Equal(t, 1, bp.Destroyed())
+			assert.Equal(t, tc.wantCtxCanceledBeforeDestroy, bp.CtxCanceledBeforeDestroy())
+			if tc.finishDuringGrace {
+				destroyedAtFinish, ctxErr := bp.FinishState()
+				assert.NoError(t, ctxErr)
+				assert.Zero(t, destroyedAtFinish)
+			}
+			if secondary != nil {
+				assert.Equal(t, 1, secondary.Destroyed())
+			}
+		})
+	}
+}
+
+func TestPluginResetIgnoredAfterStop(t *testing.T) {
+	p := newTestPlugin(t, &Config{})
+	fp := &fakePool{}
+	p.workersPool = fp
+
+	require.NoError(t, p.Stop(t.Context()))
+	require.NoError(t, p.Reset())
+	assert.Zero(t, fp.reset)
 }

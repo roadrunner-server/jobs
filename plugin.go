@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	jobsApi "github.com/roadrunner-server/api-plugins/v6/jobs"
@@ -75,6 +76,10 @@ type Plugin struct {
 	stopCh chan struct{}
 	// serializes Declare calls to keep one driver per pipeline name
 	declareCh chan struct{}
+	// cancels waiting pool allocations when Stop begins pool destruction
+	execCtx    context.Context
+	execCancel context.CancelFunc
+	stopping   atomic.Bool
 
 	// internal payloads pool
 	pldPool       sync.Pool
@@ -111,6 +116,7 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 	p.consume = make(map[string]struct{})
 	p.stopCh = make(chan struct{}, 1)
 	p.declareCh = make(chan struct{}, 1)
+	p.execCtx, p.execCancel = context.WithCancel(context.Background())
 	p.eventsCh = make(chan events.Event, 1)
 	p.eventBus, p.id = events.NewEventBus()
 
@@ -247,6 +253,7 @@ func (p *Plugin) Serve() chan error {
 // Stop gracefully shuts down the plugin by signaling pollers to stop, waiting for in-flight jobs
 // to complete, stopping all pipeline drivers, and destroying the worker pool(s).
 func (p *Plugin) Stop(ctx context.Context) error {
+	p.stopping.Store(true)
 	// Broadcast stop signal to all pollers
 	close(p.stopCh)
 	// drop subscriptions
@@ -254,9 +261,11 @@ func (p *Plugin) Stop(ctx context.Context) error {
 	close(p.eventsCh)
 
 	defer func() {
-		// workers' pool should be stopped
-		p.mu.Lock()
+		if p.execCancel != nil {
+			p.execCancel()
+		}
 
+		// Destroy pools without taking p.mu.Lock because stuck Execute calls hold p.mu.RLock.
 		if p.workersPools != nil {
 			for _, wp := range p.workersPools {
 				if wp != nil {
@@ -266,8 +275,6 @@ func (p *Plugin) Stop(ctx context.Context) error {
 		} else if p.workersPool != nil {
 			p.workersPool.Destroy(ctx)
 		}
-
-		p.mu.Unlock()
 	}()
 
 	sema := semaphore.NewWeighted(int64(p.cfg.CfgOptions.Parallelism))
@@ -403,6 +410,10 @@ func (p *Plugin) Name() string {
 func (p *Plugin) Reset() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+
+	if p.stopping.Load() {
+		return nil
+	}
 
 	const op = errors.Op("jobs_plugin_reset")
 	p.log.Info("reset signal was received")

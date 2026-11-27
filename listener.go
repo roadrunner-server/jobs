@@ -114,7 +114,7 @@ func (p *Plugin) Execute(pldCtx []byte, pool Pool, jb jobs.Job, span trace.Span,
 	// protect from the pool reset
 	// TODO: use a structure with pool and mutex to protect the particular pool
 	p.mu.RLock()
-	re, err := pool.Exec(context.Background(), exec, nil)
+	re, err := pool.Exec(p.execCtx, exec, nil)
 	p.mu.RUnlock()
 
 	if err != nil {
