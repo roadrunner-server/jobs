@@ -1,11 +1,16 @@
 package jobs
 
 import (
+	"context"
 	"errors"
+	"strings"
+	"sync"
 	"testing"
+	"testing/synctest"
 
 	jobsProto "github.com/roadrunner-server/api-go/v6/jobs/v1"
 	jobsApi "github.com/roadrunner-server/api-plugins/v6/jobs"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -288,6 +293,226 @@ func TestRPCListAndDeclare(t *testing.T) {
 	// a pipeline without a driver never reaches a constructor
 	bad := &jobsProto.DeclareRequest{Pipeline: map[string]string{"name": "test-2-memory"}}
 	require.Error(t, r.Declare(bad, &jobsProto.Empty{}))
+}
+
+type blockingConstructor struct {
+	name    string
+	release chan struct{}
+
+	mu       sync.Mutex
+	calls    int
+	initErrs []error
+	drivers  []*fakeDriver
+}
+
+func (b *blockingConstructor) Name() string { return b.name }
+
+func (b *blockingConstructor) DriverFromConfig(_ context.Context, _ string, _ jobsApi.Queue, _ jobsApi.Pipeline) (jobsApi.Driver, error) {
+	return nil, errors.New("unexpected DriverFromConfig call")
+}
+
+func (b *blockingConstructor) DriverFromPipeline(_ context.Context, _ jobsApi.Pipeline, _ jobsApi.Queue) (jobsApi.Driver, error) {
+	b.mu.Lock()
+	idx := b.calls
+	b.calls++
+	var err error
+	if idx < len(b.initErrs) {
+		err = b.initErrs[idx]
+	}
+	b.mu.Unlock()
+
+	<-b.release
+	if err != nil {
+		return nil, err
+	}
+
+	drv := &fakeDriver{}
+	b.mu.Lock()
+	b.drivers = append(b.drivers, drv)
+	b.mu.Unlock()
+
+	return drv, nil
+}
+
+func TestRPCDeclareConcurrent(t *testing.T) {
+	tests := []struct {
+		name                    string
+		callers                 int
+		consume                 []string
+		initErrs                []error
+		wantSuccess             int
+		wantDuplicateErr        int
+		wantInitErr             int
+		wantConstructed         int
+		wantRuns                int
+		wantStoppedAfterDestroy int
+	}{
+		{
+			name:                    "single caller",
+			callers:                 1,
+			wantSuccess:             1,
+			wantConstructed:         1,
+			wantStoppedAfterDestroy: 1,
+		},
+		{
+			name:                    "concurrent callers without consume",
+			callers:                 4,
+			wantSuccess:             1,
+			wantDuplicateErr:        3,
+			wantConstructed:         1,
+			wantStoppedAfterDestroy: 1,
+		},
+		{
+			name:                    "concurrent callers with consume",
+			callers:                 4,
+			consume:                 []string{"stand"},
+			wantSuccess:             1,
+			wantDuplicateErr:        3,
+			wantConstructed:         1,
+			wantRuns:                1,
+			wantStoppedAfterDestroy: 1,
+		},
+		{
+			name:                    "first caller fails constructor and waiting caller succeeds",
+			callers:                 2,
+			initErrs:                []error{errors.New("broker unreachable")},
+			wantSuccess:             1,
+			wantInitErr:             1,
+			wantConstructed:         1,
+			wantStoppedAfterDestroy: 1,
+		},
+	}
+
+	for i := range tests {
+		tc := tests[i]
+		t.Run(tc.name, func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				p := newTestPlugin(t, &Config{Consume: tc.consume})
+				defer func() {
+					p.jobsProcessor.stop()
+					synctest.Wait()
+				}()
+
+				ctor := &blockingConstructor{
+					name:     "memory",
+					release:  make(chan struct{}),
+					initErrs: tc.initErrs,
+				}
+				releaseOnce := sync.OnceFunc(func() { close(ctor.release) })
+				defer releaseOnce()
+
+				p.jobConstructors["memory"] = ctor
+				r := &rpc{p: p}
+
+				errs := make([]error, tc.callers)
+				var wg sync.WaitGroup
+				for idx := range tc.callers {
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+						req := &jobsProto.DeclareRequest{
+							Pipeline: map[string]string{
+								"driver": "memory",
+								"name":   "stand",
+							},
+						}
+						errs[idx] = r.Declare(req, &jobsProto.Empty{})
+					}()
+				}
+
+				synctest.Wait()
+				releaseOnce()
+				wg.Wait()
+
+				var gotSuccess, gotDuplicateErr, gotInitErr int
+				for _, err := range errs {
+					switch {
+					case err == nil:
+						gotSuccess++
+					case strings.Contains(err.Error(), "pipeline already exists"):
+						gotDuplicateErr++
+					case strings.Contains(err.Error(), "broker unreachable"):
+						gotInitErr++
+					default:
+						t.Errorf("unexpected error: %v", err)
+					}
+				}
+
+				assert.Equal(t, tc.wantSuccess, gotSuccess)
+				assert.Equal(t, tc.wantDuplicateErr, gotDuplicateErr)
+				assert.Equal(t, tc.wantInitErr, gotInitErr)
+				require.Len(t, ctor.drivers, tc.wantConstructed)
+
+				var totalRuns int
+				for _, drv := range ctor.drivers {
+					totalRuns += drv.Runs()
+				}
+				assert.Equal(t, tc.wantRuns, totalRuns)
+
+				require.NoError(t, p.Destroy(t.Context(), "stand"))
+
+				var totalStops int
+				for _, drv := range ctor.drivers {
+					totalStops += drv.Stops()
+				}
+				assert.Equal(t, tc.wantStoppedAfterDestroy, totalStops)
+				assert.Equal(t, len(ctor.drivers), totalStops, "every constructed driver must stop on Destroy")
+			})
+		})
+	}
+}
+
+func TestPluginDeclareRespectsCanceledContextWhileWaiting(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		p := newTestPlugin(t, &Config{})
+		defer func() {
+			p.jobsProcessor.stop()
+			synctest.Wait()
+		}()
+
+		ctor := &blockingConstructor{
+			name:    "memory",
+			release: make(chan struct{}),
+		}
+		releaseOnce := sync.OnceFunc(func() { close(ctor.release) })
+		p.jobConstructors["memory"] = ctor
+
+		var firstErr error
+		firstDone := make(chan struct{})
+		go func() {
+			defer close(firstDone)
+			firstErr = p.Declare(t.Context(), Pipeline{name: "stand", driver: "memory"})
+		}()
+		defer func() {
+			releaseOnce()
+			<-firstDone
+		}()
+
+		synctest.Wait()
+
+		waitCtx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+
+		secondDone := make(chan error, 1)
+		go func() {
+			secondDone <- p.Declare(waitCtx, Pipeline{name: "stand", driver: "memory"})
+		}()
+
+		synctest.Wait()
+		cancel()
+
+		secondErr := <-secondDone
+		require.ErrorContains(t, secondErr, context.Canceled.Error())
+
+		releaseOnce()
+		<-firstDone
+		require.NoError(t, firstErr)
+
+		assert.Equal(t, 1, ctor.calls)
+		require.Len(t, ctor.drivers, 1)
+		require.NoError(t, p.Destroy(t.Context(), "stand"))
+		assert.Equal(t, 1, ctor.drivers[0].Stops())
+	})
 }
 
 func TestRPCDestroy(t *testing.T) {

@@ -71,6 +71,8 @@ type Plugin struct {
 
 	// signal channel to stop the pollers
 	stopCh chan struct{}
+	// serializes Declare calls to keep one driver per pipeline name
+	declareCh chan struct{}
 
 	// internal payloads pool
 	pldPool       sync.Pool
@@ -106,6 +108,7 @@ func (p *Plugin) Init(cfg Configurer, log Logger, server Server) error {
 	p.jobConstructors = make(map[string]jobsApi.Constructor)
 	p.consume = make(map[string]struct{})
 	p.stopCh = make(chan struct{}, 1)
+	p.declareCh = make(chan struct{}, 1)
 	p.eventsCh = make(chan events.Event, 1)
 	p.eventBus, p.id = events.NewEventBus()
 
@@ -550,6 +553,15 @@ func (p *Plugin) Declare(ctx context.Context, pipeline jobsApi.Pipeline) error {
 		return errors.E(op, errors.Errorf("no associated driver with the pipeline, pipeline name: %s", pipeline.Name()))
 	}
 
+	select {
+	case p.declareCh <- struct{}{}:
+	case <-ctx.Done():
+		return errors.E(op, ctx.Err())
+	}
+	defer func() {
+		<-p.declareCh
+	}()
+
 	if _, ok := p.pipelines.Load(pipeline.Name()); ok {
 		return errors.Errorf("pipeline already exists, name: %s, driver: %s", pipeline.Name(), pipeline.Driver())
 	}
@@ -581,9 +593,14 @@ func (p *Plugin) Declare(ctx context.Context, pipeline jobsApi.Pipeline) error {
 	// but likely for the dynamic pipelines it should be started manually
 	if _, ok := p.consume[pipeline.Name()]; ok {
 		ctxDeclare, cancel := context.WithTimeout(ctx, p.cfg.TimeoutDuration())
-		defer cancel()
 		err = initializedDriver.Run(ctxDeclare, pipeline)
+		cancel()
 		if err != nil {
+			stopCtx, stopCancel := context.WithTimeout(context.WithoutCancel(ctx), p.cfg.TimeoutDuration())
+			if stopErr := initializedDriver.Stop(stopCtx); stopErr != nil {
+				p.log.Error("stop job driver", "pipeline", pipeline.Name(), "driver", dr, "error", stopErr)
+			}
+			stopCancel()
 			return errors.E(op, err)
 		}
 	}
